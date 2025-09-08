@@ -10,25 +10,64 @@ import {
   Edit, 
   Trash2,
   Plus,
-  Filter
+  Filter,
+  Pencil,
+  Search
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const { orders, updateOrder } = useApp();
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'menu'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'menu' | 'staff'>('overview');
+  // Mock staff data
+  const [staff, setStaff] = useState([
+    { id: '1', name: 'John Doe', phone: '', role: 'waiter', present: true },
+    { id: '2', name: 'Jane Smith', phone: '', role: 'kitchen', present: false },
+    { id: '3', name: 'Alice Brown', phone: '', role: 'admin', present: true },
+  ]);
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showAddStaff, setShowAddStaff] = useState(false);
+  const [newMenu, setNewMenu] = useState({ name: '', description: '', price: '', category: '', image: '', available: true, prepTime: '' });
+  const [newStaff, setNewStaff] = useState({ name: '', phone: '', role: 'waiter', present: true });
+  const [editMenuId, setEditMenuId] = useState<string | null>(null);
+  const [editMenu, setEditMenu] = useState<any>(null);
+  const [editStaffId, setEditStaffId] = useState<string | null>(null);
+  const [editStaff, setEditStaff] = useState<any>(null);
+  // Track required menu items for the day
+  const [requiredMenu, setRequiredMenu] = useState<{ [id: string]: boolean }>(() => {
+    // By default, all available menu items are required
+    return Object.fromEntries((useApp().menuItems || []).map(item => [item.id, true]));
+  });
+  const { menuItems: contextMenuItems } = useApp();
+  const [menuItems, setMenuItems] = useState(contextMenuItems);
+  const [menuSearch, setMenuSearch] = useState('');
+  const [menuCategory, setMenuCategory] = useState('all');
+  const [staffSearch, setStaffSearch] = useState('');
+  // Keep local menuItems in sync with context if context changes
+  React.useEffect(() => { setMenuItems(contextMenuItems); }, [contextMenuItems]);
   const [orderFilter, setOrderFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
   // Analytics calculations
   const today = new Date();
+  // Helper to safely convert orderTime to Date
+  function toDateSafe(val: any): Date {
+    if (!val) return new Date();
+    if (val instanceof Date) return val;
+    if (typeof val === 'string' || typeof val === 'number') return new Date(val);
+    if (typeof val === 'object' && typeof val.toDate === 'function') return val.toDate();
+    return new Date();
+  }
+
   const todayOrders = orders.filter(order => {
-    const orderDate = new Date(order.orderTime);
+    const orderDate = toDateSafe(order.orderTime);
     return orderDate.toDateString() === today.toDateString();
   });
 
   const completedOrders = orders.filter(order => order.status === 'completed');
   const totalRevenue = completedOrders.reduce((sum, order) => sum + order.grandTotal, 0);
-  const averageOrderValue = completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
-  const averagePreparationTime = 18; // Mock data
+  // const averageOrderValue = completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
+  // const averagePreparationTime = 18; // Mock data
+  const totalMenuItems = menuItems.length;
+  const totalStaff = staff.length;
 
   const filteredOrders = orderFilter === 'all' ? orders : 
     orders.filter(order => order.status === (orderFilter === 'completed' ? 'completed' : 'pending'));
@@ -40,7 +79,7 @@ const AdminDashboard: React.FC = () => {
       ========================
       
       Order #${order.id.slice(-4)}
-      Date: ${new Date(order.orderTime).toLocaleString()}
+  Date: ${toDateSafe(order.orderTime).toLocaleString()}
       Customer: ${order.customerName}
       ${order.tableNumber ? `Table: ${order.tableNumber}` : ''}
       ${order.customerAddress ? `Address: ${order.customerAddress}` : ''}
@@ -73,7 +112,8 @@ const AdminDashboard: React.FC = () => {
   const tabs = [
     { id: 'overview', name: 'Overview', icon: TrendingUp },
     { id: 'orders', name: 'Orders', icon: Users },
-    { id: 'menu', name: 'Menu', icon: Plus }
+    { id: 'menu', name: 'Menu', icon: Plus },
+    { id: 'staff', name: 'Staff', icon: Users },
   ];
 
   return (
@@ -136,11 +176,11 @@ const AdminDashboard: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
               <div className="flex items-center">
                 <div className="bg-purple-100 rounded-md p-3">
-                  <TrendingUp className="w-6 h-6 text-purple-600" />
+                  <Plus className="w-6 h-6 text-purple-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-                  <p className="text-2xl font-bold text-gray-900">${averageOrderValue.toFixed(2)}</p>
+                  <p className="text-sm font-medium text-gray-600">Total Menu Items</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalMenuItems}</p>
                 </div>
               </div>
             </div>
@@ -148,11 +188,11 @@ const AdminDashboard: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
               <div className="flex items-center">
                 <div className="bg-orange-100 rounded-md p-3">
-                  <Clock className="w-6 h-6 text-orange-600" />
+                  <Users className="w-6 h-6 text-orange-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Avg Prep Time</p>
-                  <p className="text-2xl font-bold text-gray-900">{averagePreparationTime}m</p>
+                  <p className="text-sm font-medium text-gray-600">Total Staff</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalStaff}</p>
                 </div>
               </div>
             </div>
@@ -246,7 +286,7 @@ const AdminDashboard: React.FC = () => {
                             #{order.id.slice(-4)}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {new Date(order.orderTime).toLocaleDateString()}
+                            {toDateSafe(order.orderTime).toLocaleDateString()}
                           </div>
                         </div>
                       </td>
@@ -333,30 +373,327 @@ const AdminDashboard: React.FC = () => {
       {/* Menu Tab */}
       {activeTab === 'menu' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <h2 className="text-2xl font-bold text-gray-900">Menu Management</h2>
-            <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2">
-              <Plus className="w-4 h-4" />
-              <span>Add Item</span>
-            </button>
+            <div className="flex flex-col md:flex-row gap-2 md:gap-4 items-center w-full md:w-auto">
+              <div className="relative w-full md:w-64">
+                <input
+                  type="text"
+                  className="w-full border rounded-lg pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Search menu..."
+                  value={menuSearch}
+                  onChange={e => setMenuSearch(e.target.value)}
+                />
+                <Search className="absolute left-2 top-2.5 w-5 h-5 text-gray-400" />
+              </div>
+              <select
+                className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                value={menuCategory}
+                onChange={e => setMenuCategory(e.target.value)}
+              >
+                <option value="all">All Categories</option>
+                <option value="Veg">Veg</option>
+                <option value="Non-Veg">Non-Veg</option>
+                <option value="Beverages">Beverages</option>
+                <option value="Desserts">Desserts</option>
+                <option value="Appetizers">Appetizers</option>
+                <option value="Main Course">Main Course</option>
+              </select>
+              <button onClick={() => setShowAddMenu(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2">
+                <Plus className="w-4 h-4" />
+                <span>Add Item</span>
+              </button>
+            </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <p className="text-gray-600">Menu management features coming soon...</p>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-2">Categories</h3>
-                <p className="text-sm text-gray-600">Manage food categories</p>
-              </div>
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-2">Menu Items</h3>
-                <p className="text-sm text-gray-600">Add, edit, or remove items</p>
-              </div>
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-2">Pricing</h3>
-                <p className="text-sm text-gray-600">Update prices and availability</p>
+          {/* Add Menu Modal */}
+          {showAddMenu && (
+            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <h3 className="text-lg font-bold mb-4">Add Menu Item</h3>
+                <form onSubmit={e => {
+                  e.preventDefault();
+                  setShowAddMenu(false);
+                  setNewMenu({ name: '', description: '', price: '', category: '', image: '', available: true, prepTime: '' });
+                  // Add to menuItems (mock, not persistent)
+                  menuItems.push({
+                    id: (menuItems.length + 1).toString(),
+                    name: newMenu.name,
+                    description: newMenu.description,
+                    price: parseFloat(newMenu.price),
+                    category: newMenu.category,
+                    image: newMenu.image,
+                    available: newMenu.available,
+                    prepTime: parseInt(newMenu.prepTime) || 0
+                  });
+                }} className="space-y-3">
+                  <input required className="w-full border p-2 rounded" placeholder="Name" value={newMenu.name} onChange={e => setNewMenu({ ...newMenu, name: e.target.value })} />
+                  <input required className="w-full border p-2 rounded" placeholder="Description" value={newMenu.description} onChange={e => setNewMenu({ ...newMenu, description: e.target.value })} />
+                  <input required className="w-full border p-2 rounded" placeholder="Category" value={newMenu.category} onChange={e => setNewMenu({ ...newMenu, category: e.target.value })} />
+                  <input required className="w-full border p-2 rounded" placeholder="Image URL" value={newMenu.image} onChange={e => setNewMenu({ ...newMenu, image: e.target.value })} />
+                  <input required type="number" className="w-full border p-2 rounded" placeholder="Price" value={newMenu.price} onChange={e => setNewMenu({ ...newMenu, price: e.target.value })} />
+                  <input required type="number" className="w-full border p-2 rounded" placeholder="Prep Time (min)" value={newMenu.prepTime} onChange={e => setNewMenu({ ...newMenu, prepTime: e.target.value })} />
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" checked={newMenu.available} onChange={e => setNewMenu({ ...newMenu, available: e.target.checked })} />
+                    <span>Available</span>
+                  </label>
+                  <div className="flex space-x-2 justify-end">
+                    <button type="button" onClick={() => setShowAddMenu(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-purple-600 text-white rounded">Add</button>
+                  </div>
+                </form>
               </div>
             </div>
+          )}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(
+                menuItems
+                  .filter(item =>
+                    (menuCategory === 'all' || item.category === menuCategory) &&
+                    (item.name.toLowerCase().includes(menuSearch.toLowerCase()) ||
+                      item.description.toLowerCase().includes(menuSearch.toLowerCase()))
+                  )
+                  .reduce((acc, item) => {
+                    acc[item.category] = acc[item.category] || [];
+                    acc[item.category].push(item);
+                    return acc;
+                  }, {} as Record<string, typeof menuItems>)
+              ).map(([cat, items]) => (
+                <React.Fragment key={cat}>
+                  <div className="col-span-full mt-4 mb-2">
+                    <h4 className="text-lg font-bold text-gray-700">{cat}</h4>
+                  </div>
+                  {items.map(item => (
+                    <div key={item.id} className="border border-gray-200 rounded-lg p-4 flex flex-col relative">
+                      <img src={item.image} alt={item.name} className="w-full h-32 object-cover rounded-md mb-2" />
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg text-gray-900">{item.name}</h3>
+                        <p className="text-sm text-gray-600 mb-1">{item.description}</p>
+                        <p className="text-sm text-gray-500 mb-1">Category: {item.category}</p>
+                        <p className="text-md font-semibold text-purple-700 mb-2">${item.price.toFixed(2)}</p>
+                        <p className="text-xs text-gray-500 mb-1">Prep Time: {item.prepTime} min</p>
+                      </div>
+                      <div className="flex flex-col items-end mt-2">
+                        <div className="flex gap-2 mb-1">
+                          <button
+                            onClick={() => { setEditMenuId(item.id); setEditMenu({ ...item }); }}
+                            className="text-gray-400 hover:text-blue-600"
+                            title="Edit"
+                          >
+                            <Pencil className="h-7 w-7" />
+                          </button>
+                          <button
+                            onClick={() => setMenuItems(menuItems.filter(m => m.id !== item.id))}
+                            className="text-gray-400 hover:text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-7 w-7" />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between w-full">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={!!requiredMenu[item.id]}
+                              onChange={() => setRequiredMenu(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                            />
+                            <span className="text-sm">Required Today</span>
+                          </label>
+                          <span className={`px-2 py-1 rounded text-xs ${item.available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.available ? 'Available' : 'Not Available'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </React.Fragment>
+              ))}
+              {/* Edit Menu Modal */}
+              {editMenuId && editMenu && (
+                <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                  <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                    <h3 className="text-lg font-bold mb-4">Edit Menu Item</h3>
+                    <form onSubmit={e => {
+                      e.preventDefault();
+                      setMenuItems(prev => {
+                        const idx = prev.findIndex((m: any) => m.id === editMenuId);
+                        if (idx !== -1) {
+                          const updated = [...prev];
+                          updated[idx] = { ...editMenu, price: parseFloat(editMenu.price), prepTime: parseInt(editMenu.prepTime) };
+                          return updated;
+                        }
+                        return prev;
+                      });
+                      setEditMenuId(null);
+                      setEditMenu(null);
+                    }} className="space-y-3">
+                      <input required className="w-full border p-2 rounded" placeholder="Name" value={editMenu.name} onChange={e => setEditMenu({ ...editMenu, name: e.target.value })} />
+                      <input required className="w-full border p-2 rounded" placeholder="Description" value={editMenu.description} onChange={e => setEditMenu({ ...editMenu, description: e.target.value })} />
+                      <input required className="w-full border p-2 rounded" placeholder="Category" value={editMenu.category} onChange={e => setEditMenu({ ...editMenu, category: e.target.value })} />
+                      <input required className="w-full border p-2 rounded" placeholder="Image URL" value={editMenu.image} onChange={e => setEditMenu({ ...editMenu, image: e.target.value })} />
+                      <input required type="number" className="w-full border p-2 rounded" placeholder="Price" value={editMenu.price} onChange={e => setEditMenu({ ...editMenu, price: e.target.value })} />
+                      <input required type="number" className="w-full border p-2 rounded" placeholder="Prep Time (min)" value={editMenu.prepTime} onChange={e => setEditMenu({ ...editMenu, prepTime: e.target.value })} />
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" checked={editMenu.available} onChange={e => setEditMenu({ ...editMenu, available: e.target.checked })} />
+                        <span>Available</span>
+                      </label>
+                      <div className="flex space-x-2 justify-end">
+                        <button type="button" onClick={() => { setEditMenuId(null); setEditMenu(null); }} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Tab */}
+      {activeTab === 'staff' && (
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <h2 className="text-2xl font-bold text-gray-900">Staff Management</h2>
+            <div className="flex flex-col md:flex-row gap-2 md:gap-4 items-center w-full md:w-auto">
+              <div className="relative w-full md:w-64">
+                <input
+                  type="text"
+                  className="w-full border rounded-lg pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Search staff..."
+                  value={staffSearch}
+                  onChange={e => setStaffSearch(e.target.value)}
+                />
+                <Search className="absolute left-2 top-2.5 w-5 h-5 text-gray-400" />
+              </div>
+              <button onClick={() => setShowAddStaff(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2">
+                <Plus className="w-4 h-4" />
+                <span>Add Staff</span>
+              </button>
+            </div>
+          </div>
+          {/* Add Staff Modal */}
+          {showAddStaff && (
+            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                <h3 className="text-lg font-bold mb-4">Add Staff</h3>
+                <form onSubmit={e => {
+                  e.preventDefault();
+                  setShowAddStaff(false);
+                  setStaff(prev => ([...prev, { id: (prev.length + 1).toString(), ...newStaff }]));
+                  setNewStaff({ name: '', phone: '', role: 'waiter', present: true });
+                }} className="space-y-3">
+                  <input required className="w-full border p-2 rounded" placeholder="Name" value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} />
+                  <input required className="w-full border p-2 rounded" placeholder="Phone Number" value={newStaff.phone} onChange={e => setNewStaff({ ...newStaff, phone: e.target.value })} />
+                  <select required className="w-full border p-2 rounded" value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })}>
+                    <option value="waiter">Waiter</option>
+                    <option value="kitchen">Kitchen</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <label className="flex items-center space-x-2">
+                    <input type="checkbox" checked={newStaff.present} onChange={e => setNewStaff({ ...newStaff, present: e.target.checked })} />
+                    <span>Present</span>
+                  </label>
+                  <div className="flex space-x-2 justify-end">
+                    <button type="button" onClick={() => setShowAddStaff(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-purple-600 text-white rounded">Add</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Present</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {staff
+                  .filter(member =>
+                    member.name.toLowerCase().includes(staffSearch.toLowerCase()) ||
+                    (member.phone && member.phone.includes(staffSearch))
+                  )
+                  .map(member => (
+                  <tr key={member.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">{member.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{member.phone || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap capitalize">{member.role}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={member.present}
+                          onChange={() => setStaff(staff.map(s => s.id === member.id ? { ...s, present: !s.present } : s))}
+                        />
+                        <span className={member.present ? 'text-green-600' : 'text-red-600'}>
+                          {member.present ? 'Present' : 'Absent'}
+                        </span>
+                      </label>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex gap-2">
+                        <button
+                          className="text-gray-400 hover:text-blue-600"
+                          title="Edit"
+                          onClick={() => { setEditStaffId(member.id); setEditStaff({ ...member }); }}
+                        >
+                          <Pencil className="h-5 w-5" />
+                        </button>
+                        <button
+                          className="text-gray-400 hover:text-red-600"
+                          title="Delete"
+                          onClick={() => setStaff(staff.filter(s => s.id !== member.id))}
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              {/* Edit Staff Modal */}
+              {editStaffId && editStaff && (
+                <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                  <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                    <h3 className="text-lg font-bold mb-4">Edit Staff</h3>
+                    <form onSubmit={e => {
+                      e.preventDefault();
+                      setStaff(prev => {
+                        const idx = prev.findIndex((s: any) => s.id === editStaffId);
+                        if (idx !== -1) {
+                          const updated = [...prev];
+                          updated[idx] = { ...editStaff };
+                          return updated;
+                        }
+                        return prev;
+                      });
+                      setEditStaffId(null);
+                      setEditStaff(null);
+                    }} className="space-y-3">
+                      <input required className="w-full border p-2 rounded" placeholder="Name" value={editStaff.name} onChange={e => setEditStaff({ ...editStaff, name: e.target.value })} />
+                      <input required className="w-full border p-2 rounded" placeholder="Phone Number" value={editStaff.phone} onChange={e => setEditStaff({ ...editStaff, phone: e.target.value })} />
+                      <select required className="w-full border p-2 rounded" value={editStaff.role} onChange={e => setEditStaff({ ...editStaff, role: e.target.value })}>
+                        <option value="waiter">Waiter</option>
+                        <option value="kitchen">Kitchen</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <label className="flex items-center space-x-2">
+                        <input type="checkbox" checked={editStaff.present} onChange={e => setEditStaff({ ...editStaff, present: e.target.checked })} />
+                        <span>Present</span>
+                      </label>
+                      <div className="flex space-x-2 justify-end">
+                        <button type="button" onClick={() => { setEditStaffId(null); setEditStaff(null); }} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
