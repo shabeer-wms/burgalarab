@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
+import React, { useState, useEffect } from 'react';
+import { collection, addDoc, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { db, auth } from '../../firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useApp } from '../../context/AppContext';
 import { Order } from '../../types';
 import { 
@@ -20,12 +21,14 @@ import {
 const AdminDashboard: React.FC = () => {
   const { orders, updateOrder, menuItems, addMenuItem, updateMenuItem, deleteMenuItem } = useApp();
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'menu' | 'staff'>('overview');
-  // Mock staff data
-  const [staff, setStaff] = useState([
-    { id: '1', name: 'John Doe', phone: '', role: 'waiter', present: true },
-    { id: '2', name: 'Jane Smith', phone: '', role: 'kitchen', present: false },
-    { id: '3', name: 'Alice Brown', phone: '', role: 'admin', present: true },
-  ]);
+  // Firestore staff data
+  const [staff, setStaff] = useState<any[]>([]);
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'staff'), (snapshot) => {
+      setStaff(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsub();
+  }, []);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [newMenu, setNewMenu] = useState({ name: '', description: '', price: '', category: '', image: '', available: true, prepTime: '' });
@@ -572,10 +575,13 @@ const AdminDashboard: React.FC = () => {
                 <form onSubmit={async e => {
                   e.preventDefault();
                   setShowAddStaff(false);
-                  // Add to local state
-                  setStaff(prev => ([...prev, { id: (prev.length + 1).toString(), ...newStaff }]));
-                  // Add to Firestore staff collection
-                  await addDoc(collection(db, 'staff'), newStaff);
+                  try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, newStaff.email, newStaff.password);
+                    const { password, ...staffData } = newStaff;
+                    await addDoc(collection(db, 'staff'), { ...staffData, uid: userCredential.user.uid });
+                  } catch (error) {
+                    alert('Error creating staff: ' + (error as any).message);
+                  }
                   setNewStaff({ name: '', phone: '', email: '', password: '', role: 'waiter', present: true });
                 }} className="space-y-3">
                   <input required className="w-full border p-2 rounded" placeholder="Name" value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} />
@@ -618,39 +624,105 @@ const AdminDashboard: React.FC = () => {
                   )
                   .map(member => (
                   <tr key={member.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">{member.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{member.phone || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap capitalize">{member.role}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={member.present}
-                          onChange={() => setStaff(staff.map(s => s.id === member.id ? { ...s, present: !s.present } : s))}
-                        />
-                        <span className={member.present ? 'text-green-600' : 'text-red-600'}>
-                          {member.present ? 'Present' : 'Absent'}
-                        </span>
-                      </label>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex gap-2">
-                        <button
-                          className="text-gray-400 hover:text-blue-600"
-                          title="Edit"
-                          onClick={() => { setEditStaffId(member.id); setEditStaff({ ...member }); }}
-                        >
-                          <Pencil className="h-5 w-5" />
-                        </button>
-                        <button
-                          className="text-gray-400 hover:text-red-600"
-                          title="Delete"
-                          onClick={() => setStaff(staff.filter(s => s.id !== member.id))}
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </td>
+                    {editStaffId === member.id ? (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            className="border rounded p-1 w-full"
+                            value={editStaff?.name || ''}
+                            onChange={e => setEditStaff({ ...editStaff, name: e.target.value })}
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            className="border rounded p-1 w-full"
+                            value={editStaff?.phone || ''}
+                            onChange={e => setEditStaff({ ...editStaff, phone: e.target.value })}
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap capitalize">
+                          <select
+                            className="border rounded p-1"
+                            value={editStaff?.role}
+                            onChange={e => setEditStaff({ ...editStaff, role: e.target.value })}
+                          >
+                            <option value="waiter">Waiter</option>
+                            <option value="kitchen">Kitchen</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={!!editStaff?.present}
+                              onChange={e => setEditStaff({ ...editStaff, present: e.target.checked })}
+                            />
+                            <span className={editStaff?.present ? 'text-green-600' : 'text-red-600'}>
+                              {editStaff?.present ? 'Present' : 'Absent'}
+                            </span>
+                          </label>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex gap-2">
+                            <button
+                              className="text-green-600 hover:text-green-900"
+                              title="Save"
+                              onClick={async () => {
+                                await updateDoc(doc(db, 'staff', member.id), editStaff);
+                                setEditStaffId(null);
+                                setEditStaff(null);
+                              }}
+                            >
+                              Save
+                            </button>
+                            <button
+                              className="text-gray-400 hover:text-blue-600"
+                              title="Cancel"
+                              onClick={() => { setEditStaffId(null); setEditStaff(null); }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap">{member.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{member.phone || '-'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap capitalize">{member.role}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={member.present}
+                              disabled
+                            />
+                            <span className={member.present ? 'text-green-600' : 'text-red-600'}>
+                              {member.present ? 'Present' : 'Absent'}
+                            </span>
+                          </label>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex gap-2">
+                            <button
+                              className="text-gray-400 hover:text-blue-600"
+                              title="Edit"
+                              onClick={() => { setEditStaffId(member.id); setEditStaff({ ...member }); }}
+                            >
+                              <Pencil className="h-5 w-5" />
+                            </button>
+                            <button
+                              className="text-gray-400 hover:text-red-600"
+                              title="Delete"
+                              onClick={async () => await updateDoc(doc(db, 'staff', member.id), { deleted: true })}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               {/* Edit Staff Modal */}
