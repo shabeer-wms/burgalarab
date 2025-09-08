@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { useApp } from '../../context/AppContext';
 import { Order } from '../../types';
 import { 
@@ -16,7 +18,7 @@ import {
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
-  const { orders, updateOrder } = useApp();
+  const { orders, updateOrder, menuItems, addMenuItem, updateMenuItem, deleteMenuItem } = useApp();
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'menu' | 'staff'>('overview');
   // Mock staff data
   const [staff, setStaff] = useState([
@@ -27,7 +29,7 @@ const AdminDashboard: React.FC = () => {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [newMenu, setNewMenu] = useState({ name: '', description: '', price: '', category: '', image: '', available: true, prepTime: '' });
-  const [newStaff, setNewStaff] = useState({ name: '', phone: '', role: 'waiter', present: true });
+  const [newStaff, setNewStaff] = useState({ name: '', phone: '', email: '', password: '', role: 'waiter', present: true });
   const [editMenuId, setEditMenuId] = useState<string | null>(null);
   const [editMenu, setEditMenu] = useState<any>(null);
   const [editStaffId, setEditStaffId] = useState<string | null>(null);
@@ -37,13 +39,11 @@ const AdminDashboard: React.FC = () => {
     // By default, all available menu items are required
     return Object.fromEntries((useApp().menuItems || []).map(item => [item.id, true]));
   });
-  const { menuItems: contextMenuItems } = useApp();
-  const [menuItems, setMenuItems] = useState(contextMenuItems);
+  // Remove local menuItems state, use context menuItems only
   const [menuSearch, setMenuSearch] = useState('');
   const [menuCategory, setMenuCategory] = useState('all');
   const [staffSearch, setStaffSearch] = useState('');
-  // Keep local menuItems in sync with context if context changes
-  React.useEffect(() => { setMenuItems(contextMenuItems); }, [contextMenuItems]);
+
   const [orderFilter, setOrderFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
   // Analytics calculations
@@ -410,13 +410,10 @@ const AdminDashboard: React.FC = () => {
             <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <h3 className="text-lg font-bold mb-4">Add Menu Item</h3>
-                <form onSubmit={e => {
+                <form onSubmit={async e => {
                   e.preventDefault();
                   setShowAddMenu(false);
-                  setNewMenu({ name: '', description: '', price: '', category: '', image: '', available: true, prepTime: '' });
-                  // Add to menuItems (mock, not persistent)
-                  menuItems.push({
-                    id: (menuItems.length + 1).toString(),
+                  await addMenuItem({
                     name: newMenu.name,
                     description: newMenu.description,
                     price: parseFloat(newMenu.price),
@@ -425,6 +422,7 @@ const AdminDashboard: React.FC = () => {
                     available: newMenu.available,
                     prepTime: parseInt(newMenu.prepTime) || 0
                   });
+                  setNewMenu({ name: '', description: '', price: '', category: '', image: '', available: true, prepTime: '' });
                 }} className="space-y-3">
                   <input required className="w-full border p-2 rounded" placeholder="Name" value={newMenu.name} onChange={e => setNewMenu({ ...newMenu, name: e.target.value })} />
                   <input required className="w-full border p-2 rounded" placeholder="Description" value={newMenu.description} onChange={e => setNewMenu({ ...newMenu, description: e.target.value })} />
@@ -483,7 +481,7 @@ const AdminDashboard: React.FC = () => {
                             <Pencil className="h-7 w-7" />
                           </button>
                           <button
-                            onClick={() => setMenuItems(menuItems.filter(m => m.id !== item.id))}
+                            onClick={async () => { await deleteMenuItem(item.id); }}
                             className="text-gray-400 hover:text-red-600"
                             title="Delete"
                           >
@@ -511,16 +509,12 @@ const AdminDashboard: React.FC = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
                   <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                     <h3 className="text-lg font-bold mb-4">Edit Menu Item</h3>
-                    <form onSubmit={e => {
+                    <form onSubmit={async e => {
                       e.preventDefault();
-                      setMenuItems(prev => {
-                        const idx = prev.findIndex((m: any) => m.id === editMenuId);
-                        if (idx !== -1) {
-                          const updated = [...prev];
-                          updated[idx] = { ...editMenu, price: parseFloat(editMenu.price), prepTime: parseInt(editMenu.prepTime) };
-                          return updated;
-                        }
-                        return prev;
+                      await updateMenuItem(editMenuId, {
+                        ...editMenu,
+                        price: parseFloat(editMenu.price),
+                        prepTime: parseInt(editMenu.prepTime)
                       });
                       setEditMenuId(null);
                       setEditMenu(null);
@@ -575,14 +569,19 @@ const AdminDashboard: React.FC = () => {
             <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                 <h3 className="text-lg font-bold mb-4">Add Staff</h3>
-                <form onSubmit={e => {
+                <form onSubmit={async e => {
                   e.preventDefault();
                   setShowAddStaff(false);
+                  // Add to local state
                   setStaff(prev => ([...prev, { id: (prev.length + 1).toString(), ...newStaff }]));
-                  setNewStaff({ name: '', phone: '', role: 'waiter', present: true });
+                  // Add to Firestore staff collection
+                  await addDoc(collection(db, 'staff'), newStaff);
+                  setNewStaff({ name: '', phone: '', email: '', password: '', role: 'waiter', present: true });
                 }} className="space-y-3">
                   <input required className="w-full border p-2 rounded" placeholder="Name" value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} />
                   <input required className="w-full border p-2 rounded" placeholder="Phone Number" value={newStaff.phone} onChange={e => setNewStaff({ ...newStaff, phone: e.target.value })} />
+                  <input required type="email" className="w-full border p-2 rounded" placeholder="Email" value={newStaff.email} onChange={e => setNewStaff({ ...newStaff, email: e.target.value })} />
+                  <input required type="password" className="w-full border p-2 rounded" placeholder="Password" value={newStaff.password} onChange={e => setNewStaff({ ...newStaff, password: e.target.value })} />
                   <select required className="w-full border p-2 rounded" value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })}>
                     <option value="waiter">Waiter</option>
                     <option value="kitchen">Kitchen</option>
