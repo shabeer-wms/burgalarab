@@ -29,106 +29,20 @@ interface AppContextType {
   generateBill: (orderId: string, generatedBy: string, paymentMethod: Bill['paymentMethod']) => Bill;
   getTodaysRevenue: () => number;
   getActiveOrders: () => Order[];
+  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
+  updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
+  deleteMenuItem: (id: string) => Promise<void>;
 }
+
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Mock data
-const mockCategories: Category[] = [
-  {
-    id: '1',
-    name: 'Appetizers',
-    description: 'Start your meal right',
-    image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400'
-  },
-  {
-    id: '2',
-    name: 'Main Course',
-    description: 'Hearty and delicious',
-    image: 'https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?auto=compress&cs=tinysrgb&w=400'
-  },
-  {
-    id: '3',
-    name: 'Desserts',
-    description: 'Sweet endings',
-    image: 'https://images.pexels.com/photos/1126728/pexels-photo-1126728.jpeg?auto=compress&cs=tinysrgb&w=400'
-  },
-  {
-    id: '4',
-    name: 'Beverages',
-    description: 'Refreshing drinks',
-    image: 'https://images.pexels.com/photos/338713/pexels-photo-338713.jpeg?auto=compress&cs=tinysrgb&w=400'
-  }
-];
-
-const mockMenuItems: MenuItem[] = [
-  {
-    id: '1',
-    name: 'Chicken Wings',
-    description: 'Spicy buffalo wings with ranch dressing',
-    price: 12.99,
-    category: 'Appetizers',
-    image: 'https://images.pexels.com/photos/60616/fried-chicken-chicken-fried-crunchy-60616.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 15
-  },
-  {
-    id: '2',
-    name: 'Caesar Salad',
-    description: 'Fresh romaine lettuce with parmesan and croutons',
-    price: 9.99,
-    category: 'Appetizers',
-    image: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 10
-  },
-  {
-    id: '3',
-    name: 'Grilled Salmon',
-    description: 'Fresh Atlantic salmon with seasonal vegetables',
-    price: 24.99,
-    category: 'Main Course',
-    image: 'https://images.pexels.com/photos/725992/pexels-photo-725992.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 25
-  },
-  {
-    id: '4',
-    name: 'Beef Steak',
-    description: 'Premium ribeye steak cooked to perfection',
-    price: 32.99,
-    category: 'Main Course',
-    image: 'https://images.pexels.com/photos/769289/pexels-photo-769289.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 30
-  },
-  {
-    id: '5',
-    name: 'Chocolate Cake',
-    description: 'Rich chocolate cake with vanilla ice cream',
-    price: 7.99,
-    category: 'Desserts',
-    image: 'https://images.pexels.com/photos/291528/pexels-photo-291528.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 5
-  },
-  {
-    id: '6',
-    name: 'Fresh Juice',
-    description: 'Freshly squeezed orange juice',
-    price: 4.99,
-    category: 'Beverages',
-    image: 'https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 3
-  }
-];
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-
   const [orders, setOrders] = useState<Order[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [kitchenOrders, setKitchenOrders] = useState<KitchenDisplayItem[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+
 
   // Real-time Firestore listeners
   useEffect(() => {
@@ -141,7 +55,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubKitchen = onSnapshot(collection(db, 'kitchenOrders'), (snapshot) => {
       setKitchenOrders(snapshot.docs.map(docSnap => {
         const data = docSnap.data();
-        // Firestore stores dates as Timestamps, convert if needed
         return {
           ...data,
           id: docSnap.id,
@@ -149,10 +62,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } as unknown as KitchenDisplayItem;
       }));
     });
+    const unsubMenu = onSnapshot(collection(db, 'menuItems'), (snapshot) => {
+      setMenuItems(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as MenuItem));
+    });
     return () => {
       unsubOrders();
       unsubBills();
       unsubKitchen();
+      unsubMenu();
     };
   }, []);
 
@@ -277,10 +194,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  // Menu CRUD
+  const addMenuItem = async (item: Omit<MenuItem, 'id'>) => {
+    await addDoc(collection(db, 'menuItems'), item);
+  };
+  const updateMenuItem = async (id: string, updates: Partial<MenuItem>) => {
+    await updateDoc(doc(db, 'menuItems', id), updates);
+  };
+  const deleteMenuItem = async (id: string) => {
+    await updateDoc(doc(db, 'menuItems', id), { deleted: true }); // Soft delete, or use deleteDoc for hard delete
+  };
+
   return (
     <AppContext.Provider value={{
-      categories: mockCategories,
-      menuItems: mockMenuItems,
+      categories: [], // You can fetch categories from Firestore similarly if needed
+      menuItems,
       orders,
       bills,
       kitchenOrders,
@@ -293,9 +221,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       generateBill,
       getTodaysRevenue,
       getActiveOrders,
+      addMenuItem,
+      updateMenuItem,
+      deleteMenuItem,
     }}>
       {children}
     </AppContext.Provider>
+
   );
 };
 
