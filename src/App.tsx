@@ -1,4 +1,36 @@
 import React from 'react';
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; message?: string }>{
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: unknown) {
+    return { hasError: true, message: (error as Error)?.message };
+  }
+
+  componentDidCatch() {
+    // no-op
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-surface-50 flex items-center justify-center">
+          <div className="card text-center max-w-lg">
+            <h2 className="text-title-large mb-2">Something went wrong</h2>
+            <p className="text-body-medium text-surface-600 mb-4">{this.state.message || 'An unexpected error occurred.'}</p>
+            <div className="space-y-2">
+              <button className="btn-primary w-full" onClick={() => window.location.reload()}>Reload</button>
+              <button className="btn-outlined w-full" onClick={() => { localStorage.removeItem('user'); window.location.reload(); }}>Clear session and reload</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children as React.ReactElement;
+  }
+}
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import Login from './components/Login';
@@ -50,11 +82,13 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 
