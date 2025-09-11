@@ -77,7 +77,7 @@ const BillingPayments: React.FC = () => {
           <p><strong>Customer:</strong> ${bill.customerDetails.name}</p>
           <p><strong>Phone:</strong> ${bill.customerDetails.phone}</p>
           ${bill.customerDetails.tableNumber ? `<p><strong>Table:</strong> ${bill.customerDetails.tableNumber}</p>` : ''}
-          ${bill.customerDetails.address ? `<p><strong>Address:</strong> ${bill.customerDetails.address}</p>` : ''}
+          ${bill.customerDetails.address ? `<p><strong>Vehicle No:</strong> ${bill.customerDetails.address}</p>` : ''}
         </div>
         
         <div style="margin: 20px 0;">

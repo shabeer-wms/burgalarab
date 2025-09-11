@@ -13,7 +13,7 @@ const CustomerDashboard: React.FC = () => {
   const [customerDetails, setCustomerDetails] = useState({
     name: user?.name || '',
     phone: '',
-    address: '',
+    vehicleNumber: '',
     paymentMethod: 'cash' as 'cash' | 'card' | 'online' | 'cod'
   });
   const [showCheckout, setShowCheckout] = useState(false);
@@ -66,14 +66,14 @@ const CustomerDashboard: React.FC = () => {
     return getCartTotal() + getTax();
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
 
-    const orderId = addOrder({
+    const orderId = await addOrder({
       customerId: user?.id || '',
       customerName: customerDetails.name,
       customerPhone: customerDetails.phone,
-      customerAddress: orderType === 'delivery' ? customerDetails.address : undefined,
+      customerAddress: orderType === 'delivery' ? customerDetails.vehicleNumber : undefined,
       type: orderType,
       items: cart,
       status: 'pending',
@@ -255,12 +255,12 @@ const CustomerDashboard: React.FC = () => {
                   </div>
                   {orderType === 'delivery' && (
                     <div className="md:col-span-2">
-                      <label className="block text-label-large text-surface-700 mb-2">Delivery Address</label>
-                      <textarea
-                        value={customerDetails.address}
-                        onChange={(e) => setCustomerDetails({...customerDetails, address: e.target.value})}
+                      <label className="block text-label-large text-surface-700 mb-2">Vehicle Number</label>
+                      <input
+                        type="text"
+                        value={customerDetails.vehicleNumber}
+                        onChange={(e) => setCustomerDetails({...customerDetails, vehicleNumber: e.target.value})}
                         className="w-full px-4 py-4 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-body-large transition-all duration-200"
-                        rows={3}
                       />
                     </div>
                   )}
