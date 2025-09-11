@@ -284,7 +284,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order, onClose })
             <p><strong>Phone:</strong> {order.customerPhone}</p>
             <p><strong>Type:</strong> {order.type}</p>
             {order.tableNumber && <p><strong>Table:</strong> {order.tableNumber}</p>}
-            {order.vehicleNumber && <p><strong>Vehicle Number:</strong> {order.vehicleNumber}</p>}
+            {order.customerAddress && <p><strong>Address:</strong> {order.customerAddress}</p>}
             <p><strong>Order Time:</strong> {(() => {
               let date: Date;
               if (order.orderTime instanceof Date) {

@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { MenuItem, OrderItem, Order } from '../../types';
-import { Plus, Minus, ShoppingCart, Save, Send, Eye, X, QrCode } from 'lucide-react';
-import QRCode from 'qrcode';
+import { Plus, Minus, ShoppingCart, Save, Send, FileText, Eye } from 'lucide-react';
 
 interface OrderManagementProps {
   tableNumber?: string;
@@ -17,16 +16,11 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
   const [customerDetails, setCustomerDetails] = useState({
     name: '',
     phone: '',
-    vehicleNumber: '',
+    address: '',
   });
   const [orderType, setOrderType] = useState<'dine-in' | 'delivery'>('dine-in');
   const [kitchenNotes, setKitchenNotes] = useState('');
   const [savedOrders, setSavedOrders] = useState<Order[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showOrderModal, setShowOrderModal] = useState(false);
-  const [showQRModal, setShowQRModal] = useState(false);
-  const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('');
-  const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
 
   const filteredMenuItems = selectedCategory === 'all' 
     ? menuItems 
@@ -90,7 +84,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
       customerId: `CUST-${Date.now()}`,
       customerName: customerDetails.name,
       customerPhone: customerDetails.phone,
-      vehicleNumber: customerDetails.vehicleNumber,
+      customerAddress: customerDetails.address,
       type: orderType,
       tableNumber: orderType === 'dine-in' ? tableNumber : undefined,
       items: orderItems,
@@ -109,7 +103,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
     alert('Order saved as draft');
   };
 
-  const pushToKitchen = async () => {
+  const pushToKitchen = () => {
     if (orderItems.length === 0 || !customerDetails.name || !customerDetails.phone) {
       alert('Please add items and fill customer details');
       return;
@@ -121,7 +115,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
       customerId: `CUST-${Date.now()}`,
       customerName: customerDetails.name,
       customerPhone: customerDetails.phone,
-      vehicleNumber: customerDetails.vehicleNumber,
+      customerAddress: customerDetails.address,
       type: orderType,
       tableNumber: orderType === 'dine-in' ? tableNumber : undefined,
       items: orderItems,
@@ -135,51 +129,14 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
       estimatedTime: Math.max(...orderItems.map(item => item.menuItem.prepTime)) + 10,
     };
 
-    const orderId = addOrder(order);
-    
-    // Generate QR code and show modal
-    await generateQRCode(orderId);
-    setTrackingOrder({ ...order, id: orderId, orderTime: new Date() });
-    setShowQRModal(true);
+    addOrder(order);
     
     // Clear form
     setOrderItems([]);
-    setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
+    setCustomerDetails({ name: '', phone: '', address: '' });
     setKitchenNotes('');
-  };
-
-  const viewOrderDetails = (order: Order) => {
-    setSelectedOrder(order);
-    setShowOrderModal(true);
-  };
-
-  const closeOrderModal = () => {
-    setSelectedOrder(null);
-    setShowOrderModal(false);
-  };
-
-  const generateQRCode = async (orderId: string) => {
-    try {
-      // Generate tracking URL - in a real app, this would be your domain
-      const trackingURL = `${window.location.origin}/track-order/${orderId}`;
-      const qrDataURL = await QRCode.toDataURL(trackingURL, {
-        width: 256,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      });
-      setQrCodeDataURL(qrDataURL);
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-    }
-  };
-
-  const closeQRModal = () => {
-    setShowQRModal(false);
-    setQrCodeDataURL('');
-    setTrackingOrder(null);
+    
+    alert('Order sent to kitchen!');
   };
 
   return (
@@ -263,12 +220,12 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
               className="input-field"
             />
             {orderType === 'delivery' && (
-              <input
-                type="text"
-                placeholder="Vehicle Number"
-                value={customerDetails.vehicleNumber}
-                onChange={(e) => setCustomerDetails(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+              <textarea
+                placeholder="Delivery Address"
+                value={customerDetails.address}
+                onChange={(e) => setCustomerDetails(prev => ({ ...prev, address: e.target.value }))}
                 className="input-field"
+                rows={2}
               />
             )}
             <div className="flex space-x-2">
@@ -413,10 +370,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
                     <p className="text-body-medium font-medium">{order.customerName}</p>
                     <p className="text-body-small text-surface-600">${order.grandTotal.toFixed(2)}</p>
                   </div>
-                  <button 
-                    onClick={() => viewOrderDetails(order)}
-                    className="p-2 hover:bg-surface-100 rounded-lg"
-                  >
+                  <button className="p-2 hover:bg-surface-100 rounded-lg">
                     <Eye className="w-4 h-4" />
                   </button>
                 </div>
@@ -425,220 +379,6 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
           </div>
         )}
       </div>
-
-      {/* Order Details Modal */}
-      {showOrderModal && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-title-large">Order Details</h3>
-              <button
-                onClick={closeOrderModal}
-                className="p-2 hover:bg-surface-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Order Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-body-small text-surface-600">Order ID</p>
-                  <p className="text-body-medium font-medium">#{selectedOrder.id.slice(-6)}</p>
-                </div>
-                <div>
-                  <p className="text-body-small text-surface-600">Status</p>
-                  <p className="text-body-medium font-medium capitalize">{selectedOrder.status}</p>
-                </div>
-                <div>
-                  <p className="text-body-small text-surface-600">Customer</p>
-                  <p className="text-body-medium font-medium">{selectedOrder.customerName}</p>
-                </div>
-                <div>
-                  <p className="text-body-small text-surface-600">Phone</p>
-                  <p className="text-body-medium font-medium">{selectedOrder.customerPhone}</p>
-                </div>
-                <div>
-                  <p className="text-body-small text-surface-600">Order Type</p>
-                  <p className="text-body-medium font-medium capitalize">{selectedOrder.type}</p>
-                </div>
-                {selectedOrder.tableNumber && (
-                  <div>
-                    <p className="text-body-small text-surface-600">Table</p>
-                    <p className="text-body-medium font-medium">{selectedOrder.tableNumber}</p>
-                  </div>
-                )}
-                {selectedOrder.vehicleNumber && (
-                  <div>
-                    <p className="text-body-small text-surface-600">Vehicle Number</p>
-                    <p className="text-body-medium font-medium">{selectedOrder.vehicleNumber}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Order Items */}
-              <div>
-                <h4 className="text-title-medium mb-3">Order Items</h4>
-                <div className="space-y-2">
-                  {selectedOrder.items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-lg">
-                      <div className="flex-1">
-                        <p className="text-body-medium font-medium">{item.menuItem.name}</p>
-                        <p className="text-body-small text-surface-600">${item.menuItem.price.toFixed(2)} each</p>
-                        {item.specialInstructions && (
-                          <p className="text-body-small text-surface-500 italic">
-                            Note: {item.specialInstructions}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-body-medium font-medium">Qty: {item.quantity}</p>
-                        <p className="text-body-medium font-medium">
-                          ${(item.menuItem.price * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Kitchen Notes */}
-              {selectedOrder.kitchenNotes && (
-                <div>
-                  <h4 className="text-title-medium mb-2">Kitchen Notes</h4>
-                  <p className="text-body-medium p-3 bg-surface-50 rounded-lg">
-                    {selectedOrder.kitchenNotes}
-                  </p>
-                </div>
-              )}
-
-              {/* Order Summary */}
-              <div className="border-t pt-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-body-medium">Subtotal:</span>
-                    <span className="text-body-medium">${selectedOrder.total.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-body-medium">Tax:</span>
-                    <span className="text-body-medium">${selectedOrder.tax.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-title-medium font-medium">
-                    <span>Total:</span>
-                    <span>${selectedOrder.grandTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Order Time */}
-              <div>
-                <p className="text-body-small text-surface-600">Order Time</p>
-                <p className="text-body-medium">
-                  {(() => {
-                    let date: Date;
-                    if (selectedOrder.orderTime instanceof Date) {
-                      date = selectedOrder.orderTime;
-                    } else if (
-                      typeof selectedOrder.orderTime === 'object' &&
-                      selectedOrder.orderTime !== null &&
-                      'toDate' in selectedOrder.orderTime &&
-                      typeof (selectedOrder.orderTime as { toDate?: unknown }).toDate === 'function'
-                    ) {
-                      date = (selectedOrder.orderTime as { toDate: () => Date }).toDate();
-                    } else {
-                      date = new Date(selectedOrder.orderTime as string);
-                    }
-                    return date.toLocaleString();
-                  })()}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={closeOrderModal}
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* QR Code Modal */}
-      {showQRModal && trackingOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-title-large">Order Tracking QR Code</h3>
-              <button
-                onClick={closeQRModal}
-                className="p-2 hover:bg-surface-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="flex items-center justify-center mb-4">
-                <QrCode className="w-6 h-6 mr-2" />
-                <span className="text-body-large font-medium">Scan to Track Order</span>
-              </div>
-
-              {/* QR Code */}
-              {qrCodeDataURL && (
-                <div className="flex justify-center">
-                  <img 
-                    src={qrCodeDataURL} 
-                    alt="Order Tracking QR Code" 
-                    className="border-2 border-surface-200 rounded-lg"
-                  />
-                </div>
-              )}
-
-              {/* Order Info */}
-              <div className="bg-surface-50 rounded-lg p-4 space-y-2">
-                <p className="text-body-medium">
-                  <strong>Order ID:</strong> #{trackingOrder.id.slice(-6)}
-                </p>
-                <p className="text-body-medium">
-                  <strong>Customer:</strong> {trackingOrder.customerName}
-                </p>
-                <p className="text-body-medium">
-                  <strong>Total:</strong> ${trackingOrder.grandTotal.toFixed(2)}
-                </p>
-                <p className="text-body-small text-surface-600">
-                  Customer can scan this QR code to track their order status
-                </p>
-              </div>
-
-              {/* Instructions */}
-              <div className="text-left bg-blue-50 rounded-lg p-4">
-                <h4 className="text-body-medium font-medium mb-2 text-blue-800">
-                  Instructions for Customer:
-                </h4>
-                <ul className="text-body-small text-blue-700 space-y-1">
-                  <li>• Scan the QR code with your phone camera</li>
-                  <li>• Or use any QR code scanner app</li>
-                  <li>• View real-time order status updates</li>
-                  <li>• Get notifications when order is ready</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={closeQRModal}
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
