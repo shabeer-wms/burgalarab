@@ -1,0 +1,133 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Material 3 Base Styles */
+@layer base {
+  * {
+    @apply border-surface-200;
+  }
+  
+  body {
+    @apply text-surface-900 bg-surface-50 font-sans antialiased;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-surface-100 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-300 rounded-full hover:bg-surface-400;
+  }
+}
+
+/* Material 3 Component Styles */
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 shadow-elevation-2 hover:shadow-elevation-3;
+  }
+  
+  .btn-secondary {
+    @apply bg-surface-100 text-surface-700 px-6 py-3 rounded-xl font-medium hover:bg-surface-200 focus:outline-none focus:ring-2 focus:ring-surface-500 focus:ring-offset-2 transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2;
+  }
+  
+  .btn-outlined {
+    @apply border border-surface-300 text-surface-700 px-6 py-3 rounded-xl font-medium hover:bg-surface-50 focus:outline-none focus:ring-2 focus:ring-surface-500 focus:ring-offset-2 transition-all duration-200;
+  }
+  
+  .card {
+    @apply bg-white rounded-3xl shadow-elevation-2 p-6 hover:shadow-elevation-3 transition-all duration-200;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-4 border border-surface-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-body-large transition-all duration-200 bg-white;
+  }
+  
+  .chip {
+    @apply inline-flex items-center px-4 py-2 rounded-full text-label-medium font-medium transition-all duration-200;
+  }
+  
+  .chip-primary {
+    @apply chip bg-primary-100 text-primary-800 hover:bg-primary-200;
+  }
+  
+  .chip-secondary {
+    @apply chip bg-secondary-100 text-secondary-800 hover:bg-secondary-200;
+  }
+  
+  .chip-success {
+    @apply chip bg-success-100 text-success-800 hover:bg-success-200;
+  }
+  
+  .chip-warning {
+    @apply chip bg-warning-100 text-warning-800 hover:bg-warning-200;
+  }
+  
+  .chip-error {
+    @apply chip bg-error-100 text-error-800 hover:bg-error-200;
+  }
+  
+  .fab {
+    @apply fixed bottom-6 right-6 w-14 h-14 bg-primary-600 text-white rounded-2xl shadow-elevation-3 hover:shadow-elevation-4 flex items-center justify-center transition-all duration-200 hover:scale-105;
+  }
+  
+  .navigation-rail {
+    @apply w-20 bg-white shadow-elevation-2 flex flex-col items-center py-6 space-y-4;
+  }
+  
+  .navigation-item {
+    @apply w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 hover:bg-surface-100;
+  }
+  
+  .navigation-item.active {
+    @apply bg-primary-100 text-primary-700;
+  }
+  
+  .snackbar {
+    @apply fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-surface-800 text-white px-6 py-4 rounded-xl shadow-elevation-3 animate-slide-up;
+  }
+}
+
+/* Material 3 Utilities */
+@layer utilities {
+  .text-on-primary {
+    @apply text-white;
+  }
+  
+  .text-on-secondary {
+    @apply text-white;
+  }
+  
+  .text-on-surface {
+    @apply text-surface-900;
+  }
+  
+  .text-on-surface-variant {
+    @apply text-surface-600;
+  }
+  
+  .surface-container {
+    @apply bg-surface-100;
+  }
+  
+  .surface-container-low {
+    @apply bg-surface-50;
+  }
+  
+  .surface-container-high {
+    @apply bg-surface-200;
+  }
+  
+  .surface-container-highest {
+    @apply bg-surface-300;
+  }
+}
