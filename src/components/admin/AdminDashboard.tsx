@@ -43,7 +43,7 @@ const AdminDashboard: React.FC = () => {
       Date: ${new Date(order.orderTime).toLocaleString()}
       Customer: ${order.customerName}
       ${order.tableNumber ? `Table: ${order.tableNumber}` : ''}
-      ${order.customerAddress ? `Address: ${order.customerAddress}` : ''}
+      ${order.vehicleNumber ? `Vehicle Number: ${order.vehicleNumber}` : ''}
       
       ITEMS:
       ${order.items.map(item => 
