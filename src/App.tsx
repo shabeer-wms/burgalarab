@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import Login from './components/Login';
@@ -7,6 +8,7 @@ import CustomerDashboard from './components/customer/CustomerDashboard';
 import WaiterDashboard from './components/waiter/WaiterDashboard';
 import KitchenDashboard from './components/kitchen/KitchenDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
+import OrderTracking from './components/OrderTracking';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -50,11 +52,16 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <AppProvider>
+          <Routes>
+            <Route path="/track-order/:orderId" element={<OrderTracking />} />
+            <Route path="/*" element={<AppContent />} />
+          </Routes>
+        </AppProvider>
+      </AuthProvider>
+    </Router>
   );
 };
 
