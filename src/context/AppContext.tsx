@@ -169,7 +169,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       customerDetails: {
         name: order.customerName,
         phone: order.customerPhone,
-        address: order.customerAddress,
+        vehicleNumber: order.vehicleNumber,
         tableNumber: order.tableNumber,
       },
     };
