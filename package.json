@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.6",
+
     "@types/qrcode": "^1.5.5",
+
     "@types/react-router-dom": "^5.3.3",
     "firebase": "^12.2.1",
     "lucide-react": "^0.344.0",
