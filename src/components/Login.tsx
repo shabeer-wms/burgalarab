@@ -20,10 +20,9 @@ const Login: React.FC = () => {
   };
 
   const demoAccounts = [
-    { role: 'Customer', email: 'customer@demo.com', color: 'bg-blue-100 text-blue-800' },
-    { role: 'Waiter', email: 'waiter@demo.com', color: 'bg-green-100 text-green-800' },
-    { role: 'Kitchen', email: 'kitchen@demo.com', color: 'bg-orange-100 text-orange-800' },
-    { role: 'Admin', email: 'admin@demo.com', color: 'bg-purple-100 text-purple-800' },
+    { key: 'Waiter', email: 'waiter@demo.com', color: 'bg-green-100 text-green-800', icon: <span title="Waiter" className="flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2v-5a2 2 0 00-2-2H5a2 2 0 00-2 2v5a2 2 0 002 2z" /></svg></span> },
+    { key: 'Kitchen', email: 'kitchen@demo.com', color: 'bg-orange-100 text-orange-800', icon: <ChefHat className="h-6 w-6" title="Kitchen" /> },
+    { key: 'Admin', email: 'admin@demo.com', color: 'bg-purple-100 text-purple-800', icon: <span title="Admin" className="flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0-1.104.896-2 2-2s2 .896 2 2-.896 2-2 2-2-.896-2-2zm-6 8v-1a4 4 0 014-4h4a4 4 0 014 4v1" /></svg></span> },
   ];
 
   return (
@@ -121,7 +120,7 @@ const Login: React.FC = () => {
 
           <div className="mt-6 pt-6 border-t border-surface-200">
             <h3 className="text-title-medium text-surface-700 text-center mb-4">Demo Accounts</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {demoAccounts.map((account) => (
                 <button
                   key={account.email}
@@ -129,9 +128,10 @@ const Login: React.FC = () => {
                     setEmail(account.email);
                     setPassword('demo123');
                   }}
-                  className={`text-label-medium px-4 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 ${account.color} shadow-elevation-1 hover:shadow-elevation-2`}
+                  className={`flex items-center justify-center px-4 py-3 rounded-xl transition-all duration-200 hover:scale-105 ${account.color} shadow-elevation-1 hover:shadow-elevation-2`}
+                  aria-label={account.key}
                 >
-                  {account.role}
+                  {account.icon}
                 </button>
               ))}
             </div>
