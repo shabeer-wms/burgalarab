@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import { useApp } from "../../context/AppContext";
 import { Order } from "../../types";
 import {
@@ -14,6 +16,7 @@ import {
   Search,
   UserCheck,
   X,
+  Utensils,
 } from "lucide-react";
 
 const AdminDashboard: React.FC = () => {
@@ -343,6 +346,8 @@ const AdminDashboard: React.FC = () => {
 
   // Analytics calculations
   const today = new Date();
+
+  // Today's orders
   const todayOrders = orders.filter((order) => {
     try {
       let orderDate: Date;
@@ -362,6 +367,13 @@ const AdminDashboard: React.FC = () => {
     }
   });
 
+  // In-Vehicle Orders: type === 'delivery' (assuming delivery means vehicle)
+  const inVehicleOrders = todayOrders.filter(order => order.type === 'delivery');
+  // In-Table Orders: type === 'dine-in'
+  const inTableOrders = todayOrders.filter(order => order.type === 'dine-in');
+  // Pending Orders: not completed or cancelled
+  const pendingOrders = todayOrders.filter(order => !['completed', 'cancelled'].includes(order.status));
+
   const completedOrders = orders.filter(
     (order) => order.status === "completed"
   );
@@ -369,14 +381,39 @@ const AdminDashboard: React.FC = () => {
     (sum, order) => sum + (order.grandTotal || 0),
     0
   );
-  const averageOrderValue =
-    completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
-  const averagePreparationTime = 18; // Mock data
+
+
 
   const filteredOrders =
     orderFilter === "all"
       ? orders
       : orders.filter((order) => order.status === orderFilter);
+
+  // Export orders to Excel
+  const exportOrdersToExcel = () => {
+    // Prepare data for export
+    const data = filteredOrders.map((order) => ({
+      OrderID: order.id,
+      Customer: order.customerName,
+      Phone: order.customerPhone,
+      Type: order.type,
+      Table: order.tableNumber || "",
+      Status: order.status,
+      PaymentStatus: order.paymentStatus,
+      Total: order.total,
+      Tax: order.tax,
+      GrandTotal: order.grandTotal,
+      PaymentMethod: order.paymentMethod || "",
+      OrderTime: formatDateTime(order.orderTime),
+      Items: order.items.map((item) => `${item.quantity}x ${item.menuItem?.name || "Unknown"}`).join(", ")
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Orders");
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, `orders_${new Date().toISOString().slice(0,10)}.xlsx`);
+  };
 
   const printBill = (order: Order) => {
     // Mock bill printing
@@ -483,24 +520,8 @@ const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200">
                 <div className="flex items-center">
-                  <div className="bg-green-100 rounded-md p-2 sm:p-3 flex-shrink-0">
-                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                  </div>
-                  <div className="ml-3 sm:ml-4 min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
-                      Total Revenue
-                    </p>
-                    <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-                      ${totalRevenue.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200">
-                <div className="flex items-center">
-                  <div className="bg-blue-100 rounded-md p-2 sm:p-3 flex-shrink-0">
-                    <Users className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                  <div className="bg-yellow-100 rounded-md p-2 sm:p-3 flex-shrink-0">
+                    <Utensils className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
                   </div>
                   <div className="ml-3 sm:ml-4 min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
@@ -515,15 +536,15 @@ const AdminDashboard: React.FC = () => {
 
               <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200">
                 <div className="flex items-center">
-                  <div className="bg-purple-100 rounded-md p-2 sm:p-3 flex-shrink-0">
-                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+                  <div className="bg-pink-100 rounded-md p-2 sm:p-3 flex-shrink-0">
+                    <UserCheck className="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" />
                   </div>
                   <div className="ml-3 sm:ml-4 min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
-                      Avg Order Value
+                      Total Staff
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-                      ${averageOrderValue.toFixed(2)}
+                      {staff.length}
                     </p>
                   </div>
                 </div>
@@ -531,19 +552,21 @@ const AdminDashboard: React.FC = () => {
 
               <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200">
                 <div className="flex items-center">
-                  <div className="bg-orange-100 rounded-md p-2 sm:p-3 flex-shrink-0">
-                    <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+                  <div className="bg-purple-100 rounded-md p-2 sm:p-3 flex-shrink-0">
+                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                   </div>
                   <div className="ml-3 sm:ml-4 min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
-                      Avg Prep Time
+                      Total Revenue
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-                      {averagePreparationTime}m
+                      ${totalRevenue.toFixed(2)}
                     </p>
                   </div>
                 </div>
               </div>
+
+
             </div>
 
             {/* Today's Summary */}
@@ -553,31 +576,21 @@ const AdminDashboard: React.FC = () => {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                 <div className="text-center sm:text-left">
-                  <p className="text-sm text-gray-600">Orders Today</p>
+                  <p className="text-sm text-gray-600">In-Vehicle Orders</p>
                   <p className="text-xl sm:text-2xl font-bold text-blue-600">
-                    {todayOrders.length}
+                    {inVehicleOrders.length}
                   </p>
                 </div>
                 <div className="text-center sm:text-left">
-                  <p className="text-sm text-gray-600">Revenue Today</p>
+                  <p className="text-sm text-gray-600">In-Table Orders</p>
                   <p className="text-xl sm:text-2xl font-bold text-green-600">
-                    $
-                    {todayOrders
-                      .filter((order) => order.status === "completed")
-                      .reduce((sum, order) => sum + order.grandTotal, 0)
-                      .toFixed(2)}
+                    {inTableOrders.length}
                   </p>
                 </div>
                 <div className="text-center sm:text-left">
-                  <p className="text-sm text-gray-600">Active Orders</p>
+                  <p className="text-sm text-gray-600">Pending Orders</p>
                   <p className="text-xl sm:text-2xl font-bold text-orange-600">
-                    {
-                      orders.filter((order) =>
-                        ["pending", "confirmed", "preparing", "ready"].includes(
-                          order.status
-                        )
-                      ).length
-                    }
+                    {pendingOrders.length}
                   </p>
                 </div>
               </div>
@@ -609,6 +622,14 @@ const AdminDashboard: React.FC = () => {
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
+                <button
+                  onClick={exportOrdersToExcel}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                  title="Export Orders to Excel"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h8m0 0l-3-3m3 3l-3 3" /></svg>
+                  <span>Export </span>
+                </button>
               </div>
             </div>
 
@@ -778,18 +799,28 @@ const AdminDashboard: React.FC = () => {
                     className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full sm:w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+
+                <div className="relative w-full sm:w-auto" style={{minWidth: '120px', maxWidth: '170px'}}>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[120px] transition-colors duration-150 pr-8"
+                    style={{ minWidth: '120px', maxWidth: '170px', height: '40px', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' }}
+                  >
+                    <option value="all">All Categories</option>
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6 8L10 12L14 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </div>
+
                 <button
                   onClick={() => setShowAddMenuModal(true)}
                   className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
@@ -797,6 +828,8 @@ const AdminDashboard: React.FC = () => {
                   <Plus className="w-4 h-4" />
                   <span>Add Item</span>
                 </button>
+
+
               </div>
             </div>
 
@@ -813,19 +846,24 @@ const AdminDashboard: React.FC = () => {
                       alt={item.name}
                       className="w-full h-40 sm:h-48 object-cover"
                     />
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 right-2 flex items-center space-x-1">
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        className={`px-2 py-1 text-xs font-medium rounded-full flex items-center space-x-1 ${
                           item.available
                             ? "bg-green-100 text-green-800"
                             : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {item.available ? "Available" : "Unavailable"}
+                        {item.available ? (
+                          <svg className="w-4 h-4 mr-1 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        ) : (
+                          <svg className="w-4 h-4 mr-1 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        )}
+                        <span>{item.available ? "Available" : "Unavailable"}</span>
                       </span>
                     </div>
-                    <div className="absolute top-2 left-2">
-                      <span className="bg-purple-100 text-purple-800 px-2 py-1 text-xs font-medium rounded-full">
+                    <div className="absolute top-2 left-2 max-w-[120px]">
+                      <span className="bg-purple-100 text-purple-800 px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap overflow-hidden text-ellipsis block shadow-sm border border-purple-200" style={{minWidth: '70px', textAlign: 'center'}}>
                         {item.category}
                       </span>
                     </div>
