@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { MenuItem, OrderItem, Order } from '../../types';
-import { Plus, Minus, ShoppingCart, Save, Send, FileText, Eye } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Save, Send, Eye } from 'lucide-react';
 
 interface OrderManagementProps {
   tableNumber?: string;
+  setSelectedTable?: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
+const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelectedTable }) => {
   const { menuItems, categories, addOrder } = useApp();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -21,6 +22,10 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
   const [orderType, setOrderType] = useState<'dine-in' | 'delivery'>('dine-in');
   const [kitchenNotes, setKitchenNotes] = useState('');
   const [savedOrders, setSavedOrders] = useState<Order[]>([]);
+  const [selectedTableState, setSelectedTableState] = useState<string>(tableNumber || '1');
+  const selectedTable = tableNumber || selectedTableState;
+  const updateSelectedTable = setSelectedTable || setSelectedTableState;
+  const [showTablePicker, setShowTablePicker] = useState(false);
 
   const filteredMenuItems = selectedCategory === 'all' 
     ? menuItems 
@@ -85,8 +90,8 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
       customerName: customerDetails.name,
       customerPhone: customerDetails.phone,
       customerAddress: customerDetails.address,
-      type: orderType,
-      tableNumber: orderType === 'dine-in' ? tableNumber : undefined,
+  type: orderType,
+  tableNumber: orderType === 'dine-in' ? selectedTable : undefined,
       items: orderItems,
       status: 'pending',
       total: subtotal,
@@ -116,8 +121,8 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
       customerName: customerDetails.name,
       customerPhone: customerDetails.phone,
       customerAddress: customerDetails.address,
-      type: orderType,
-      tableNumber: orderType === 'dine-in' ? tableNumber : undefined,
+  type: orderType,
+  tableNumber: orderType === 'dine-in' ? selectedTable : undefined,
       items: orderItems,
       status: 'confirmed',
       total: subtotal,
@@ -251,7 +256,43 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber }) => {
               </button>
             </div>
             {orderType === 'dine-in' && tableNumber && (
-              <div className="chip chip-primary">Table: {tableNumber}</div>
+              <>
+                <button
+                  type="button"
+                  className="chip chip-primary px-4 py-2 focus:outline-none"
+                  onClick={() => setShowTablePicker(true)}
+                >
+                  Table: {selectedTable}
+                </button>
+                {showTablePicker && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="bg-white rounded-lg shadow-lg p-4 w-[260px] h-[320px] max-w-full flex flex-col">
+                      <h3 className="text-title-medium mb-2 text-center">Select Table Number</h3>
+                      <div className="grid grid-cols-5 gap-2 mb-2 overflow-y-auto flex-1" style={{maxHeight: '200px'}}>
+                        {[...Array(100)].map((_, i) => (
+                          <button
+                            key={i+1}
+                            className={`rounded-lg px-2 py-2 text-xs font-medium border ${selectedTable === String(i+1) ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'}`}
+                            onClick={() => updateSelectedTable(String(i+1))}
+                          >
+                            {i+1}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex justify-end space-x-2 mt-2">
+                        <button
+                          className="btn-outlined px-3 py-1 text-xs"
+                          onClick={() => setShowTablePicker(false)}
+                        >Cancel</button>
+                        <button
+                          className="btn-primary px-3 py-1 text-xs"
+                          onClick={() => setShowTablePicker(false)}
+                        >Select</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
