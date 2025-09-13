@@ -30,7 +30,7 @@ export interface Order {
   customerId: string;
   customerName: string;
   customerPhone: string;
-  vehicleNumber?: string;
+  customerAddress?: string;
   type: 'dine-in' | 'delivery';
   tableNumber?: string;
   items: OrderItem[];
@@ -70,7 +70,7 @@ export interface Bill {
   customerDetails: {
     name: string;
     phone: string;
-    vehicleNumber?: string;
+    address?: string;
     tableNumber?: string;
   };
 }
