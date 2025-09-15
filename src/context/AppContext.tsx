@@ -21,7 +21,7 @@ interface AppContextType {
   bills: Bill[];
   kitchenOrders: KitchenDisplayItem[];
   addOrder: (order: Omit<Order, 'id' | 'orderTime'>) => string;
-  updateOrder: (orderId: string, updates: Partial<Order>) => void;
+  updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
   updateOrderItemStatus: (orderId: string, itemId: string, status: OrderItem['status']) => void;
   updateKitchenOrderStatus: (orderId: string, status: 'pending' | 'in-progress' | 'ready') => void;
   getOrdersByStatus: (status: Order['status']) => Order[];
@@ -187,9 +187,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
 
-  const updateOrder = (orderId: string, updates: Partial<Order>) => {
+  const updateOrder = async (orderId: string, updates: Partial<Order>) => {
     const ref = doc(db, 'orders', orderId);
-    updateDoc(ref, updates);
+    await updateDoc(ref, updates);
   };
 
 
