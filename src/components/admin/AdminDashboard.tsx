@@ -10,7 +10,6 @@ import {
   Edit,
   Trash2,
   Plus,
-  Filter,
   Search,
   UserCheck,
   X,
@@ -181,7 +180,7 @@ const AdminDashboard: React.FC = () => {
     setShowEditStaffModal(false);
     setSelectedStaff(null);
   };
-   // Staff delete modal state
+  // Staff delete modal state
   const [showDeleteStaffModal, setShowDeleteStaffModal] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<any>(null);
 
@@ -228,7 +227,7 @@ const AdminDashboard: React.FC = () => {
     if (editingOrder) {
       setOrderUpdateLoading(true);
       setOrderUpdateError(null);
-      console.log('Updating order:', editingOrder);
+      console.log("Updating order:", editingOrder);
       try {
         await updateOrder(editingOrder.id, {
           status: editingOrder.status,
@@ -241,8 +240,8 @@ const AdminDashboard: React.FC = () => {
         setShowEditOrderModal(false);
         setEditingOrder(null);
       } catch (err) {
-        setOrderUpdateError('Failed to update order. See console for details.');
-        console.error('Order update error:', err);
+        setOrderUpdateError("Failed to update order. See console for details.");
+        console.error("Order update error:", err);
       } finally {
         setOrderUpdateLoading(false);
       }
@@ -428,9 +427,6 @@ const AdminDashboard: React.FC = () => {
     (sum, order) => sum + (order.grandTotal || 0),
     0
   );
-  const averageOrderValue =
-    completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
-  const averagePreparationTime = 18; // Mock data
 
   const filteredOrders =
     orderFilter === "all"
@@ -602,10 +598,10 @@ const AdminDashboard: React.FC = () => {
                   </div>
                   <div className="ml-3 sm:ml-4 min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
-                      Avg Order Value
+                      Total Menu
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-                      ${averageOrderValue.toFixed(2)}
+                      {menuItems.length}
                     </p>
                   </div>
                 </div>
@@ -618,10 +614,10 @@ const AdminDashboard: React.FC = () => {
                   </div>
                   <div className="ml-3 sm:ml-4 min-w-0 flex-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
-                      Avg Prep Time
+                      Total Staff
                     </p>
                     <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-                      {averagePreparationTime}m
+                      {staff.length}
                     </p>
                   </div>
                 </div>
@@ -675,12 +671,22 @@ const AdminDashboard: React.FC = () => {
                 Order Management
               </h2>
               <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-                <div className="flex items-center space-x-2 w-full sm:w-auto">
-                  <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+                <div
+                  className="relative w-full sm:w-auto"
+                  style={{ minWidth: "140px", maxWidth: "180px" }}
+                >
                   <select
                     value={orderFilter}
                     onChange={(e) => setOrderFilter(e.target.value as any)}
-                    className="flex-1 sm:flex-none sm:w-36 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[140px] transition-colors duration-150 pr-8"
+                    style={{
+                      minWidth: "140px",
+                      maxWidth: "180px",
+                      height: "40px",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                      MozAppearance: "none",
+                    }}
                   >
                     <option value="all">All Orders</option>
                     <option value="pending">Pending</option>
@@ -690,6 +696,23 @@ const AdminDashboard: React.FC = () => {
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                  <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6 8L10 12L14 8"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
                 </div>
               </div>
             </div>
@@ -857,12 +880,22 @@ const AdminDashboard: React.FC = () => {
                     className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                   />
                 </div>
-                <div className="relative w-full sm:w-auto" style={{minWidth: '120px', maxWidth: '170px'}}>
+                <div
+                  className="relative w-full sm:w-auto"
+                  style={{ minWidth: "120px", maxWidth: "170px" }}
+                >
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none  focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[120px] transition-colors duration-150 pr-8"
-                    style={{ minWidth: '120px', maxWidth: '170px', height: '40px', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none' }}
+                    style={{
+                      minWidth: "120px",
+                      maxWidth: "170px",
+                      height: "40px",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                      MozAppearance: "none",
+                    }}
                   >
                     <option value="all">All Categories</option>
                     {categories.map((category) => (
@@ -872,8 +905,20 @@ const AdminDashboard: React.FC = () => {
                     ))}
                   </select>
                   <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M6 8L10 12L14 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6 8L10 12L14 8"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </span>
                 </div>
@@ -941,21 +986,47 @@ const AdminDashboard: React.FC = () => {
                       <span className="text-xs">ID: #{item.id}</span>
                     </div>
 
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => openEditMenuModal(item)}
-                        className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded"
-                        title="Edit Item"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteMenuItem(item.id)}
-                        className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded"
-                        title="Delete Item"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="flex justify-between items-center">
+                      {/* Available/Unavailable Checkbox */}
+                      <label className="flex items-center select-none">
+                        <input
+                          type="checkbox"
+                          checked={item.available}
+                          onChange={() => {
+                            setMenuItems(
+                              menuItems.map((m) =>
+                                m.id === item.id
+                                  ? { ...m, available: !m.available }
+                                  : m
+                              )
+                            );
+                          }}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                        <span
+                          className={`ml-2 text-xs sm:text-sm ${
+                            item.available ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          {item.available ? "Available" : "Unavailable"}
+                        </span>
+                      </label>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => openEditMenuModal(item)}
+                          className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded"
+                          title="Edit Item"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMenuItem(item.id)}
+                          className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded"
+                          title="Delete Item"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -974,8 +1045,12 @@ const AdminDashboard: React.FC = () => {
             {showDeleteMenuModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
                 <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
-                  <h3 className="text-lg font-semibold mb-4 text-gray-800">Delete Menu Item</h3>
-                  <p className="mb-6 text-gray-700">Are you sure you want to delete this menu item?</p>
+                  <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                    Delete Menu Item
+                  </h3>
+                  <p className="mb-6 text-gray-700">
+                    Are you sure you want to delete this menu item?
+                  </p>
                   <div className="flex justify-end space-x-2">
                     <button
                       onClick={cancelDeleteMenuItem}
@@ -1079,8 +1154,18 @@ const AdminDashboard: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                  <svg className="w-4 h-4 text-gray-400 absolute right-3 top-9 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  <svg
+                    className="w-4 h-4 text-gray-400 absolute right-3 top-9 pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
 
@@ -1099,13 +1184,14 @@ const AdminDashboard: React.FC = () => {
                     }}
                     className="w-full px-3 py-2 border border-gray-300 border-[1px] rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                   />
-                  {newMenuItem.image && typeof newMenuItem.image !== "string" && (
-                    <img
-                      src={URL.createObjectURL(newMenuItem.image)}
-                      alt="Preview"
-                      className="mt-2 w-32 h-32 object-cover rounded"
-                    />
-                  )}
+                  {newMenuItem.image &&
+                    typeof newMenuItem.image !== "string" && (
+                      <img
+                        src={URL.createObjectURL(newMenuItem.image)}
+                        alt="Preview"
+                        className="mt-2 w-32 h-32 object-cover rounded"
+                      />
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1250,7 +1336,7 @@ const AdminDashboard: React.FC = () => {
                   />
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category
                   </label>
@@ -1262,7 +1348,7 @@ const AdminDashboard: React.FC = () => {
                         category: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-white appearance-none pr-10 transition-colors"
                   >
                     {categories.map((category) => (
                       <option key={category} value={category}>
@@ -1270,23 +1356,50 @@ const AdminDashboard: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                  <svg
+                    className="w-4 h-4 text-gray-400 absolute right-3 top-9 pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Image URL
+                    Image Upload
                   </label>
                   <input
-                    type="url"
-                    value={selectedMenuItem.image}
-                    onChange={(e) =>
-                      setSelectedMenuItem({
-                        ...selectedMenuItem,
-                        image: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files && e.target.files[0];
+                      if (file) {
+                        setSelectedMenuItem({
+                          ...selectedMenuItem,
+                          image: file,
+                        });
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 border-[1px] rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                   />
+                  {selectedMenuItem.image && (
+                    <img
+                      src={
+                        typeof selectedMenuItem.image === "string"
+                          ? selectedMenuItem.image
+                          : URL.createObjectURL(selectedMenuItem.image)
+                      }
+                      alt="Preview"
+                      className="mt-2 w-32 h-32 object-cover rounded"
+                    />
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1324,27 +1437,6 @@ const AdminDashboard: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                     />
                   </div>
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="edit-available"
-                    checked={selectedMenuItem.available}
-                    onChange={(e) =>
-                      setSelectedMenuItem({
-                        ...selectedMenuItem,
-                        available: e.target.checked,
-                      })
-                    }
-                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                  />
-                  <label
-                    htmlFor="edit-available"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Available for orders
-                  </label>
                 </div>
               </div>
 
@@ -1506,6 +1598,34 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Delete Staff Confirmation Modal */}
+        {showDeleteStaffModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                Delete Staff
+              </h3>
+              <p className="mb-6 text-gray-700">
+                Are you sure you want to delete this staff member?
+              </p>
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={cancelDeleteStaff}
+                  className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteStaff}
+                  className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Add Staff Modal */}
         {showAddStaffModal && (
           <div
@@ -1611,8 +1731,18 @@ const AdminDashboard: React.FC = () => {
                     <option value="manager">Manager</option>
                     <option value="kitchen">Kitchen</option>
                   </select>
-                  <svg className="w-4 h-4 text-gray-400 absolute right-3 top-9 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  <svg
+                    className="w-4 h-4 text-gray-400 absolute right-3 top-9 pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
@@ -1715,7 +1845,7 @@ const AdminDashboard: React.FC = () => {
                   />
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Role
                   </label>
@@ -1727,13 +1857,26 @@ const AdminDashboard: React.FC = () => {
                         role: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 border-[1px] rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-white appearance-none pr-10 transition-colors"
                   >
                     <option value="waiter">Waiter</option>
                     <option value="admin">Admin</option>
                     <option value="manager">Manager</option>
                     <option value="kitchen">Kitchen</option>
                   </select>
+                  <svg
+                    className="w-4 h-4 text-gray-400 absolute right-3 top-9 pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </div>
               </div>
 
@@ -2411,7 +2554,9 @@ const AdminDashboard: React.FC = () => {
               </div>
 
               {orderUpdateError && (
-                <div className="text-red-600 text-sm mb-2">{orderUpdateError}</div>
+                <div className="text-red-600 text-sm mb-2">
+                  {orderUpdateError}
+                </div>
               )}
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 p-4 sm:p-6 border-t bg-gray-50">
                 <button
@@ -2436,8 +2581,13 @@ const AdminDashboard: React.FC = () => {
         {showCancelOrderModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
             <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Cancel Order</h3>
-              <p className="mb-6 text-gray-700">This action cannot be undone. The selected order will be marked as cancelled. Are you sure you want to proceed?</p>
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                Cancel Order
+              </h3>
+              <p className="mb-6 text-gray-700">
+                This action cannot be undone. The selected order will be marked
+                as cancelled. Are you sure you want to proceed?
+              </p>
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={cancelCancelOrder}
@@ -2457,11 +2607,7 @@ const AdminDashboard: React.FC = () => {
         )}
       </div>
     </div>
-   );
- };
+  );
+};
 
 export default AdminDashboard;
-
-
-
-
