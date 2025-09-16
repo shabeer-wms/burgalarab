@@ -8,7 +8,8 @@ import { ShoppingCart, Eye, Receipt } from 'lucide-react';
 const WaiterDashboard: React.FC = () => {
   const { getActiveOrders, getTodaysRevenue } = useApp();
   const [activeTab, setActiveTab] = useState<'orders' | 'status' | 'billing'>('orders');
-  
+  const [selectedTable, setSelectedTable] = useState<string>('1');
+
   const activeOrders = getActiveOrders();
   const todaysRevenue = getTodaysRevenue();
 
@@ -58,7 +59,7 @@ const WaiterDashboard: React.FC = () => {
 
       {/* Tab Content */}
       <div className="min-h-[600px]">
-        {activeTab === 'orders' && <OrderManagement tableNumber="1" />}
+  {activeTab === 'orders' && <OrderManagement tableNumber={selectedTable} setSelectedTable={setSelectedTable} />}
         {activeTab === 'status' && <OrderStatusManagement />}
         {activeTab === 'billing' && <BillingPayments />}
       </div>
