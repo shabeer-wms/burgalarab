@@ -72,6 +72,19 @@ const KitchenDisplaySystem: React.FC = () => {
   );
   const readyOrders = kitchenOrders.filter((order) => order.status === "ready");
 
+  // UI filter state for left navigation
+  const [selectedFilter, setSelectedFilter] = useState<
+    "all" | "pending" | "in-progress" | "ready"
+  >("all");
+
+  const handleFilterClick = (
+    e: React.MouseEvent,
+    filter: typeof selectedFilter
+  ) => {
+    e.preventDefault();
+    setSelectedFilter(filter);
+  };
+
   return (
     // full-viewport container so the view truly fills the page
     <div ref={rootRef} className="fixed inset-0 flex bg-gray-100">
@@ -83,29 +96,49 @@ const KitchenDisplaySystem: React.FC = () => {
         </div>
         <nav className="flex-1 px-4 py-4 space-y-2">
           <a
-            className="flex items-center px-4 py-2 text-gray-700 bg-blue-100 rounded-lg"
             href="#"
+            onClick={(e) => handleFilterClick(e, "all")}
+            className={`flex items-center px-4 py-2 rounded-lg ${
+              selectedFilter === "all"
+                ? "text-gray-700 bg-blue-100"
+                : "text-gray-700 hover:bg-gray-200"
+            }`}
           >
             <span className="material-icons mr-3">apps</span>
             All
           </a>
           <a
-            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg"
             href="#"
+            onClick={(e) => handleFilterClick(e, "pending")}
+            className={`flex items-center px-4 py-2 rounded-lg ${
+              selectedFilter === "pending"
+                ? "text-gray-700 bg-yellow-100"
+                : "text-gray-700 hover:bg-gray-200"
+            }`}
           >
             <span className="material-icons mr-3">hourglass_top</span>
             Pending
           </a>
           <a
-            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg"
             href="#"
+            onClick={(e) => handleFilterClick(e, "in-progress")}
+            className={`flex items-center px-4 py-2 rounded-lg ${
+              selectedFilter === "in-progress"
+                ? "text-gray-700 bg-blue-100"
+                : "text-gray-700 hover:bg-gray-200"
+            }`}
           >
             <span className="material-icons mr-3">autorenew</span>
             In Progress
           </a>
           <a
-            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg"
             href="#"
+            onClick={(e) => handleFilterClick(e, "ready")}
+            className={`flex items-center px-4 py-2 rounded-lg ${
+              selectedFilter === "ready"
+                ? "text-gray-700 bg-green-100"
+                : "text-gray-700 hover:bg-gray-200"
+            }`}
           >
             <span className="material-icons mr-3">check_circle_outline</span>
             Ready
@@ -180,65 +213,73 @@ const KitchenDisplaySystem: React.FC = () => {
             </div>
           </header>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <section>
-              <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                <span className="material-icons text-yellow-500 mr-2">
-                  warning
-                </span>
-                Pending ({pendingOrders.length})
-              </h2>
-              <div className="space-y-6">
-                {pendingOrders.map((order) => (
-                  <KitchenOrderCard
-                    key={order.orderId}
-                    order={order}
-                    currentTime={currentTime}
-                    onStatusChange={handleStatusChange}
-                    onItemStatusChange={handleItemStatusChange}
-                  />
-                ))}
-              </div>
-            </section>
-            <section>
-              <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                <span className="material-icons text-blue-500 mr-2">
-                  play_arrow
-                </span>
-                In Progress ({inProgressOrders.length})
-              </h2>
-              <div className="space-y-6">
-                {inProgressOrders.map((order) => (
-                  <KitchenOrderCard
-                    key={order.orderId}
-                    order={order}
-                    currentTime={currentTime}
-                    onStatusChange={handleStatusChange}
-                    onItemStatusChange={handleItemStatusChange}
-                    inProgress
-                  />
-                ))}
-              </div>
-            </section>
-            <section>
-              <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                <span className="material-icons text-green-500 mr-2">
-                  check_circle
-                </span>
-                Ready ({readyOrders.length})
-              </h2>
-              <div className="space-y-6">
-                {readyOrders.map((order) => (
-                  <KitchenOrderCard
-                    key={order.orderId}
-                    order={order}
-                    currentTime={currentTime}
-                    onStatusChange={handleStatusChange}
-                    onItemStatusChange={handleItemStatusChange}
-                    ready
-                  />
-                ))}
-              </div>
-            </section>
+            {(selectedFilter === "all" || selectedFilter === "pending") && (
+              <section>
+                <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                  <span className="material-icons text-yellow-500 mr-2">
+                    warning
+                  </span>
+                  Pending ({pendingOrders.length})
+                </h2>
+                <div className="space-y-6">
+                  {pendingOrders.map((order) => (
+                    <KitchenOrderCard
+                      key={order.orderId}
+                      order={order}
+                      currentTime={currentTime}
+                      onStatusChange={handleStatusChange}
+                      onItemStatusChange={handleItemStatusChange}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {(selectedFilter === "all" || selectedFilter === "in-progress") && (
+              <section>
+                <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                  <span className="material-icons text-blue-500 mr-2">
+                    play_arrow
+                  </span>
+                  In Progress ({inProgressOrders.length})
+                </h2>
+                <div className="space-y-6">
+                  {inProgressOrders.map((order) => (
+                    <KitchenOrderCard
+                      key={order.orderId}
+                      order={order}
+                      currentTime={currentTime}
+                      onStatusChange={handleStatusChange}
+                      onItemStatusChange={handleItemStatusChange}
+                      inProgress
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {(selectedFilter === "all" || selectedFilter === "ready") && (
+              <section>
+                <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                  <span className="material-icons text-green-500 mr-2">
+                    check_circle
+                  </span>
+                  Ready ({readyOrders.length})
+                </h2>
+                <div className="space-y-6">
+                  {readyOrders.map((order) => (
+                    <KitchenOrderCard
+                      key={order.orderId}
+                      order={order}
+                      currentTime={currentTime}
+                      onStatusChange={handleStatusChange}
+                      onItemStatusChange={handleItemStatusChange}
+                      ready
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </main>
