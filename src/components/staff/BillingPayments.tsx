@@ -77,7 +77,7 @@ const BillingPayments: React.FC = () => {
           <p><strong>Customer:</strong> ${bill.customerDetails.name}</p>
           <p><strong>Phone:</strong> ${bill.customerDetails.phone}</p>
           ${bill.customerDetails.tableNumber ? `<p><strong>Table:</strong> ${bill.customerDetails.tableNumber}</p>` : ''}
-          ${bill.customerDetails.address ? `<p><strong>Address:</strong> ${bill.customerDetails.address}</p>` : ''}
+          ${bill.customerDetails.address ? `<p><strong>Vehicle No:</strong> ${bill.customerDetails.address}</p>` : ''}
         </div>
         
         <div style="margin: 20px 0;">
@@ -339,47 +339,7 @@ const BillingPayments: React.FC = () => {
         )}
       </div>
 
-      {/* Bill Preview Modal */}
-      {showBillPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-title-large">Bill Generated Successfully</h3>
-              <button
-                onClick={() => setShowBillPreview(null)}
-                className="p-2 hover:bg-surface-100 rounded-lg"
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="text-center p-4 bg-success-50 border border-success-200 rounded-lg">
-                <Receipt className="w-8 h-8 text-success-600 mx-auto mb-2" />
-                <p className="text-success-800 font-medium">Payment Processed Successfully</p>
-                <p className="text-success-700">Bill ID: {showBillPreview.id}</p>
-              </div>
-              
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => downloadBillPDF(showBillPreview)}
-                  className="flex-1 btn-outlined flex items-center justify-center space-x-2"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download</span>
-                </button>
-                <button
-                  onClick={() => printBill(showBillPreview)}
-                  className="flex-1 btn-primary flex items-center justify-center space-x-2"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>Print</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      // ... Bill Preview Modal removed as per request ...
     </div>
   );
 };
