@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Order } from '../../types';
-import { Clock, CheckCircle, AlertCircle, Package, Truck, DollarSign, Eye, Filter } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, Filter, ChefHat } from 'lucide-react';
 
 const OrderStatusManagement: React.FC = () => {
   const { orders, getActiveOrders, updateOrder } = useApp();
@@ -284,7 +284,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order, onClose })
             <p><strong>Phone:</strong> {order.customerPhone}</p>
             <p><strong>Type:</strong> {order.type}</p>
             {order.tableNumber && <p><strong>Table:</strong> {order.tableNumber}</p>}
-            {order.customerAddress && <p><strong>Address:</strong> {order.customerAddress}</p>}
+            {order.customerAddress && <p><strong>Vehicle No:</strong> {order.customerAddress}</p>}
             <p><strong>Order Time:</strong> {(() => {
               let date: Date;
               if (order.orderTime instanceof Date) {
@@ -303,6 +303,12 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order, onClose })
             })()}</p>
             {order.estimatedTime && <p><strong>Estimated Time:</strong> {order.estimatedTime} minutes</p>}
           </div>
+        </div>
+
+        {/* Order Status Timeline */}
+        <div>
+          <h4 className="text-title-medium mb-4">Order Progress</h4>
+          <OrderStatusTimeline currentStatus={order.status} />
         </div>
 
         {/* Order Items */}
@@ -380,6 +386,157 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order, onClose })
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+interface OrderStatusTimelineProps {
+  currentStatus: Order['status'];
+}
+
+const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus }) => {
+  const timelineSteps = [
+    {
+      id: 'pending',
+      label: 'Order Placed',
+      icon: Clock,
+      description: 'Order received and pending confirmation'
+    },
+    {
+      id: 'confirmed',
+      label: 'Confirmed',
+      icon: CheckCircle,
+      description: 'Order confirmed and sent to kitchen'
+    },
+    {
+      id: 'preparing',
+      label: 'Preparing',
+      icon: ChefHat,
+      description: 'Kitchen is preparing your order'
+    },
+    {
+      id: 'ready',
+      label: 'Ready',
+      icon: Package,
+      description: 'Order is ready for pickup/delivery'
+    }
+  ];
+
+  const getStepStatus = (stepId: string) => {
+    const currentIndex = timelineSteps.findIndex(step => step.id === currentStatus);
+    const stepIndex = timelineSteps.findIndex(step => step.id === stepId);
+    
+    if (currentStatus === 'cancelled') {
+      return stepIndex === 0 ? 'completed' : 'cancelled';
+    }
+    
+    if (stepIndex < currentIndex) return 'completed';
+    if (stepIndex === currentIndex) return 'current';
+    return 'pending';
+  };
+
+  const getStepStyles = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return {
+          container: 'text-success-600',
+          icon: 'bg-success-600 text-white',
+          line: 'bg-success-600'
+        };
+      case 'current':
+        return {
+          container: 'text-primary-600',
+          icon: 'bg-primary-600 text-white',
+          line: 'bg-surface-300'
+        };
+      case 'cancelled':
+        return {
+          container: 'text-error-600',
+          icon: 'bg-error-600 text-white',
+          line: 'bg-error-600'
+        };
+      default:
+        return {
+          container: 'text-surface-400',
+          icon: 'bg-surface-200 text-surface-600',
+          line: 'bg-surface-200'
+        };
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {timelineSteps.map((step, index) => {
+        const status = getStepStatus(step.id);
+        const styles = getStepStyles(status);
+        const Icon = step.icon;
+        const isLast = index === timelineSteps.length - 1;
+
+        return (
+          <div key={step.id} className="flex items-start">
+            {/* Icon */}
+            <div className="flex flex-col items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${styles.icon}`}>
+                <Icon className="w-5 h-5" />
+              </div>
+              {!isLast && (
+                <div className={`w-0.5 h-8 mt-2 ${styles.line}`} />
+              )}
+            </div>
+
+            {/* Content */}
+            <div className={`ml-4 pb-6 ${styles.container}`}>
+              <h5 className="text-body-large font-medium">{step.label}</h5>
+              <p className="text-body-small mt-1">{step.description}</p>
+              {status === 'current' && (
+                <div className="mt-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                    Current Status
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      
+      {currentStatus === 'cancelled' && (
+        <div className="flex items-start">
+          <div className="flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-error-600 text-white">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="ml-4 text-error-600">
+            <h5 className="text-body-large font-medium">Order Cancelled</h5>
+            <p className="text-body-small mt-1">This order has been cancelled</p>
+            <div className="mt-2">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-error-100 text-error-800">
+                Cancelled
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {currentStatus === 'completed' && (
+        <div className="flex items-start">
+          <div className="flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-success-600 text-white">
+              <CheckCircle className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="ml-4 text-success-600">
+            <h5 className="text-body-large font-medium">Order Completed</h5>
+            <p className="text-body-small mt-1">Order has been delivered/picked up</p>
+            <div className="mt-2">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                Completed
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
