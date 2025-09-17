@@ -363,14 +363,20 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
         </div>
       </div>
       <div className="mb-4 space-y-1">
-        {order.items.map((item) => (
-          <p key={item.id} className="text-gray-700">
-            {item.quantity}x {item.menuItem.name}{" "}
-            <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full ml-2">
-              {item.status}
-            </span>
-          </p>
-        ))}
+        {order.items.map((item) => {
+          const isOrderReady = order.status === "ready";
+          const badgeText = isOrderReady ? "ready" : item.status;
+          const badgeClass = isOrderReady
+            ? "text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full ml-2"
+            : "text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full ml-2";
+
+          return (
+            <p key={item.id} className="text-gray-700">
+              {item.quantity}x {item.menuItem.name}{" "}
+              <span className={badgeClass}>{badgeText}</span>
+            </p>
+          );
+        })}
       </div>
       {order.status === "pending" && (
         <button
