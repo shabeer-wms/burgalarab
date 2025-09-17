@@ -20,8 +20,13 @@ interface AppContextType {
   orders: Order[];
   bills: Bill[];
   kitchenOrders: KitchenDisplayItem[];
+
+  addOrder: (order: Omit<Order, 'id' | 'orderTime'>) => Promise<string>;
+  updateOrder: (orderId: string, updates: Partial<Order>) => void;
+
   addOrder: (order: Omit<Order, 'id' | 'orderTime'>) => string;
   updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
+
   updateOrderItemStatus: (orderId: string, itemId: string, status: OrderItem['status']) => void;
   updateKitchenOrderStatus: (orderId: string, status: 'pending' | 'in-progress' | 'ready') => void;
   getOrdersByStatus: (status: Order['status']) => Order[];
@@ -157,33 +162,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
 
-  const addOrder = (orderData: Omit<Order, 'id' | 'orderTime'>): string => {
+  const addOrder = async (orderData: Omit<Order, 'id' | 'orderTime'>): Promise<string> => {
     const orderTime = new Date();
     const newOrder: Omit<Order, 'id'> = {
       ...orderData,
       orderTime,
     };
     const ref = collection(db, 'orders');
-    addDoc(ref, newOrder).then((docRef) => {
-      // Add to kitchen display if confirmed
-      if (orderData.status === 'confirmed') {
-        const kitchenItem: Omit<KitchenDisplayItem, 'orderId'> & { orderId: string } = {
-          orderId: docRef.id,
-          orderNumber: `#${docRef.id.slice(-4)}`,
-          tableNumber: orderData.tableNumber,
-          customerName: orderData.customerName,
-          items: orderData.items,
-          orderTime,
-          estimatedTime: orderData.estimatedTime || 30,
-          priority: orderData.type === 'dine-in' ? 'high' : 'medium',
-          status: 'pending',
-          kitchenNotes: orderData.kitchenNotes,
-        };
-        setDoc(doc(db, 'kitchenOrders', docRef.id), kitchenItem);
-      }
-    });
-    // Return a placeholder, actual id will be from Firestore
-    return '';
+    const docRef = await addDoc(ref, newOrder);
+    // Add to kitchen display if confirmed
+    if (orderData.status === 'confirmed') {
+      const kitchenItem: Omit<KitchenDisplayItem, 'orderId'> & { orderId: string } = {
+        orderId: docRef.id,
+        orderNumber: `#${docRef.id.slice(-4)}`,
+        tableNumber: orderData.tableNumber,
+        customerName: orderData.customerName,
+        items: orderData.items,
+        orderTime,
+        estimatedTime: orderData.estimatedTime || 30,
+        priority: orderData.type === 'dine-in' ? 'high' : 'medium',
+        status: 'pending',
+        kitchenNotes: orderData.kitchenNotes,
+      };
+      await setDoc(doc(db, 'kitchenOrders', docRef.id), kitchenItem);
+    }
+    return docRef.id;
   };
 
 

@@ -442,8 +442,13 @@ const AdminDashboard: React.FC = () => {
       Order #${order.id.slice(-4)}
       Date: ${formatDateTime(order.orderTime)}
       Customer: ${order.customerName}
+
+      ${order.tableNumber ? `Table: ${order.tableNumber}` : ''}
+      ${order.customerAddress ? `Vehicle No: ${order.customerAddress}` : ''}
+
       ${order.tableNumber ? `Table: ${order.tableNumber}` : ""}
       ${order.customerAddress ? `Address: ${order.customerAddress}` : ""}
+
       
       ITEMS:
       ${order.items
