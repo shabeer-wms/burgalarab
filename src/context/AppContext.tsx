@@ -22,9 +22,6 @@ interface AppContextType {
   kitchenOrders: KitchenDisplayItem[];
 
   addOrder: (order: Omit<Order, 'id' | 'orderTime'>) => Promise<string>;
-  updateOrder: (orderId: string, updates: Partial<Order>) => void;
-
-  addOrder: (order: Omit<Order, 'id' | 'orderTime'>) => string;
   updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
 
   updateOrderItemStatus: (orderId: string, itemId: string, status: OrderItem['status']) => void;
