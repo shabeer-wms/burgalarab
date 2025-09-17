@@ -300,7 +300,7 @@ const KitchenDisplaySystem: React.FC = () => {
       <main className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-auto">
         <div className="w-full">
           <header className="bg-white p-6 rounded-2xl shadow-md mb-8">
-            <div className="flex items-start md:items-center md:justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
               <div className="flex items-center w-full md:w-auto">
                 <button
                   className="md:hidden mr-3 p-2 rounded-md text-gray-600 hover:bg-gray-100"
@@ -330,24 +330,60 @@ const KitchenDisplaySystem: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-shrink-0 flex items-center space-x-6 text-center">
-                <div>
-                  <p className="text-2xl md:text-3xl font-bold text-yellow-500">
-                    {pendingOrders.length}
-                  </p>
-                  <p className="text-gray-500 text-sm">Pending</p>
+              <div className="w-full md:w-auto">
+                {/* small screens: adaptive auto-fit grid */}
+                <div
+                  className="grid gap-3 w-full md:hidden"
+                  style={{
+                    gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))",
+                  }}
+                >
+                  <div className="flex flex-col items-center">
+                    <p className="text-base sm:text-lg font-bold text-yellow-500">
+                      {pendingOrders.length}
+                    </p>
+                    <p className="text-gray-500 text-[11px] sm:text-xs">
+                      Pending
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <p className="text-base sm:text-lg font-bold text-blue-500">
+                      {inProgressOrders.length}
+                    </p>
+                    <p className="text-gray-500 text-[11px] sm:text-xs">
+                      In Progress
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <p className="text-base sm:text-lg font-bold text-green-500">
+                      {readyOrders.length}
+                    </p>
+                    <p className="text-gray-500 text-[11px] sm:text-xs">
+                      Ready
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl md:text-3xl font-bold text-blue-500">
-                    {inProgressOrders.length}
-                  </p>
-                  <p className="text-gray-500 text-sm">In Progress</p>
-                </div>
-                <div>
-                  <p className="text-2xl md:text-3xl font-bold text-green-500">
-                    {readyOrders.length}
-                  </p>
-                  <p className="text-gray-500 text-sm">Ready</p>
+
+                {/* md+ screens: force horizontal stacked counters */}
+                <div className="hidden md:flex md:items-center md:gap-6 md:justify-end">
+                  <div className="flex flex-col items-center">
+                    <p className="text-3xl font-bold text-yellow-500">
+                      {pendingOrders.length}
+                    </p>
+                    <p className="text-gray-500 text-sm">Pending</p>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <p className="text-3xl font-bold text-blue-500">
+                      {inProgressOrders.length}
+                    </p>
+                    <p className="text-gray-500 text-sm">In Progress</p>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <p className="text-3xl font-bold text-green-500">
+                      {readyOrders.length}
+                    </p>
+                    <p className="text-gray-500 text-sm">Ready</p>
+                  </div>
                 </div>
               </div>
             </div>
