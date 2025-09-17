@@ -367,14 +367,21 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           const isOrderReady = order.status === "ready";
           const badgeText = isOrderReady ? "ready" : item.status;
           const badgeClass = isOrderReady
-            ? "text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full ml-2"
-            : "text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full ml-2";
+            ? "text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full"
+            : "text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full";
 
           return (
-            <p key={item.id} className="text-gray-700">
-              {item.quantity}x {item.menuItem.name}{" "}
-              <span className={badgeClass}>{badgeText}</span>
-            </p>
+            <div
+              key={item.id}
+              className="flex items-center justify-between text-gray-700"
+            >
+              <div className="truncate">
+                {item.quantity}x {item.menuItem.name}
+              </div>
+              <div className="ml-4 flex-shrink-0">
+                <span className={badgeClass}>{badgeText}</span>
+              </div>
+            </div>
           );
         })}
       </div>
