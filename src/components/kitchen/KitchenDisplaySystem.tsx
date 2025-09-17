@@ -1,154 +1,247 @@
-import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
-import { KitchenDisplayItem, OrderItem } from '../../types';
-import { Clock, ChefHat, AlertCircle, CheckCircle, Play, Pause } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import { useApp } from "../../context/AppContext";
+import { useAuth } from "../../context/AuthContext";
+import { KitchenDisplayItem, OrderItem } from "../../types";
 
 const KitchenDisplaySystem: React.FC = () => {
-  const { kitchenOrders, updateKitchenOrderStatus, updateOrderItemStatus } = useApp();
+  const { kitchenOrders, updateKitchenOrderStatus, updateOrderItemStatus } =
+    useApp();
+  const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  // Hide top appbar(s) that may be rendered by a parent Layout.
+  // We deliberately don't edit Layout — instead we hide any likely header elements
+  // on mount and restore them on unmount so this view appears full-height.
+  // IMPORTANT: skip any headers that are inside this component (rootRef) so we
+  // don't accidentally hide our own header card.
+  useEffect(() => {
+    const selectors = [
+      "header",
+      "[data-topbar]",
+      ".topbar",
+      ".app-header",
+      "#top-appbar",
+    ];
+
+    const found: { el: Element; prev: string | null }[] = [];
+
+    selectors.forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) {
+        // skip if the element is inside our component
+        if (rootRef.current && rootRef.current.contains(el)) return;
+        found.push({ el, prev: (el as HTMLElement).style.display || null });
+        (el as HTMLElement).style.display = "none";
+      }
+    });
+
+    return () => {
+      // restore previous display values
+      found.forEach(({ el, prev }) => {
+        (el as HTMLElement).style.display = prev ?? "";
+      });
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-warning-100 text-warning-800 border-warning-300';
-      case 'in-progress': return 'bg-primary-100 text-primary-800 border-primary-300';
-      case 'ready': return 'bg-success-100 text-success-800 border-success-300';
-      default: return 'bg-surface-100 text-surface-800 border-surface-300';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'border-l-4 border-l-error-500';
-      case 'medium': return 'border-l-4 border-l-warning-500';
-      case 'low': return 'border-l-4 border-l-success-500';
-      default: return 'border-l-4 border-l-surface-300';
-    }
-  };
-
-  const getTimeElapsed = (orderTime: Date) => {
-    const diff = Math.floor((currentTime.getTime() - orderTime.getTime()) / 1000 / 60);
-    return diff;
-  };
-
-  const getTimeRemaining = (orderTime: Date, estimatedTime: number) => {
-    const elapsed = getTimeElapsed(orderTime);
-    const remaining = estimatedTime - elapsed;
-    return Math.max(0, remaining);
-  };
-
-  const isOverdue = (orderTime: Date, estimatedTime: number) => {
-    return getTimeElapsed(orderTime) > estimatedTime;
-  };
-
-  const handleStatusChange = (orderId: string, newStatus: 'pending' | 'in-progress' | 'ready') => {
+  const handleStatusChange = (
+    orderId: string,
+    newStatus: "pending" | "in-progress" | "ready"
+  ) => {
     updateKitchenOrderStatus(orderId, newStatus);
   };
 
-  const handleItemStatusChange = (orderId: string, itemId: string, status: OrderItem['status']) => {
+  const handleItemStatusChange = (
+    orderId: string,
+    itemId: string,
+    status: OrderItem["status"]
+  ) => {
     updateOrderItemStatus(orderId, itemId, status);
   };
 
-  const pendingOrders = kitchenOrders.filter(order => order.status === 'pending');
-  const inProgressOrders = kitchenOrders.filter(order => order.status === 'in-progress');
-  const readyOrders = kitchenOrders.filter(order => order.status === 'ready');
+  const pendingOrders = kitchenOrders.filter(
+    (order) => order.status === "pending"
+  );
+  const inProgressOrders = kitchenOrders.filter(
+    (order) => order.status === "in-progress"
+  );
+  const readyOrders = kitchenOrders.filter((order) => order.status === "ready");
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-primary-100 rounded-2xl">
-              <ChefHat className="w-6 h-6 text-primary-600" />
-            </div>
+    // full-viewport container so the view truly fills the page
+    <div ref={rootRef} className="fixed inset-0 flex bg-gray-100">
+      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex flex-col">
+        {/* hide sidebar on small screens to improve responsiveness */}
+        <div className="p-6 text-lg text-gray-800 border-b hidden md:block">
+          <p className="font-bold">Hotel Management</p>
+          <p className="text-base">Kitchen Dashboard</p>
+        </div>
+        <nav className="flex-1 px-4 py-4 space-y-2">
+          <a
+            className="flex items-center px-4 py-2 text-gray-700 bg-blue-100 rounded-lg"
+            href="#"
+          >
+            <span className="material-icons mr-3">apps</span>
+            All
+          </a>
+          <a
+            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg"
+            href="#"
+          >
+            <span className="material-icons mr-3">hourglass_top</span>
+            Pending
+          </a>
+          <a
+            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg"
+            href="#"
+          >
+            <span className="material-icons mr-3">autorenew</span>
+            In Progress
+          </a>
+          <a
+            className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg"
+            href="#"
+          >
+            <span className="material-icons mr-3">check_circle_outline</span>
+            Ready
+          </a>
+        </nav>
+        <div className="p-4 border-t">
+          <div className="mb-4 flex items-center">
+            <span className="material-icons mr-3 text-gray-500">
+              account_circle
+            </span>
             <div>
-              <h1 className="text-headline-medium">Kitchen Display System</h1>
-              <p className="text-body-medium text-surface-600">
-                {currentTime.toLocaleTimeString()} | {kitchenOrders.length} Active Orders
+              <p className="text-sm font-semibold text-gray-800">
+                {user?.name}
+              </p>
+              <p className="text-xs text-gray-500">
+                {user?.role
+                  ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                  : "Unknown"}
               </p>
             </div>
           </div>
-          <div className="flex space-x-4">
-            <div className="text-center">
-              <div className="text-title-large text-warning-600">{pendingOrders.length}</div>
-              <div className="text-body-small text-surface-600">Pending</div>
+          <button
+            onClick={logout}
+            className="w-full flex items-center justify-center px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white"
+          >
+            <span className="material-icons mr-2">logout</span>
+            Logout
+          </button>
+        </div>
+      </aside>
+      <main className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-auto">
+        <div className="w-full">
+          <header className="bg-white p-6 rounded-2xl shadow-md mb-8 flex justify-between items-center">
+            <div className="flex items-center">
+              <div className="bg-blue-100 p-4 rounded-xl mr-4">
+                <span
+                  className="material-icons text-blue-500"
+                  style={{ fontSize: "32px" }}
+                >
+                  kitchen
+                </span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">
+                  Kitchen Display System
+                </h1>
+                <p className="text-gray-500">
+                  {currentTime.toLocaleTimeString()} | {kitchenOrders.length}{" "}
+                  Active Orders
+                </p>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-title-large text-primary-600">{inProgressOrders.length}</div>
-              <div className="text-body-small text-surface-600">In Progress</div>
+            <div className="flex space-x-8 text-center">
+              <div>
+                <p className="text-3xl font-bold text-yellow-500">
+                  {pendingOrders.length}
+                </p>
+                <p className="text-gray-500">Pending</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-blue-500">
+                  {inProgressOrders.length}
+                </p>
+                <p className="text-gray-500">In Progress</p>
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-green-500">
+                  {readyOrders.length}
+                </p>
+                <p className="text-gray-500">Ready</p>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-title-large text-success-600">{readyOrders.length}</div>
-              <div className="text-body-small text-surface-600">Ready</div>
-            </div>
+          </header>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <section>
+              <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                <span className="material-icons text-yellow-500 mr-2">
+                  warning
+                </span>
+                Pending ({pendingOrders.length})
+              </h2>
+              <div className="space-y-6">
+                {pendingOrders.map((order) => (
+                  <KitchenOrderCard
+                    key={order.orderId}
+                    order={order}
+                    currentTime={currentTime}
+                    onStatusChange={handleStatusChange}
+                    onItemStatusChange={handleItemStatusChange}
+                  />
+                ))}
+              </div>
+            </section>
+            <section>
+              <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                <span className="material-icons text-blue-500 mr-2">
+                  play_arrow
+                </span>
+                In Progress ({inProgressOrders.length})
+              </h2>
+              <div className="space-y-6">
+                {inProgressOrders.map((order) => (
+                  <KitchenOrderCard
+                    key={order.orderId}
+                    order={order}
+                    currentTime={currentTime}
+                    onStatusChange={handleStatusChange}
+                    onItemStatusChange={handleItemStatusChange}
+                    inProgress
+                  />
+                ))}
+              </div>
+            </section>
+            <section>
+              <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                <span className="material-icons text-green-500 mr-2">
+                  check_circle
+                </span>
+                Ready ({readyOrders.length})
+              </h2>
+              <div className="space-y-6">
+                {readyOrders.map((order) => (
+                  <KitchenOrderCard
+                    key={order.orderId}
+                    order={order}
+                    currentTime={currentTime}
+                    onStatusChange={handleStatusChange}
+                    onItemStatusChange={handleItemStatusChange}
+                    ready
+                  />
+                ))}
+              </div>
+            </section>
           </div>
         </div>
-      </div>
-
-      {/* Kitchen Orders Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pending Orders */}
-        <div>
-          <h2 className="text-title-large mb-4 flex items-center space-x-2">
-            <AlertCircle className="w-5 h-5 text-warning-600" />
-            <span>Pending ({pendingOrders.length})</span>
-          </h2>
-          <div className="space-y-4">
-            {pendingOrders.map(order => (
-              <KitchenOrderCard
-                key={order.orderId}
-                order={order}
-                currentTime={currentTime}
-                onStatusChange={handleStatusChange}
-                onItemStatusChange={handleItemStatusChange}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* In Progress Orders */}
-        <div>
-          <h2 className="text-title-large mb-4 flex items-center space-x-2">
-            <Play className="w-5 h-5 text-primary-600" />
-            <span>In Progress ({inProgressOrders.length})</span>
-          </h2>
-          <div className="space-y-4">
-            {inProgressOrders.map(order => (
-              <KitchenOrderCard
-                key={order.orderId}
-                order={order}
-                currentTime={currentTime}
-                onStatusChange={handleStatusChange}
-                onItemStatusChange={handleItemStatusChange}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Ready Orders */}
-        <div>
-          <h2 className="text-title-large mb-4 flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-success-600" />
-            <span>Ready ({readyOrders.length})</span>
-          </h2>
-          <div className="space-y-4">
-            {readyOrders.map(order => (
-              <KitchenOrderCard
-                key={order.orderId}
-                order={order}
-                currentTime={currentTime}
-                onStatusChange={handleStatusChange}
-                onItemStatusChange={handleItemStatusChange}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 };
@@ -156,158 +249,120 @@ const KitchenDisplaySystem: React.FC = () => {
 interface KitchenOrderCardProps {
   order: KitchenDisplayItem;
   currentTime: Date;
-  onStatusChange: (orderId: string, status: 'pending' | 'in-progress' | 'ready') => void;
-  onItemStatusChange: (orderId: string, itemId: string, status: OrderItem['status']) => void;
+  onStatusChange: (
+    orderId: string,
+    status: "pending" | "in-progress" | "ready"
+  ) => void;
+  onItemStatusChange: (
+    orderId: string,
+    itemId: string,
+    status: OrderItem["status"]
+  ) => void;
+  inProgress?: boolean;
+  ready?: boolean;
 }
 
 const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
   order,
   currentTime,
   onStatusChange,
-  onItemStatusChange
+  inProgress,
+  ready,
 }) => {
-  const getTimeElapsed = (orderTime: Date) => {
-    return Math.floor((currentTime.getTime() - orderTime.getTime()) / 1000 / 60);
-  };
+  // Live elapsed minutes since order was placed
+  const liveElapsed = Math.floor(
+    (currentTime.getTime() - order.orderTime.getTime()) / 1000 / 60
+  );
 
-  const getTimeRemaining = (orderTime: Date, estimatedTime: number) => {
-    const elapsed = getTimeElapsed(orderTime);
-    const remaining = estimatedTime - elapsed;
-    return Math.max(0, remaining);
-  };
+  // Freeze elapsed time when the order first becomes ready (UI only, no backend change)
+  const frozenElapsedRef = useRef<number | null>(null);
 
-  const isOverdue = (orderTime: Date, estimatedTime: number) => {
-    return getTimeElapsed(orderTime) > estimatedTime;
-  };
+  if (order.status === "ready" && frozenElapsedRef.current === null) {
+    frozenElapsedRef.current = liveElapsed; // capture the moment it turned ready
+  }
+  // If status were to revert (unlikely), allow re-freezing later
+  if (order.status !== "ready" && frozenElapsedRef.current !== null) {
+    frozenElapsedRef.current = null;
+  }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'border-l-4 border-l-error-500';
-      case 'medium': return 'border-l-4 border-l-warning-500';
-      case 'low': return 'border-l-4 border-l-success-500';
-      default: return 'border-l-4 border-l-surface-300';
-    }
-  };
+  const elapsed = frozenElapsedRef.current ?? liveElapsed;
+  const overdue = elapsed > order.estimatedTime;
+  // Display rules:
+  // - Pending / In Progress: show elapsed minutes counting UP
+  // - Once elapsed exceeds estimate: show +Xmin (overdue)
+  // - Ready: frozen elapsed at completion
+  const displayTime = overdue
+    ? `+${elapsed - order.estimatedTime}min`
+    : `${elapsed}min`;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-warning-100 text-warning-800 border-warning-300';
-      case 'in-progress': return 'bg-primary-100 text-primary-800 border-primary-300';
-      case 'ready': return 'bg-success-100 text-success-800 border-success-300';
-      default: return 'bg-surface-100 text-surface-800 border-surface-300';
-    }
-  };
-
-  const elapsed = getTimeElapsed(order.orderTime);
-  const remaining = getTimeRemaining(order.orderTime, order.estimatedTime);
-  const overdue = isOverdue(order.orderTime, order.estimatedTime);
+  const timeColorClass =
+    order.status === "pending"
+      ? "bg-yellow-100 text-yellow-600"
+      : order.status === "in-progress"
+      ? "bg-blue-100 text-blue-600"
+      : "bg-green-100 text-green-600";
 
   return (
-    <div className={`card ${getPriorityColor(order.priority)} ${overdue ? 'animate-pulse' : ''}`}>
-      {/* Order Header */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white p-6 rounded-2xl shadow-md">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-title-medium">{order.orderNumber}</h3>
-          <p className="text-body-small text-surface-600">
-            {order.customerName} {order.tableNumber && `• Table ${order.tableNumber}`}
+          <h3 className="text-lg font-bold text-gray-800">
+            #{order.orderNumber}
+          </h3>
+          <p className="text-sm text-gray-500">
+            {order.customerName}{" "}
+            {order.tableNumber && `• Table ${order.tableNumber}`}
           </p>
         </div>
-        <div className="text-right">
-          <div className={`chip ${getStatusColor(order.status)}`}>
-            {order.status.toUpperCase()}
-          </div>
-          <div className="flex items-center space-x-1 mt-1">
-            <Clock className="w-4 h-4 text-surface-500" />
-            <span className={`text-body-small ${overdue ? 'text-error-600 font-medium' : 'text-surface-600'}`}>
-              {overdue ? `+${elapsed - order.estimatedTime}min` : `${remaining}min`}
-            </span>
-          </div>
+        <div
+          className={`${timeColorClass} text-sm font-medium px-3 py-1 rounded-full flex items-center`}
+        >
+          <span className="material-icons text-xs mr-1">timer</span>
+          {displayTime}
         </div>
       </div>
-
-      {/* Order Items */}
-      <div className="space-y-3 mb-4">
-        {order.items.map(item => (
-          <div key={item.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-lg">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2">
-                <span className="text-body-medium font-medium">{item.quantity}x</span>
-                <span className="text-body-medium">{item.menuItem.name}</span>
-                <span className={`chip text-xs ${
-                  item.status === 'pending' ? 'chip-warning' :
-                  item.status === 'preparing' ? 'chip-primary' :
-                  item.status === 'ready' ? 'chip-success' : 'chip-secondary'
-                }`}>
-                  {item.status}
-                </span>
-              </div>
-              {item.specialInstructions && (
-                <p className="text-body-small text-surface-600 mt-1">
-                  Note: {item.specialInstructions}
-                </p>
-              )}
-            </div>
-            <div className="flex space-x-1">
-              <button
-                onClick={() => onItemStatusChange(order.orderId, item.id, 'preparing')}
-                className="p-1 rounded text-xs bg-primary-100 text-primary-700 hover:bg-primary-200"
-                disabled={item.status !== 'pending'}
-              >
-                Start
-              </button>
-              <button
-                onClick={() => onItemStatusChange(order.orderId, item.id, 'ready')}
-                className="p-1 rounded text-xs bg-success-100 text-success-700 hover:bg-success-200"
-                disabled={item.status === 'ready'}
-              >
-                Done
-              </button>
-            </div>
-          </div>
+      <div className="mb-4 space-y-1">
+        {order.items.map((item) => (
+          <p key={item.id} className="text-gray-700">
+            {item.quantity}x {item.menuItem.name}{" "}
+            <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full ml-2">
+              {item.status}
+            </span>
+          </p>
         ))}
       </div>
-
-      {/* Kitchen Notes */}
-      {order.kitchenNotes && (
-        <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg mb-4">
-          <p className="text-body-small text-warning-800">
-            <strong>Kitchen Notes:</strong> {order.kitchenNotes}
-          </p>
+      {order.status === "pending" && (
+        <button
+          onClick={() => onStatusChange(order.orderId, "in-progress")}
+          className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 flex items-center justify-center"
+        >
+          <span className="material-icons mr-2">play_arrow</span>
+          Start Cooking
+        </button>
+      )}
+      {inProgress && (
+        <div className="flex space-x-4">
+          <button
+            onClick={() => onStatusChange(order.orderId, "pending")}
+            className="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition duration-300 flex items-center justify-center"
+          >
+            <span className="material-icons mr-2">pause</span>
+            Pause
+          </button>
+          <button
+            onClick={() => onStatusChange(order.orderId, "ready")}
+            className="w-1/2 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition duration-300 flex items-center justify-center"
+          >
+            <span className="material-icons mr-2">check</span>
+            Mark Ready
+          </button>
         </div>
       )}
-
-      {/* Action Buttons */}
-      <div className="flex space-x-2">
-        {order.status === 'pending' && (
-          <button
-            onClick={() => onStatusChange(order.orderId, 'in-progress')}
-            className="flex-1 btn-primary py-2 text-sm"
-          >
-            Start Cooking
-          </button>
-        )}
-        {order.status === 'in-progress' && (
-          <>
-            <button
-              onClick={() => onStatusChange(order.orderId, 'pending')}
-              className="flex-1 btn-outlined py-2 text-sm"
-            >
-              Pause
-            </button>
-            <button
-              onClick={() => onStatusChange(order.orderId, 'ready')}
-              className="flex-1 btn-primary py-2 text-sm"
-            >
-              Mark Ready
-            </button>
-          </>
-        )}
-        {order.status === 'ready' && (
-          <div className="flex-1 text-center py-2 text-sm text-success-600 font-medium">
-            Ready for Pickup
-          </div>
-        )}
-      </div>
+      {ready && (
+        <button className="w-full bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition duration-300">
+          Ready for Pickup
+        </button>
+      )}
     </div>
   );
 };
