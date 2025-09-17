@@ -9,6 +9,7 @@ const KitchenDisplaySystem: React.FC = () => {
   const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Hide top appbar(s) that may be rendered by a parent Layout.
   // We deliberately don't edit Layout — instead we hide any likely header elements
@@ -88,7 +89,8 @@ const KitchenDisplaySystem: React.FC = () => {
   return (
     // full-viewport container so the view truly fills the page
     <div ref={rootRef} className="fixed inset-0 flex bg-gray-100">
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex flex-col">
+      {/* Desktop sidebar (hidden on small screens) */}
+      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex-col">
         {/* hide sidebar on small screens to improve responsiveness */}
         <div className="p-6 text-lg text-gray-800 border-b hidden md:block">
           <p className="font-bold">Hotel Management</p>
@@ -169,6 +171,132 @@ const KitchenDisplaySystem: React.FC = () => {
           </button>
         </div>
       </aside>
+      {/* Mobile sidebar overlay */}
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setMobileNavOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black opacity-40" />
+          <div
+            className="relative w-64 h-full bg-white shadow-lg p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 text-lg text-gray-800 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold">Hotel Management</p>
+                  <p className="text-base">Kitchen Dashboard</p>
+                </div>
+                <button
+                  aria-label="Close menu"
+                  className="p-2 rounded-md text-gray-600 hover:bg-gray-100"
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+            </div>
+            <nav className="mt-4 space-y-2">
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSelectedFilter("all");
+                  setMobileNavOpen(false);
+                }}
+                className={`flex items-center px-4 py-2 rounded-lg ${
+                  selectedFilter === "all"
+                    ? "text-gray-700 bg-blue-100"
+                    : "text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <span className="material-icons mr-3">apps</span>
+                All
+              </a>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSelectedFilter("pending");
+                  setMobileNavOpen(false);
+                }}
+                className={`flex items-center px-4 py-2 rounded-lg ${
+                  selectedFilter === "pending"
+                    ? "text-gray-700 bg-yellow-100"
+                    : "text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <span className="material-icons mr-3">hourglass_top</span>
+                Pending
+              </a>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSelectedFilter("in-progress");
+                  setMobileNavOpen(false);
+                }}
+                className={`flex items-center px-4 py-2 rounded-lg ${
+                  selectedFilter === "in-progress"
+                    ? "text-gray-700 bg-blue-100"
+                    : "text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <span className="material-icons mr-3">autorenew</span>
+                In Progress
+              </a>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSelectedFilter("ready");
+                  setMobileNavOpen(false);
+                }}
+                className={`flex items-center px-4 py-2 rounded-lg ${
+                  selectedFilter === "ready"
+                    ? "text-gray-700 bg-green-100"
+                    : "text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <span className="material-icons mr-3">
+                  check_circle_outline
+                </span>
+                Ready
+              </a>
+            </nav>
+            <div className="absolute bottom-0 left-0 w-full p-4 border-t">
+              <div className="mb-4 flex items-center">
+                <span className="material-icons mr-3 text-gray-500">
+                  account_circle
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {user?.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {user?.role
+                      ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                      : "Unknown"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  logout();
+                }}
+                className="w-full flex items-center justify-center px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white"
+              >
+                <span className="material-icons mr-2">logout</span>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-auto">
         <div className="w-full">
           <header className="bg-white p-6 rounded-2xl shadow-md mb-8 flex justify-between items-center">
@@ -191,7 +319,15 @@ const KitchenDisplaySystem: React.FC = () => {
                 </p>
               </div>
             </div>
-            <div className="flex space-x-8 text-center">
+            <div className="flex items-center space-x-8 text-center">
+              {/* Mobile menu button */}
+              <button
+                className="md:hidden mr-2 p-2 rounded-md text-gray-600 hover:bg-gray-100"
+                aria-label="Open menu"
+                onClick={() => setMobileNavOpen(true)}
+              >
+                <span className="material-icons">menu</span>
+              </button>
               <div>
                 <p className="text-3xl font-bold text-yellow-500">
                   {pendingOrders.length}
