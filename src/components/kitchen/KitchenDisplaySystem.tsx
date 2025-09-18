@@ -361,7 +361,7 @@ const KitchenDisplaySystem: React.FC = () => {
                                   mainScrollRef.current.scrollTop;
                               setSelectedFilter("pending");
                             }}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-400 text-white rounded-full shadow hover:bg-yellow-500 transition"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-full shadow hover:bg-yellow-600 transition"
                           >
                             <span className="material-icons text-sm">
                               visibility
