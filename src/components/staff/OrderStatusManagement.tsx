@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Order } from '../../types';
-import { Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, Filter, ChefHat } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, Filter, ChefHat, Trash2 } from 'lucide-react';
 
 const OrderStatusManagement: React.FC = () => {
   const { orders, getActiveOrders, updateOrder } = useApp();
@@ -48,11 +48,19 @@ const OrderStatusManagement: React.FC = () => {
     }
   };
 
-  const handleStatusUpdate = (orderId: string, newStatus: Order['status']) => {
-    updateOrder(orderId, { 
-      status: newStatus,
-      completedTime: newStatus === 'completed' ? new Date() : undefined
-    });
+  const handleCancelOrder = async (orderId: string) => {
+    if (window.confirm('Are you sure you want to cancel this order?')) {
+      try {
+        await updateOrder(orderId, { 
+          status: 'cancelled',
+          completedTime: new Date()
+        });
+        alert('Order cancelled successfully');
+      } catch (error) {
+        console.error('Error cancelling order:', error);
+        alert('Failed to cancel order. Please try again.');
+      }
+    }
   };
 
   const getTimeElapsed = (orderTime: Date) => {
@@ -217,22 +225,18 @@ const OrderStatusManagement: React.FC = () => {
                     <button
                       onClick={() => setSelectedOrder(order)}
                       className="p-2 hover:bg-surface-100 rounded-lg"
+                      title="View details"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
                     {order.status !== 'completed' && order.status !== 'cancelled' && (
-                      <select
-                        value={order.status}
-                        onChange={(e) => handleStatusUpdate(order.id, e.target.value as Order['status'])}
-                        className="text-sm border border-surface-300 rounded-lg px-2 py-1"
+                      <button
+                        onClick={() => handleCancelOrder(order.id)}
+                        className="p-2 hover:bg-red-100 text-red-600 rounded-lg"
+                        title="Cancel order"
                       >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="preparing">Preparing</option>
-                        <option value="ready">Ready</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     )}
                   </div>
                 </div>

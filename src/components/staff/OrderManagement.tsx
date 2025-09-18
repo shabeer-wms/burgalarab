@@ -255,7 +255,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
       {/* Menu Items */}
       <div className="lg:col-span-2 space-y-6">
         {/* Category Filter */}
@@ -315,7 +315,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       </div>
 
       {/* Order Summary */}
-      <div className="space-y-6">
+      <div className="space-y-6 w-full">
         {/* Customer Details */}
         <div className="card">
           <h3 className="text-title-large mb-4">Customer Details</h3>
