@@ -150,7 +150,7 @@ const KitchenDisplaySystem: React.FC = () => {
               {(selectedFilter === "all" || selectedFilter === "pending") && (
                 <OrderSection
                   title="Pending"
-                  icon="warning"
+                  icon="hourglass_top"
                   iconColorClass={kitchenColors.status.pending.icon}
                   orders={pendingOrders}
                   currentTime={currentTime}
@@ -168,7 +168,7 @@ const KitchenDisplaySystem: React.FC = () => {
                 selectedFilter === "in-progress") && (
                 <OrderSection
                   title="In Progress"
-                  icon="play_arrow"
+                  icon="autorenew"
                   iconColorClass={kitchenColors.status.inProgress.icon}
                   orders={inProgressOrders}
                   currentTime={currentTime}
