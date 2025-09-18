@@ -9,6 +9,9 @@ const KitchenDisplaySystem: React.FC = () => {
   const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const mainScrollRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollRef = useRef<number | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Hide top appbar(s) that may be rendered by a parent Layout.
@@ -83,8 +86,59 @@ const KitchenDisplaySystem: React.FC = () => {
     filter: typeof selectedFilter
   ) => {
     e.preventDefault();
+    // save current scroll position so we can restore after switching filters
+    if (mainScrollRef.current)
+      pendingScrollRef.current = mainScrollRef.current.scrollTop;
     setSelectedFilter(filter);
   };
+
+  // restore scroll position after filter change using ResizeObserver for reliability
+  useEffect(() => {
+    const el = mainScrollRef.current;
+    if (!el || pendingScrollRef.current == null) return;
+
+    // If ResizeObserver is unavailable (very old browsers), fall back to timeout restore
+    if (typeof ResizeObserver === "undefined") {
+      const t = setTimeout(() => {
+        if (mainScrollRef.current)
+          mainScrollRef.current.scrollTop = pendingScrollRef.current as number;
+        pendingScrollRef.current = null;
+      }, 50);
+      return () => clearTimeout(t);
+    }
+
+    const ro = new ResizeObserver(() => {
+      if (el && pendingScrollRef.current != null) {
+        el.scrollTop = pendingScrollRef.current as number;
+      }
+      pendingScrollRef.current = null;
+      ro.disconnect();
+      resizeObserverRef.current = null;
+    });
+
+    // Observe the scrolling container — it will fire when its size or content changes
+    ro.observe(el);
+    resizeObserverRef.current = ro;
+
+    // safety fallback in case observer doesn't fire (rare)
+    const fallback = window.setTimeout(() => {
+      if (el && pendingScrollRef.current != null)
+        el.scrollTop = pendingScrollRef.current as number;
+      pendingScrollRef.current = null;
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
+    }, 500);
+
+    return () => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+        resizeObserverRef.current = null;
+      }
+      clearTimeout(fallback);
+    };
+  }, [selectedFilter]);
 
   return (
     // full-viewport container so the view truly fills the page
@@ -146,8 +200,8 @@ const KitchenDisplaySystem: React.FC = () => {
             Ready
           </a>
         </nav>
-        <div className="p-4 border-t">
-          <div className="mb-4 flex items-center">
+        <div className="p-4 border-t md:flex md:flex-col md:justify-start">
+          <div className="mb-3 flex items-center md:mb-0">
             <span className="material-icons mr-3 text-gray-500">
               account_circle
             </span>
@@ -164,7 +218,7 @@ const KitchenDisplaySystem: React.FC = () => {
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white"
+            className="w-full flex items-center justify-center px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white md:mt-4"
           >
             <span className="material-icons mr-2">logout</span>
             Logout
@@ -297,10 +351,13 @@ const KitchenDisplaySystem: React.FC = () => {
           </div>
         </div>
       )}
-      <main className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-auto kitchen-main">
+      <main
+        ref={mainScrollRef}
+        className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-y-scroll kitchen-main"
+      >
         <div className="w-full flex justify-center">
-          <div className="w-full" style={{ maxWidth: 1200 }}>
-            <header className="bg-white p-6 rounded-2xl shadow-md mb-8">
+          <div className="w-full max-w-[1200px] px-4">
+            <header className="bg-white p-6 rounded-2xl shadow-md mb-8 md:min-h-[88px]">
               <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
                 <div className="flex items-center w-full md:w-auto">
                   <button
@@ -324,7 +381,7 @@ const KitchenDisplaySystem: React.FC = () => {
                     <h1 className="text-lg md:text-2xl font-bold text-gray-800 truncate">
                       Kitchen Display System
                     </h1>
-                    <p className="text-gray-500 text-sm">
+                    <p className="text-gray-500 text-sm tabular-nums w-48 md:w-64 truncate">
                       {currentTime.toLocaleTimeString()} |{" "}
                       {kitchenOrders.length} Active Orders
                     </p>
@@ -408,7 +465,7 @@ const KitchenDisplaySystem: React.FC = () => {
                   </h2>
                   {selectedFilter === "all" ? (
                     <div className="space-y-6">
-                      {pendingOrders.map((order) => (
+                      {pendingOrders.slice(0, 4).map((order) => (
                         <KitchenOrderCard
                           key={order.orderId}
                           order={order}
@@ -417,6 +474,26 @@ const KitchenDisplaySystem: React.FC = () => {
                           onItemStatusChange={handleItemStatusChange}
                         />
                       ))}
+
+                      {pendingOrders.length > 4 && (
+                        <div className="flex justify-center">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (mainScrollRef.current)
+                                pendingScrollRef.current =
+                                  mainScrollRef.current.scrollTop;
+                              setSelectedFilter("pending");
+                            }}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-400 text-white rounded-full shadow hover:bg-yellow-500 transition"
+                          >
+                            <span className="material-icons text-sm">
+                              visibility
+                            </span>
+                            View All Pending
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
@@ -445,7 +522,7 @@ const KitchenDisplaySystem: React.FC = () => {
                   </h2>
                   {selectedFilter === "all" ? (
                     <div className="space-y-6">
-                      {inProgressOrders.map((order) => (
+                      {inProgressOrders.slice(0, 4).map((order) => (
                         <KitchenOrderCard
                           key={order.orderId}
                           order={order}
@@ -455,6 +532,26 @@ const KitchenDisplaySystem: React.FC = () => {
                           inProgress
                         />
                       ))}
+
+                      {inProgressOrders.length > 4 && (
+                        <div className="flex justify-center">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (mainScrollRef.current)
+                                pendingScrollRef.current =
+                                  mainScrollRef.current.scrollTop;
+                              setSelectedFilter("in-progress");
+                            }}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-full shadow hover:bg-blue-600 transition"
+                          >
+                            <span className="material-icons text-sm">
+                              visibility
+                            </span>
+                            View All In Progress
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
@@ -483,7 +580,7 @@ const KitchenDisplaySystem: React.FC = () => {
                   </h2>
                   {selectedFilter === "all" ? (
                     <div className="space-y-6">
-                      {readyOrders.map((order) => (
+                      {readyOrders.slice(0, 4).map((order) => (
                         <KitchenOrderCard
                           key={order.orderId}
                           order={order}
@@ -493,6 +590,27 @@ const KitchenDisplaySystem: React.FC = () => {
                           ready
                         />
                       ))}
+
+                      {readyOrders.length > 4 && (
+                        <div className="flex justify-center">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              // preserve scroll position handled by handler
+                              if (mainScrollRef.current)
+                                pendingScrollRef.current =
+                                  mainScrollRef.current.scrollTop;
+                              setSelectedFilter("ready");
+                            }}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full shadow hover:bg-green-600 transition"
+                          >
+                            <span className="material-icons text-sm">
+                              visibility
+                            </span>
+                            View All Ready
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
