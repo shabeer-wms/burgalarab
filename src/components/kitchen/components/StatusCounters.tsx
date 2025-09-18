@@ -15,9 +15,9 @@ export const StatusCounters: React.FC<StatusCountersProps> = ({
 }) => {
   return (
     <div className="w-full lg:w-96">
-      {/* Mobile and tablet counters */}
+      {/* Mobile counters */}
       <div
-        className="grid gap-2 sm:gap-3 w-full lg:hidden"
+        className="grid gap-2 sm:gap-3 w-full md:hidden"
         style={{
           gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))",
         }}
@@ -60,8 +60,8 @@ export const StatusCounters: React.FC<StatusCountersProps> = ({
         </div>
       </div>
 
-      {/* Desktop counters */}
-      <div className={`hidden ${kitchenLayout.grid.statusCounters.desktop}`}>
+      {/* Tablet and Desktop counters */}
+      <div className="hidden md:flex items-center gap-4 lg:gap-6 justify-end">
         <div className="flex flex-col items-center">
           <p
             className={`${kitchenLayout.typography.header.counters.desktop} ${kitchenColors.status.pending.primary} ${kitchenLayout.sizing.counter.widthDesktop} text-center tabular-nums`}

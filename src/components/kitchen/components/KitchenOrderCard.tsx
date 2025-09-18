@@ -8,7 +8,8 @@ interface KitchenOrderCardProps {
   currentTime: Date;
   onStatusChange: (
     orderId: string,
-    status: "pending" | "in-progress" | "ready"
+    status: "pending" | "in-progress" | "ready",
+    paused?: boolean
   ) => void;
   onItemStatusChange: (
     orderId: string,
@@ -68,17 +69,20 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
 
   const renderStatusButtons = () => {
     if (order.status === "pending") {
+      const buttonText = order.paused ? "Resume" : "Start Cooking";
+      const iconName = order.paused ? "play_arrow" : "play_arrow";
+
       return (
         <button
-          onClick={() => onStatusChange(order.orderId, "in-progress")}
+          onClick={() => onStatusChange(order.orderId, "in-progress", false)}
           className={`w-full ${kitchenColors.ui.button.primary} ${kitchenLayout.sizing.button.padding} rounded-lg font-semibold transition duration-300 flex items-center justify-center mt-auto ${kitchenLayout.typography.card.button}`}
         >
           <span
             className={`material-icons mr-2 ${kitchenLayout.sizing.icon.button}`}
           >
-            play_arrow
+            {iconName}
           </span>
-          Start Cooking
+          {buttonText}
         </button>
       );
     }
@@ -89,7 +93,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           className={`flex flex-col md:flex-row ${kitchenLayout.spacing.buttonSpacing} mt-auto`}
         >
           <button
-            onClick={() => onStatusChange(order.orderId, "pending")}
+            onClick={() => onStatusChange(order.orderId, "pending", true)}
             className={`w-full md:w-1/2 ${kitchenColors.ui.button.secondary} ${kitchenLayout.sizing.button.padding} rounded-lg font-semibold transition duration-300 flex items-center justify-center ${kitchenLayout.typography.card.button}`}
           >
             <span
@@ -127,6 +131,24 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
     return null;
   };
 
+  // Convert orderNumber to numeric display - extract numbers or use a hash-based approach
+  const getNumericOrderNumber = (orderNumber: string): string => {
+    // Try to extract numbers from the order number
+    const numbers = orderNumber.replace(/[^0-9]/g, "");
+    if (numbers) {
+      return numbers;
+    }
+
+    // If no numbers found, generate a simple hash-based number
+    let hash = 0;
+    for (let i = 0; i < orderNumber.length; i++) {
+      const char = orderNumber.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString().slice(0, 4); // Return 4-digit number
+  };
+
   return (
     <div
       className={`${kitchenColors.ui.layout.card} ${kitchenLayout.spacing.card} rounded-2xl h-full flex flex-col`}
@@ -136,7 +158,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           <h3
             className={`${kitchenLayout.typography.card.title} ${kitchenColors.ui.primary.text} truncate`}
           >
-            #{order.orderNumber}
+            {getNumericOrderNumber(order.orderNumber)}
           </h3>
           <p
             className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.textSecondary} truncate`}
@@ -145,20 +167,22 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
             {order.tableNumber && `• Table ${order.tableNumber}`}
           </p>
         </div>
-        <div
-          className={`${getTimeColorClass()} ${
-            kitchenLayout.typography.card.subtitle
-          } font-medium ${
-            kitchenLayout.sizing.button.paddingSmall
-          } rounded-full flex items-center flex-shrink-0`}
-        >
-          <span
-            className={`material-icons ${kitchenLayout.sizing.icon.small} mr-1`}
+        {order.status === "in-progress" && (
+          <div
+            className={`${getTimeColorClass()} ${
+              kitchenLayout.typography.card.subtitle
+            } font-medium ${
+              kitchenLayout.sizing.button.paddingSmall
+            } rounded-full flex items-center flex-shrink-0`}
           >
-            timer
-          </span>
-          {displayTime}
-        </div>
+            <span
+              className={`material-icons ${kitchenLayout.sizing.icon.small} mr-1`}
+            >
+              timer
+            </span>
+            {displayTime}
+          </div>
+        )}
       </div>
 
       <div className="mb-3 lg:mb-4 space-y-1 flex-1">

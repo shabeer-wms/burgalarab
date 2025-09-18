@@ -62,9 +62,10 @@ const KitchenDisplaySystem: React.FC = () => {
 
   const handleStatusChange = (
     orderId: string,
-    newStatus: "pending" | "in-progress" | "ready"
+    newStatus: "pending" | "in-progress" | "ready",
+    paused?: boolean
   ) => {
-    updateKitchenOrderStatus(orderId, newStatus);
+    updateKitchenOrderStatus(orderId, newStatus, paused);
   };
 
   const handleItemStatusChange = (
@@ -130,15 +131,17 @@ const KitchenDisplaySystem: React.FC = () => {
       >
         <div className="w-full flex justify-center">
           <div className="w-full max-w-[1200px] px-4">
-            {/* Kitchen Header */}
-            <KitchenHeader
-              currentTime={currentTime}
-              totalOrders={kitchenOrders.length}
-              pendingCount={pendingOrders.length}
-              inProgressCount={inProgressOrders.length}
-              readyCount={readyOrders.length}
-              onLogout={logout}
-            />
+            {/* Sticky Kitchen Header */}
+            <div className="sticky top-0 z-40 bg-gray-50">
+              <KitchenHeader
+                currentTime={currentTime}
+                totalOrders={kitchenOrders.length}
+                pendingCount={pendingOrders.length}
+                inProgressCount={inProgressOrders.length}
+                readyCount={readyOrders.length}
+                onLogout={logout}
+              />
+            </div>
 
             {/* Order Sections */}
             <div
@@ -150,7 +153,7 @@ const KitchenDisplaySystem: React.FC = () => {
               {(selectedFilter === "all" || selectedFilter === "pending") && (
                 <OrderSection
                   title="Pending"
-                  icon="warning"
+                  icon="hourglass_top"
                   iconColorClass={kitchenColors.status.pending.icon}
                   orders={pendingOrders}
                   currentTime={currentTime}
@@ -168,7 +171,7 @@ const KitchenDisplaySystem: React.FC = () => {
                 selectedFilter === "in-progress") && (
                 <OrderSection
                   title="In Progress"
-                  icon="play_arrow"
+                  icon="autorenew"
                   iconColorClass={kitchenColors.status.inProgress.icon}
                   orders={inProgressOrders}
                   currentTime={currentTime}
