@@ -225,33 +225,33 @@ const KitchenDisplaySystem: React.FC = () => {
                 <div className="w-full md:w-96">
                   {/* small screens: adaptive auto-fit grid */}
                   <div
-                    className="grid gap-3 w-full md:hidden"
+                    className="grid gap-2 sm:gap-3 w-full md:hidden"
                     style={{
                       gridTemplateColumns:
-                        "repeat(auto-fit, minmax(80px, 1fr))",
+                        "repeat(auto-fit, minmax(70px, 1fr))",
                     }}
                   >
                     <div className="flex flex-col items-center">
-                      <p className="text-base sm:text-lg font-bold text-yellow-500 w-8 text-center">
+                      <p className="text-sm sm:text-base md:text-lg font-bold text-yellow-500 w-6 sm:w-8 text-center">
                         {pendingOrders.length}
                       </p>
-                      <p className="text-gray-500 text-[11px] sm:text-xs">
+                      <p className="text-gray-500 text-[10px] sm:text-[11px] md:text-xs">
                         Pending
                       </p>
                     </div>
                     <div className="flex flex-col items-center">
-                      <p className="text-base sm:text-lg font-bold text-blue-500 w-8 text-center">
+                      <p className="text-sm sm:text-base md:text-lg font-bold text-blue-500 w-6 sm:w-8 text-center">
                         {inProgressOrders.length}
                       </p>
-                      <p className="text-gray-500 text-[11px] sm:text-xs">
+                      <p className="text-gray-500 text-[10px] sm:text-[11px] md:text-xs whitespace-nowrap">
                         In Progress
                       </p>
                     </div>
                     <div className="flex flex-col items-center">
-                      <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
+                      <p className="text-sm sm:text-base md:text-lg font-bold text-green-500 w-6 sm:w-8 text-center">
                         {readyOrders.length}
                       </p>
-                      <p className="text-gray-500 text-[11px] sm:text-xs">
+                      <p className="text-gray-500 text-[10px] sm:text-[11px] md:text-xs">
                         Ready
                       </p>
                     </div>
