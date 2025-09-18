@@ -230,35 +230,37 @@ const KitchenDisplaySystem: React.FC = () => {
       >
         <div className="w-full flex justify-center">
           <div className="w-full max-w-[1200px] px-4">
-            <header className="bg-white p-6 rounded-2xl shadow-md mb-8 md:min-h-[88px]">
+            <header className="bg-white p-4 md:p-6 rounded-2xl shadow-md mb-8 md:min-h-[88px]">
               <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
-                <div className="flex items-center w-full md:w-auto">
-                  <div className="bg-blue-100 w-12 h-12 rounded-xl mr-3 flex-shrink-0 flex items-center justify-center">
-                    <span
-                      className="material-icons text-blue-500"
-                      style={{ fontSize: 20 }}
-                    >
-                      kitchen
-                    </span>
-                  </div>
+                <div className="flex items-center w-full md:w-auto justify-between">
+                  <div className="flex items-center min-w-0 flex-1">
+                    <div className="bg-blue-100 w-10 h-10 md:w-12 md:h-12 rounded-xl mr-3 flex-shrink-0 flex items-center justify-center">
+                      <span
+                        className="material-icons text-blue-500"
+                        style={{ fontSize: 18 }}
+                      >
+                        kitchen
+                      </span>
+                    </div>
 
-                  <div className="min-w-0 flex-1">
-                    <h1 className="text-lg md:text-2xl font-bold text-gray-800 truncate">
-                      Kitchen Display System
-                    </h1>
-                    <p className="text-gray-500 text-sm tabular-nums w-48 md:w-64 truncate">
-                      {currentTime.toLocaleTimeString()} |{" "}
-                      {kitchenOrders.length} Active Orders
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <h1 className="text-lg md:text-2xl font-bold text-gray-800 truncate">
+                        Kitchen Display System
+                      </h1>
+                      <p className="text-gray-500 text-xs md:text-sm tabular-nums truncate">
+                        {currentTime.toLocaleTimeString()} |{" "}
+                        {kitchenOrders.length} Active Orders
+                      </p>
+                    </div>
                   </div>
 
                   {/* Logout button for small screens */}
                   <button
                     onClick={logout}
-                    className="md:hidden ml-3 p-2 rounded-md text-red-500 hover:bg-red-50 flex items-center"
+                    className="md:hidden ml-2 p-2 rounded-md text-red-500 hover:bg-red-50 flex items-center flex-shrink-0"
                     aria-label="Logout"
                   >
-                    <span className="material-icons">logout</span>
+                    <span className="material-icons text-lg">logout</span>
                   </button>
                 </div>
 
@@ -541,7 +543,7 @@ const KitchenDisplaySystem: React.FC = () => {
             }`}
           >
             <span className="material-icons text-sm">autorenew</span>
-            <span className="text-xs font-medium">Progress</span>
+            <span className="text-xs font-medium">In Progress</span>
           </button>
           <button
             onClick={(e) => handleFilterClick(e, "ready")}
