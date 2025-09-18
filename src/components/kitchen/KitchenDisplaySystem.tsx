@@ -38,7 +38,7 @@ const KitchenDisplaySystem: React.FC = () => {
     });
 
     return () => {
-      // restore previous display values
+      // restore any hidden elements
       found.forEach(({ el, prev }) => {
         (el as HTMLElement).style.display = prev ?? "";
       });
@@ -298,164 +298,219 @@ const KitchenDisplaySystem: React.FC = () => {
         </div>
       )}
       <main className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-auto">
-        <div className="w-full">
-          <header className="bg-white p-6 rounded-2xl shadow-md mb-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
-              <div className="flex items-center w-full md:w-auto">
-                <button
-                  className="md:hidden mr-3 p-2 rounded-md text-gray-600 hover:bg-gray-100"
-                  aria-label="Open menu"
-                  onClick={() => setMobileNavOpen(true)}
-                >
-                  <span className="material-icons">menu</span>
-                </button>
-
-                <div className="bg-blue-100 p-3 rounded-xl mr-3 flex-shrink-0">
-                  <span
-                    className="material-icons text-blue-500"
-                    style={{ fontSize: 28 }}
+        <div className="w-full flex justify-center">
+          <div className="w-full" style={{ maxWidth: 1200 }}>
+            <header className="bg-white p-6 rounded-2xl shadow-md mb-8">
+              <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
+                <div className="flex items-center w-full md:w-auto">
+                  <button
+                    className="md:hidden mr-3 p-2 rounded-md text-gray-600 hover:bg-gray-100"
+                    aria-label="Open menu"
+                    onClick={() => setMobileNavOpen(true)}
                   >
-                    kitchen
-                  </span>
+                    <span className="material-icons">menu</span>
+                  </button>
+
+                  <div className="bg-blue-100 p-3 rounded-xl mr-3 flex-shrink-0">
+                    <span
+                      className="material-icons text-blue-500"
+                      style={{ fontSize: 28 }}
+                    >
+                      kitchen
+                    </span>
+                  </div>
+
+                  <div className="min-w-0">
+                    <h1 className="text-lg md:text-2xl font-bold text-gray-800 truncate">
+                      Kitchen Display System
+                    </h1>
+                    <p className="text-gray-500 text-sm">
+                      {currentTime.toLocaleTimeString()} |{" "}
+                      {kitchenOrders.length} Active Orders
+                    </p>
+                  </div>
                 </div>
 
-                <div className="min-w-0">
-                  <h1 className="text-lg md:text-2xl font-bold text-gray-800 truncate">
-                    Kitchen Display System
-                  </h1>
-                  <p className="text-gray-500 text-sm">
-                    {currentTime.toLocaleTimeString()} | {kitchenOrders.length}{" "}
-                    Active Orders
-                  </p>
+                <div className="w-full md:w-auto">
+                  {/* small screens: adaptive auto-fit grid */}
+                  <div
+                    className="grid gap-3 w-full md:hidden"
+                    style={{
+                      gridTemplateColumns:
+                        "repeat(auto-fit, minmax(80px, 1fr))",
+                    }}
+                  >
+                    <div className="flex flex-col items-center">
+                      <p className="text-base sm:text-lg font-bold text-yellow-500">
+                        {pendingOrders.length}
+                      </p>
+                      <p className="text-gray-500 text-[11px] sm:text-xs">
+                        Pending
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <p className="text-base sm:text-lg font-bold text-blue-500">
+                        {inProgressOrders.length}
+                      </p>
+                      <p className="text-gray-500 text-[11px] sm:text-xs">
+                        In Progress
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <p className="text-base sm:text-lg font-bold text-green-500">
+                        {readyOrders.length}
+                      </p>
+                      <p className="text-gray-500 text-[11px] sm:text-xs">
+                        Ready
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* md+ screens: force horizontal stacked counters */}
+                  <div className="hidden md:flex md:items-center md:gap-6 md:justify-end">
+                    <div className="flex flex-col items-center">
+                      <p className="text-3xl font-bold text-yellow-500">
+                        {pendingOrders.length}
+                      </p>
+                      <p className="text-gray-500 text-sm">Pending</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <p className="text-3xl font-bold text-blue-500">
+                        {inProgressOrders.length}
+                      </p>
+                      <p className="text-gray-500 text-sm">In Progress</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <p className="text-3xl font-bold text-green-500">
+                        {readyOrders.length}
+                      </p>
+                      <p className="text-gray-500 text-sm">Ready</p>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </header>
+            {/* If 'all' is selected, use the multi-column layout; otherwise use a single full-width column */}
+            <div
+              className={
+                selectedFilter === "all"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  : "w-full"
+              }
+            >
+              {(selectedFilter === "all" || selectedFilter === "pending") && (
+                <section>
+                  <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                    <span className="material-icons text-yellow-500 mr-2">
+                      warning
+                    </span>
+                    Pending ({pendingOrders.length})
+                  </h2>
+                  {selectedFilter === "all" ? (
+                    <div className="space-y-6">
+                      {pendingOrders.map((order) => (
+                        <KitchenOrderCard
+                          key={order.orderId}
+                          order={order}
+                          currentTime={currentTime}
+                          onStatusChange={handleStatusChange}
+                          onItemStatusChange={handleItemStatusChange}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                      {pendingOrders.map((order) => (
+                        <KitchenOrderCard
+                          key={order.orderId}
+                          order={order}
+                          currentTime={currentTime}
+                          onStatusChange={handleStatusChange}
+                          onItemStatusChange={handleItemStatusChange}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
 
-              <div className="w-full md:w-auto">
-                {/* small screens: adaptive auto-fit grid */}
-                <div
-                  className="grid gap-3 w-full md:hidden"
-                  style={{
-                    gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))",
-                  }}
-                >
-                  <div className="flex flex-col items-center">
-                    <p className="text-base sm:text-lg font-bold text-yellow-500">
-                      {pendingOrders.length}
-                    </p>
-                    <p className="text-gray-500 text-[11px] sm:text-xs">
-                      Pending
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <p className="text-base sm:text-lg font-bold text-blue-500">
-                      {inProgressOrders.length}
-                    </p>
-                    <p className="text-gray-500 text-[11px] sm:text-xs">
-                      In Progress
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <p className="text-base sm:text-lg font-bold text-green-500">
-                      {readyOrders.length}
-                    </p>
-                    <p className="text-gray-500 text-[11px] sm:text-xs">
-                      Ready
-                    </p>
-                  </div>
-                </div>
+              {(selectedFilter === "all" ||
+                selectedFilter === "in-progress") && (
+                <section>
+                  <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                    <span className="material-icons text-blue-500 mr-2">
+                      play_arrow
+                    </span>
+                    In Progress ({inProgressOrders.length})
+                  </h2>
+                  {selectedFilter === "all" ? (
+                    <div className="space-y-6">
+                      {inProgressOrders.map((order) => (
+                        <KitchenOrderCard
+                          key={order.orderId}
+                          order={order}
+                          currentTime={currentTime}
+                          onStatusChange={handleStatusChange}
+                          onItemStatusChange={handleItemStatusChange}
+                          inProgress
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                      {inProgressOrders.map((order) => (
+                        <KitchenOrderCard
+                          key={order.orderId}
+                          order={order}
+                          currentTime={currentTime}
+                          onStatusChange={handleStatusChange}
+                          onItemStatusChange={handleItemStatusChange}
+                          inProgress
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
 
-                {/* md+ screens: force horizontal stacked counters */}
-                <div className="hidden md:flex md:items-center md:gap-6 md:justify-end">
-                  <div className="flex flex-col items-center">
-                    <p className="text-3xl font-bold text-yellow-500">
-                      {pendingOrders.length}
-                    </p>
-                    <p className="text-gray-500 text-sm">Pending</p>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <p className="text-3xl font-bold text-blue-500">
-                      {inProgressOrders.length}
-                    </p>
-                    <p className="text-gray-500 text-sm">In Progress</p>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <p className="text-3xl font-bold text-green-500">
-                      {readyOrders.length}
-                    </p>
-                    <p className="text-gray-500 text-sm">Ready</p>
-                  </div>
-                </div>
-              </div>
+              {(selectedFilter === "all" || selectedFilter === "ready") && (
+                <section>
+                  <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                    <span className="material-icons text-green-500 mr-2">
+                      check_circle
+                    </span>
+                    Ready ({readyOrders.length})
+                  </h2>
+                  {selectedFilter === "all" ? (
+                    <div className="space-y-6">
+                      {readyOrders.map((order) => (
+                        <KitchenOrderCard
+                          key={order.orderId}
+                          order={order}
+                          currentTime={currentTime}
+                          onStatusChange={handleStatusChange}
+                          onItemStatusChange={handleItemStatusChange}
+                          ready
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                      {readyOrders.map((order) => (
+                        <KitchenOrderCard
+                          key={order.orderId}
+                          order={order}
+                          currentTime={currentTime}
+                          onStatusChange={handleStatusChange}
+                          onItemStatusChange={handleItemStatusChange}
+                          ready
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
             </div>
-          </header>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(selectedFilter === "all" || selectedFilter === "pending") && (
-              <section>
-                <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                  <span className="material-icons text-yellow-500 mr-2">
-                    warning
-                  </span>
-                  Pending ({pendingOrders.length})
-                </h2>
-                <div className="space-y-6">
-                  {pendingOrders.map((order) => (
-                    <KitchenOrderCard
-                      key={order.orderId}
-                      order={order}
-                      currentTime={currentTime}
-                      onStatusChange={handleStatusChange}
-                      onItemStatusChange={handleItemStatusChange}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {(selectedFilter === "all" || selectedFilter === "in-progress") && (
-              <section>
-                <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                  <span className="material-icons text-blue-500 mr-2">
-                    play_arrow
-                  </span>
-                  In Progress ({inProgressOrders.length})
-                </h2>
-                <div className="space-y-6">
-                  {inProgressOrders.map((order) => (
-                    <KitchenOrderCard
-                      key={order.orderId}
-                      order={order}
-                      currentTime={currentTime}
-                      onStatusChange={handleStatusChange}
-                      onItemStatusChange={handleItemStatusChange}
-                      inProgress
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {(selectedFilter === "all" || selectedFilter === "ready") && (
-              <section>
-                <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                  <span className="material-icons text-green-500 mr-2">
-                    check_circle
-                  </span>
-                  Ready ({readyOrders.length})
-                </h2>
-                <div className="space-y-6">
-                  {readyOrders.map((order) => (
-                    <KitchenOrderCard
-                      key={order.orderId}
-                      order={order}
-                      currentTime={currentTime}
-                      onStatusChange={handleStatusChange}
-                      onItemStatusChange={handleItemStatusChange}
-                      ready
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
           </div>
         </div>
       </main>
@@ -520,7 +575,7 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
       : "bg-green-100 text-green-600";
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-md">
+    <div className="bg-white p-6 rounded-2xl shadow-md h-full flex flex-col">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-lg font-bold text-gray-800">
@@ -538,7 +593,7 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           {displayTime}
         </div>
       </div>
-      <div className="mb-4 space-y-1">
+      <div className="mb-4 space-y-1 flex-1">
         {order.items.map((item) => {
           const isOrderReady = order.status === "ready";
           const badgeText = isOrderReady ? "ready" : item.status;
@@ -561,38 +616,42 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           );
         })}
       </div>
-      {order.status === "pending" && (
-        <button
-          onClick={() => onStatusChange(order.orderId, "in-progress")}
-          className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 flex items-center justify-center"
-        >
-          <span className="material-icons mr-2">play_arrow</span>
-          Start Cooking
-        </button>
-      )}
-      {inProgress && (
-        <div className="flex space-x-4">
+      <div className="mt-4">
+        {order.status === "pending" && (
           <button
-            onClick={() => onStatusChange(order.orderId, "pending")}
-            className="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition duration-300 flex items-center justify-center"
+            onClick={() => onStatusChange(order.orderId, "in-progress")}
+            className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 flex items-center justify-center mt-auto"
           >
-            <span className="material-icons mr-2">pause</span>
-            Pause
+            <span className="material-icons mr-2">play_arrow</span>
+            Start Cooking
           </button>
-          <button
-            onClick={() => onStatusChange(order.orderId, "ready")}
-            className="w-1/2 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition duration-300 flex items-center justify-center"
-          >
-            <span className="material-icons mr-2">check</span>
-            Mark Ready
+        )}
+
+        {inProgress && (
+          <div className="flex space-x-4 mt-auto">
+            <button
+              onClick={() => onStatusChange(order.orderId, "pending")}
+              className="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition duration-300 flex items-center justify-center"
+            >
+              <span className="material-icons mr-2">pause</span>
+              Pause
+            </button>
+            <button
+              onClick={() => onStatusChange(order.orderId, "ready")}
+              className="w-1/2 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition duration-300 flex items-center justify-center"
+            >
+              <span className="material-icons mr-2">check</span>
+              Mark Ready
+            </button>
+          </div>
+        )}
+
+        {ready && (
+          <button className="w-full bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition duration-300 mt-auto">
+            Ready for Pickup
           </button>
-        </div>
-      )}
-      {ready && (
-        <button className="w-full bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition duration-300">
-          Ready for Pickup
-        </button>
-      )}
+        )}
+      </div>
     </div>
   );
 };
