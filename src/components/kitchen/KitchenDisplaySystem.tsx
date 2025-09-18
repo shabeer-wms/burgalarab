@@ -100,10 +100,10 @@ const KitchenDisplaySystem: React.FC = () => {
   return (
     // full-viewport container so the view truly fills the page
     <div ref={rootRef} className="fixed inset-0 flex bg-gray-100">
-      {/* Desktop sidebar (hidden on small screens) */}
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex-col">
-        {/* hide sidebar on small screens to improve responsiveness */}
-        <div className="p-6 text-lg text-gray-800 border-b hidden md:block">
+      {/* Desktop sidebar (hidden on tablets and small screens) */}
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex-col">
+        {/* hide sidebar on tablets and small screens to improve responsiveness */}
+        <div className="p-6 text-lg text-gray-800 border-b">
           <p className="font-bold">Hotel Management</p>
           <p className="text-base">Kitchen Dashboard</p>
         </div>
@@ -117,7 +117,7 @@ const KitchenDisplaySystem: React.FC = () => {
                 : "text-gray-700 hover:bg-gray-200"
             }`}
           >
-            <span className="material-icons mr-3">apps</span>
+            <span className="material-icons mr-3 text-lg">apps</span>
             All
           </a>
           <a
@@ -129,7 +129,7 @@ const KitchenDisplaySystem: React.FC = () => {
                 : "text-gray-700 hover:bg-gray-200"
             }`}
           >
-            <span className="material-icons mr-3">hourglass_top</span>
+            <span className="material-icons mr-3 text-lg">hourglass_top</span>
             Pending
           </a>
           <a
@@ -141,7 +141,7 @@ const KitchenDisplaySystem: React.FC = () => {
                 : "text-gray-700 hover:bg-gray-200"
             }`}
           >
-            <span className="material-icons mr-3">autorenew</span>
+            <span className="material-icons mr-3 text-lg">autorenew</span>
             In Progress
           </a>
           <a
@@ -153,13 +153,15 @@ const KitchenDisplaySystem: React.FC = () => {
                 : "text-gray-700 hover:bg-gray-200"
             }`}
           >
-            <span className="material-icons mr-3">check_circle_outline</span>
+            <span className="material-icons mr-3 text-lg">
+              check_circle_outline
+            </span>
             Ready
           </a>
         </nav>
-        <div className="p-4 border-t md:flex md:flex-col md:justify-start">
-          <div className="mb-3 flex items-center md:mb-0">
-            <span className="material-icons mr-3 text-gray-500">
+        <div className="p-4 border-t flex flex-col justify-start">
+          <div className="mb-3 flex items-center">
+            <span className="material-icons mr-3 text-gray-500 text-xl">
               account_circle
             </span>
             <div>
@@ -175,7 +177,7 @@ const KitchenDisplaySystem: React.FC = () => {
           </div>
           <button
             onClick={logout}
-            className="w-full flex items-center justify-center px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white md:mt-4"
+            className="w-full flex items-center justify-center px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white mt-4"
           >
             <span className="material-icons mr-2">logout</span>
             Logout
@@ -184,15 +186,15 @@ const KitchenDisplaySystem: React.FC = () => {
       </aside>
       <main
         ref={mainScrollRef}
-        className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-y-scroll kitchen-main pb-24 md:pb-6"
+        className="flex-1 p-4 md:p-6 min-h-screen ml-0 lg:ml-64 overflow-y-scroll kitchen-main pb-24 lg:pb-6"
       >
         <div className="w-full flex justify-center">
           <div className="w-full max-w-[1200px] px-4">
-            <header className="bg-white p-4 md:p-6 rounded-2xl shadow-md mb-8 md:min-h-[88px]">
-              <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
+            <header className="bg-white p-4 md:p-5 lg:p-6 rounded-2xl shadow-md mb-6 lg:mb-8 md:min-h-[88px]">
+              <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-3 lg:gap-4">
                 <div className="flex items-center w-full md:w-auto justify-between">
                   <div className="flex items-center min-w-0 flex-1">
-                    <div className="bg-blue-100 w-10 h-10 md:w-12 md:h-12 rounded-xl mr-3 flex-shrink-0 flex items-center justify-center">
+                    <div className="bg-blue-100 w-10 h-10 md:w-11 lg:w-12 md:h-11 lg:h-12 rounded-xl mr-3 flex-shrink-0 flex items-center justify-center">
                       <span
                         className="material-icons text-blue-500"
                         style={{ fontSize: 18 }}
@@ -202,7 +204,7 @@ const KitchenDisplaySystem: React.FC = () => {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <h1 className="text-lg md:text-2xl font-bold text-gray-800 truncate">
+                      <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-800 truncate">
                         Kitchen Display System
                       </h1>
                       <p className="text-gray-500 text-xs md:text-sm tabular-nums truncate">
@@ -212,20 +214,20 @@ const KitchenDisplaySystem: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Logout button for small screens */}
+                  {/* Logout button for tablets and small screens */}
                   <button
                     onClick={logout}
-                    className="md:hidden ml-2 p-2 rounded-md text-red-500 hover:bg-red-50 flex items-center flex-shrink-0"
+                    className="lg:hidden ml-2 p-2 rounded-md text-red-500 hover:bg-red-50 flex items-center flex-shrink-0"
                     aria-label="Logout"
                   >
                     <span className="material-icons text-lg">logout</span>
                   </button>
                 </div>
 
-                <div className="w-full md:w-96">
-                  {/* small screens: adaptive auto-fit grid */}
+                <div className="w-full lg:w-96">
+                  {/* small screens and tablets: adaptive auto-fit grid */}
                   <div
-                    className="grid gap-2 sm:gap-3 w-full md:hidden"
+                    className="grid gap-2 sm:gap-3 w-full lg:hidden"
                     style={{
                       gridTemplateColumns:
                         "repeat(auto-fit, minmax(70px, 1fr))",
@@ -257,8 +259,8 @@ const KitchenDisplaySystem: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* md+ screens: force horizontal stacked counters */}
-                  <div className="hidden md:flex md:items-center md:gap-6 md:justify-end">
+                  {/* lg+ screens: desktop stacked counters */}
+                  <div className="hidden lg:flex lg:items-center lg:gap-6 lg:justify-end">
                     <div className="flex flex-col items-center">
                       <p className="text-3xl font-bold text-yellow-500 w-12 text-center tabular-nums">
                         {pendingOrders.length}
@@ -285,7 +287,7 @@ const KitchenDisplaySystem: React.FC = () => {
             <div
               className={
                 selectedFilter === "all"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6"
                   : "w-full"
               }
             >
@@ -298,7 +300,7 @@ const KitchenDisplaySystem: React.FC = () => {
                     Pending ({pendingOrders.length})
                   </h2>
                   {selectedFilter === "all" ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4 lg:space-y-6">
                       {pendingOrders.slice(0, 4).map((order) => (
                         <KitchenOrderCard
                           key={order.orderId}
@@ -327,7 +329,7 @@ const KitchenDisplaySystem: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 w-full">
                       {pendingOrders.map((order) => (
                         <KitchenOrderCard
                           key={order.orderId}
@@ -352,7 +354,7 @@ const KitchenDisplaySystem: React.FC = () => {
                     In Progress ({inProgressOrders.length})
                   </h2>
                   {selectedFilter === "all" ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4 lg:space-y-6">
                       {inProgressOrders.slice(0, 4).map((order) => (
                         <KitchenOrderCard
                           key={order.orderId}
@@ -382,7 +384,7 @@ const KitchenDisplaySystem: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 w-full">
                       {inProgressOrders.map((order) => (
                         <KitchenOrderCard
                           key={order.orderId}
@@ -407,7 +409,7 @@ const KitchenDisplaySystem: React.FC = () => {
                     Ready ({readyOrders.length})
                   </h2>
                   {selectedFilter === "all" ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4 lg:space-y-6">
                       {readyOrders.slice(0, 4).map((order) => (
                         <KitchenOrderCard
                           key={order.orderId}
@@ -437,7 +439,7 @@ const KitchenDisplaySystem: React.FC = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 w-full">
                       {readyOrders.map((order) => (
                         <KitchenOrderCard
                           key={order.orderId}
@@ -457,52 +459,58 @@ const KitchenDisplaySystem: React.FC = () => {
         </div>
       </main>
 
-      {/* Bottom Navigation for small screens */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-50">
-        <div className="grid grid-cols-4 h-16">
+      {/* Bottom Navigation for small screens and tablets */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 lg:hidden z-50">
+        <div className="grid grid-cols-4 h-14 md:h-16">
           <button
             onClick={(e) => handleFilterClick(e, "all")}
-            className={`flex flex-col items-center justify-center space-y-1 ${
+            className={`flex flex-col items-center justify-center space-y-0.5 md:space-y-1 ${
               selectedFilter === "all"
                 ? "text-blue-500 bg-blue-50"
                 : "text-gray-600 hover:text-blue-500 hover:bg-gray-50"
             }`}
           >
-            <span className="material-icons text-sm">apps</span>
-            <span className="text-xs font-medium">All</span>
+            <span className="material-icons text-sm md:text-base">apps</span>
+            <span className="text-xs md:text-sm font-medium">All</span>
           </button>
           <button
             onClick={(e) => handleFilterClick(e, "pending")}
-            className={`flex flex-col items-center justify-center space-y-1 ${
+            className={`flex flex-col items-center justify-center space-y-0.5 md:space-y-1 ${
               selectedFilter === "pending"
                 ? "text-yellow-500 bg-yellow-50"
                 : "text-gray-600 hover:text-yellow-500 hover:bg-gray-50"
             }`}
           >
-            <span className="material-icons text-sm">hourglass_top</span>
-            <span className="text-xs font-medium">Pending</span>
+            <span className="material-icons text-sm md:text-base">
+              hourglass_top
+            </span>
+            <span className="text-xs md:text-sm font-medium">Pending</span>
           </button>
           <button
             onClick={(e) => handleFilterClick(e, "in-progress")}
-            className={`flex flex-col items-center justify-center space-y-1 ${
+            className={`flex flex-col items-center justify-center space-y-0.5 md:space-y-1 ${
               selectedFilter === "in-progress"
                 ? "text-blue-500 bg-blue-50"
                 : "text-gray-600 hover:text-blue-500 hover:bg-gray-50"
             }`}
           >
-            <span className="material-icons text-sm">autorenew</span>
-            <span className="text-xs font-medium">In Progress</span>
+            <span className="material-icons text-sm md:text-base">
+              autorenew
+            </span>
+            <span className="text-xs md:text-sm font-medium">In Progress</span>
           </button>
           <button
             onClick={(e) => handleFilterClick(e, "ready")}
-            className={`flex flex-col items-center justify-center space-y-1 ${
+            className={`flex flex-col items-center justify-center space-y-0.5 md:space-y-1 ${
               selectedFilter === "ready"
                 ? "text-green-500 bg-green-50"
                 : "text-gray-600 hover:text-green-500 hover:bg-gray-50"
             }`}
           >
-            <span className="material-icons text-sm">check_circle_outline</span>
-            <span className="text-xs font-medium">Ready</span>
+            <span className="material-icons text-sm md:text-base">
+              check_circle_outline
+            </span>
+            <span className="text-xs md:text-sm font-medium">Ready</span>
           </button>
         </div>
       </nav>
@@ -567,10 +575,10 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
       : "bg-green-100 text-green-600";
 
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md h-full flex flex-col">
-      <div className="flex justify-between items-start mb-4">
+    <div className="bg-white p-4 md:p-5 lg:p-6 rounded-2xl shadow-md h-full flex flex-col">
+      <div className="flex justify-between items-start mb-3 lg:mb-4">
         <div className="min-w-0 flex-1 mr-3">
-          <h3 className="text-base sm:text-lg font-bold text-gray-800 truncate">
+          <h3 className="text-base md:text-lg font-bold text-gray-800 truncate">
             #{order.orderNumber}
           </h3>
           <p className="text-sm text-gray-500 truncate">
@@ -579,13 +587,13 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           </p>
         </div>
         <div
-          className={`${timeColorClass} text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full flex items-center flex-shrink-0`}
+          className={`${timeColorClass} text-xs md:text-sm font-medium px-2 md:px-3 py-1 rounded-full flex items-center flex-shrink-0`}
         >
           <span className="material-icons text-xs mr-1">timer</span>
           {displayTime}
         </div>
       </div>
-      <div className="mb-4 space-y-1 flex-1">
+      <div className="mb-3 lg:mb-4 space-y-1 flex-1">
         {order.items.map((item) => {
           const isOrderReady = order.status === "ready";
           const badgeText = isOrderReady ? "ready" : item.status;
@@ -608,11 +616,11 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           );
         })}
       </div>
-      <div className="mt-4">
+      <div className="mt-3 lg:mt-4">
         {order.status === "pending" && (
           <button
             onClick={() => onStatusChange(order.orderId, "in-progress")}
-            className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 flex items-center justify-center mt-auto text-sm sm:text-base"
+            className="w-full bg-blue-500 text-white py-2.5 md:py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 flex items-center justify-center mt-auto text-sm md:text-base"
           >
             <span className="material-icons mr-2 text-base">play_arrow</span>
             Start Cooking
@@ -620,17 +628,17 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
         )}
 
         {inProgress && (
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-auto">
+          <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3 lg:space-x-4 mt-auto">
             <button
               onClick={() => onStatusChange(order.orderId, "pending")}
-              className="w-full sm:w-1/2 bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition duration-300 flex items-center justify-center text-sm sm:text-base"
+              className="w-full md:w-1/2 bg-gray-200 text-gray-700 py-2.5 md:py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition duration-300 flex items-center justify-center text-sm md:text-base"
             >
               <span className="material-icons mr-2 text-base">pause</span>
               Pause
             </button>
             <button
               onClick={() => onStatusChange(order.orderId, "ready")}
-              className="w-full sm:w-1/2 bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition duration-300 flex items-center justify-center text-sm sm:text-base"
+              className="w-full md:w-1/2 bg-green-500 text-white py-2.5 md:py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition duration-300 flex items-center justify-center text-sm md:text-base"
             >
               <span className="material-icons mr-2 text-base">check</span>
               Mark Ready
@@ -639,7 +647,7 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
         )}
 
         {ready && (
-          <button className="w-full bg-gray-700 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 transition duration-300 mt-auto text-sm sm:text-base">
+          <button className="w-full bg-gray-700 text-white py-2.5 md:py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 transition duration-300 mt-auto text-sm md:text-base">
             Ready for Pickup
           </button>
         )}
