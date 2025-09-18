@@ -567,19 +567,19 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
       : "bg-green-100 text-green-600";
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-md h-full flex flex-col">
+    <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-md h-full flex flex-col">
       <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-lg font-bold text-gray-800">
+        <div className="min-w-0 flex-1 mr-3">
+          <h3 className="text-base sm:text-lg font-bold text-gray-800 truncate">
             #{order.orderNumber}
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 truncate">
             {order.customerName}{" "}
             {order.tableNumber && `• Table ${order.tableNumber}`}
           </p>
         </div>
         <div
-          className={`${timeColorClass} text-sm font-medium px-3 py-1 rounded-full flex items-center`}
+          className={`${timeColorClass} text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 rounded-full flex items-center flex-shrink-0`}
         >
           <span className="material-icons text-xs mr-1">timer</span>
           {displayTime}
@@ -612,34 +612,34 @@ const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
         {order.status === "pending" && (
           <button
             onClick={() => onStatusChange(order.orderId, "in-progress")}
-            className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 flex items-center justify-center mt-auto"
+            className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition duration-300 flex items-center justify-center mt-auto text-sm sm:text-base"
           >
-            <span className="material-icons mr-2">play_arrow</span>
+            <span className="material-icons mr-2 text-base">play_arrow</span>
             Start Cooking
           </button>
         )}
 
         {inProgress && (
-          <div className="flex space-x-4 mt-auto">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-auto">
             <button
               onClick={() => onStatusChange(order.orderId, "pending")}
-              className="w-1/2 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition duration-300 flex items-center justify-center"
+              className="w-full sm:w-1/2 bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition duration-300 flex items-center justify-center text-sm sm:text-base"
             >
-              <span className="material-icons mr-2">pause</span>
+              <span className="material-icons mr-2 text-base">pause</span>
               Pause
             </button>
             <button
               onClick={() => onStatusChange(order.orderId, "ready")}
-              className="w-1/2 bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition duration-300 flex items-center justify-center"
+              className="w-full sm:w-1/2 bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 transition duration-300 flex items-center justify-center text-sm sm:text-base"
             >
-              <span className="material-icons mr-2">check</span>
+              <span className="material-icons mr-2 text-base">check</span>
               Mark Ready
             </button>
           </div>
         )}
 
         {ready && (
-          <button className="w-full bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition duration-300 mt-auto">
+          <button className="w-full bg-gray-700 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 transition duration-300 mt-auto text-sm sm:text-base">
             Ready for Pickup
           </button>
         )}
