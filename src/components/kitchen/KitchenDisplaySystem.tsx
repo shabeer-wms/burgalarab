@@ -10,8 +10,6 @@ const KitchenDisplaySystem: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const rootRef = useRef<HTMLDivElement | null>(null);
   const mainScrollRef = useRef<HTMLDivElement | null>(null);
-  const pendingScrollRef = useRef<number | null>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Hide top appbar(s) that may be rendered by a parent Layout.
   // We deliberately don't edit Layout — instead we hide any likely header elements
@@ -85,58 +83,18 @@ const KitchenDisplaySystem: React.FC = () => {
     filter: typeof selectedFilter
   ) => {
     e.preventDefault();
-    // save current scroll position so we can restore after switching filters
-    if (mainScrollRef.current)
-      pendingScrollRef.current = mainScrollRef.current.scrollTop;
+    // Always scroll to top when changing filters
     setSelectedFilter(filter);
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTop = 0;
+    }
   };
 
-  // restore scroll position after filter change using ResizeObserver for reliability
+  // Scroll to top when filter changes
   useEffect(() => {
-    const el = mainScrollRef.current;
-    if (!el || pendingScrollRef.current == null) return;
-
-    // If ResizeObserver is unavailable (very old browsers), fall back to timeout restore
-    if (typeof ResizeObserver === "undefined") {
-      const t = setTimeout(() => {
-        if (mainScrollRef.current)
-          mainScrollRef.current.scrollTop = pendingScrollRef.current as number;
-        pendingScrollRef.current = null;
-      }, 50);
-      return () => clearTimeout(t);
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTop = 0;
     }
-
-    const ro = new ResizeObserver(() => {
-      if (el && pendingScrollRef.current != null) {
-        el.scrollTop = pendingScrollRef.current as number;
-      }
-      pendingScrollRef.current = null;
-      ro.disconnect();
-      resizeObserverRef.current = null;
-    });
-
-    // Observe the scrolling container — it will fire when its size or content changes
-    ro.observe(el);
-    resizeObserverRef.current = ro;
-
-    // safety fallback in case observer doesn't fire (rare)
-    const fallback = window.setTimeout(() => {
-      if (el && pendingScrollRef.current != null)
-        el.scrollTop = pendingScrollRef.current as number;
-      pendingScrollRef.current = null;
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-        resizeObserverRef.current = null;
-      }
-    }, 500);
-
-    return () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-        resizeObserverRef.current = null;
-      }
-      clearTimeout(fallback);
-    };
   }, [selectedFilter]);
 
   return (
@@ -356,9 +314,6 @@ const KitchenDisplaySystem: React.FC = () => {
                           <button
                             onClick={(e) => {
                               e.preventDefault();
-                              if (mainScrollRef.current)
-                                pendingScrollRef.current =
-                                  mainScrollRef.current.scrollTop;
                               setSelectedFilter("pending");
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-full shadow hover:bg-yellow-600 transition"
@@ -414,9 +369,6 @@ const KitchenDisplaySystem: React.FC = () => {
                           <button
                             onClick={(e) => {
                               e.preventDefault();
-                              if (mainScrollRef.current)
-                                pendingScrollRef.current =
-                                  mainScrollRef.current.scrollTop;
                               setSelectedFilter("in-progress");
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-full shadow hover:bg-blue-600 transition"
@@ -472,10 +424,6 @@ const KitchenDisplaySystem: React.FC = () => {
                           <button
                             onClick={(e) => {
                               e.preventDefault();
-                              // preserve scroll position handled by handler
-                              if (mainScrollRef.current)
-                                pendingScrollRef.current =
-                                  mainScrollRef.current.scrollTop;
                               setSelectedFilter("ready");
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full shadow hover:bg-green-600 transition"
