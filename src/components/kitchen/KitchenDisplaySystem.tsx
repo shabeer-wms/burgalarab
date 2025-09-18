@@ -297,7 +297,7 @@ const KitchenDisplaySystem: React.FC = () => {
           </div>
         </div>
       )}
-      <main className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-auto">
+      <main className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-auto kitchen-main">
         <div className="w-full flex justify-center">
           <div className="w-full" style={{ maxWidth: 1200 }}>
             <header className="bg-white p-6 rounded-2xl shadow-md mb-8">
@@ -311,10 +311,10 @@ const KitchenDisplaySystem: React.FC = () => {
                     <span className="material-icons">menu</span>
                   </button>
 
-                  <div className="bg-blue-100 p-3 rounded-xl mr-3 flex-shrink-0">
+                  <div className="bg-blue-100 w-12 h-12 rounded-xl mr-3 flex-shrink-0 flex items-center justify-center">
                     <span
                       className="material-icons text-blue-500"
-                      style={{ fontSize: 28 }}
+                      style={{ fontSize: 20 }}
                     >
                       kitchen
                     </span>
@@ -331,7 +331,7 @@ const KitchenDisplaySystem: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="w-full md:w-auto">
+                <div className="w-full md:w-96">
                   {/* small screens: adaptive auto-fit grid */}
                   <div
                     className="grid gap-3 w-full md:hidden"
@@ -341,7 +341,7 @@ const KitchenDisplaySystem: React.FC = () => {
                     }}
                   >
                     <div className="flex flex-col items-center">
-                      <p className="text-base sm:text-lg font-bold text-yellow-500">
+                      <p className="text-base sm:text-lg font-bold text-yellow-500 w-8 text-center">
                         {pendingOrders.length}
                       </p>
                       <p className="text-gray-500 text-[11px] sm:text-xs">
@@ -349,7 +349,7 @@ const KitchenDisplaySystem: React.FC = () => {
                       </p>
                     </div>
                     <div className="flex flex-col items-center">
-                      <p className="text-base sm:text-lg font-bold text-blue-500">
+                      <p className="text-base sm:text-lg font-bold text-blue-500 w-8 text-center">
                         {inProgressOrders.length}
                       </p>
                       <p className="text-gray-500 text-[11px] sm:text-xs">
@@ -357,7 +357,7 @@ const KitchenDisplaySystem: React.FC = () => {
                       </p>
                     </div>
                     <div className="flex flex-col items-center">
-                      <p className="text-base sm:text-lg font-bold text-green-500">
+                      <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
                         {readyOrders.length}
                       </p>
                       <p className="text-gray-500 text-[11px] sm:text-xs">
@@ -369,19 +369,19 @@ const KitchenDisplaySystem: React.FC = () => {
                   {/* md+ screens: force horizontal stacked counters */}
                   <div className="hidden md:flex md:items-center md:gap-6 md:justify-end">
                     <div className="flex flex-col items-center">
-                      <p className="text-3xl font-bold text-yellow-500">
+                      <p className="text-3xl font-bold text-yellow-500 w-12 text-center tabular-nums">
                         {pendingOrders.length}
                       </p>
                       <p className="text-gray-500 text-sm">Pending</p>
                     </div>
                     <div className="flex flex-col items-center">
-                      <p className="text-3xl font-bold text-blue-500">
+                      <p className="text-3xl font-bold text-blue-500 w-12 text-center tabular-nums">
                         {inProgressOrders.length}
                       </p>
                       <p className="text-gray-500 text-sm">In Progress</p>
                     </div>
                     <div className="flex flex-col items-center">
-                      <p className="text-3xl font-bold text-green-500">
+                      <p className="text-3xl font-bold text-green-500 w-12 text-center tabular-nums">
                         {readyOrders.length}
                       </p>
                       <p className="text-gray-500 text-sm">Ready</p>
