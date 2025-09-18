@@ -12,7 +12,8 @@ interface OrderSectionProps {
   currentTime: Date;
   onStatusChange: (
     orderId: string,
-    status: "pending" | "in-progress" | "ready"
+    status: "pending" | "in-progress" | "ready",
+    paused?: boolean
   ) => void;
   onItemStatusChange: (
     orderId: string,
