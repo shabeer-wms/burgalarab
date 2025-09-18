@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { MenuItem, OrderItem, Order } from '../../types';
 
 import { Plus, Minus, ShoppingCart, Save, Send, FileText, Eye, X, User, Car } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
-
-import { Plus, Minus, ShoppingCart, Save, Send, Eye } from 'lucide-react';
 
 
 interface OrderManagementProps {
@@ -28,6 +26,11 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   const [kitchenNotes, setKitchenNotes] = useState('');
   const [savedOrders, setSavedOrders] = useState<Order[]>([]);
 
+  // Order state tracking
+  const [isOrderSaved, setIsOrderSaved] = useState(false);
+  const [isOrderModified, setIsOrderModified] = useState(false);
+  const [savedOrderSnapshot, setSavedOrderSnapshot] = useState<string>('');
+
   const [selectedSavedOrder, setSelectedSavedOrder] = useState<Order | null>(null);
   const [qrForOrderId, setQrForOrderId] = useState<string | null>(null);
 
@@ -36,6 +39,46 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   const updateSelectedTable = setSelectedTable || setSelectedTableState;
   const [showTablePicker, setShowTablePicker] = useState(false);
 
+  // Utility function to create order snapshot for comparison
+  const createOrderSnapshot = () => {
+    return JSON.stringify({
+      orderItems: orderItems.map(item => ({ id: item.id, quantity: item.quantity, specialInstructions: item.specialInstructions })),
+      customerDetails,
+      orderType,
+      selectedTable,
+      kitchenNotes
+    });
+  };
+
+  // Function to mark order as modified
+  const markOrderAsModified = () => {
+    if (isOrderSaved) {
+      // Use setTimeout to ensure state updates have been processed
+      setTimeout(() => {
+        const currentSnapshot = createOrderSnapshot();
+        if (currentSnapshot !== savedOrderSnapshot) {
+          setIsOrderModified(true);
+        }
+      }, 0);
+    }
+  };
+
+  // Effect to detect changes to orderItems after order is saved
+  useEffect(() => {
+    if (isOrderSaved && savedOrderSnapshot) {
+      const currentSnapshot = createOrderSnapshot();
+      if (currentSnapshot !== savedOrderSnapshot && !isOrderModified) {
+        setIsOrderModified(true);
+      }
+    }
+  }, [orderItems, customerDetails, orderType, selectedTable, kitchenNotes, isOrderSaved, savedOrderSnapshot, isOrderModified]);
+
+  // Function to reset order state
+  const resetOrderState = () => {
+    setIsOrderSaved(false);
+    setIsOrderModified(false);
+    setSavedOrderSnapshot('');
+  };
 
   const filteredMenuItems = selectedCategory === 'all' 
     ? menuItems 
@@ -59,6 +102,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       };
       setOrderItems(prev => [...prev, newOrderItem]);
     }
+    markOrderAsModified();
   };
 
   const updateQuantity = (itemId: string, change: number) => {
@@ -71,6 +115,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       }
       return item;
     }).filter(Boolean) as OrderItem[]);
+    markOrderAsModified();
   };
 
   const updateSpecialInstructions = (itemId: string, instructions: string) => {
@@ -79,6 +124,23 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
         ? { ...item, specialInstructions: instructions }
         : item
     ));
+    markOrderAsModified();
+  };
+
+  // Wrapper functions to track modifications
+  const updateCustomerDetails = (field: string, value: string) => {
+    setCustomerDetails(prev => ({ ...prev, [field]: value }));
+    markOrderAsModified();
+  };
+
+  const updateOrderType = (type: 'dine-in' | 'delivery') => {
+    setOrderType(type);
+    markOrderAsModified();
+  };
+
+  const updateKitchenNotes = (notes: string) => {
+    setKitchenNotes(notes);
+    markOrderAsModified();
   };
 
   const calculateTotal = () => {
@@ -93,21 +155,20 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       return;
     }
 
+    if (isOrderSaved && !isOrderModified) {
+      alert('Order is already saved. Make changes to save again.');
+      return;
+    }
+
     const { subtotal, tax, total } = calculateTotal();
     
     const order: Omit<Order, 'id' | 'orderTime'> = {
       customerId: `CUST-${Date.now()}`,
       customerName: customerDetails.name,
       customerPhone: customerDetails.phone,
-
-      customerAddress: customerDetails.vehicleNumber,
+      customerAddress: orderType === 'delivery' ? customerDetails.vehicleNumber : undefined,
       type: orderType,
-      tableNumber: orderType === 'dine-in' ? tableNumber : undefined,
-
-      customerAddress: customerDetails.address,
-  type: orderType,
-  tableNumber: orderType === 'dine-in' ? selectedTable : undefined,
-
+      tableNumber: orderType === 'dine-in' ? selectedTable : undefined,
       items: orderItems,
       status: 'pending',
       total: subtotal,
@@ -121,12 +182,34 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
 
     // Save as draft
     setSavedOrders(prev => [...prev, { ...order, id: `DRAFT-${Date.now()}`, orderTime: new Date() }]);
+    
+    // Update order state tracking
+    setIsOrderSaved(true);
+    setIsOrderModified(false);
+    setSavedOrderSnapshot(createOrderSnapshot());
+    
     alert('Order saved as draft');
   };
 
   const pushToKitchen = async () => {
+    console.log('Push to Kitchen clicked');
+    console.log('Order items:', orderItems);
+    console.log('Customer details:', customerDetails);
+    console.log('Is order saved:', isOrderSaved);
+    console.log('Is order modified:', isOrderModified);
+
     if (orderItems.length === 0 || !customerDetails.name || !customerDetails.phone) {
       alert('Please add items and fill customer details');
+      return;
+    }
+
+    if (!isOrderSaved) {
+      alert('Please save the order first before sending to kitchen');
+      return;
+    }
+
+    if (isOrderModified) {
+      alert('Order has been modified since saving. Please save the order again before sending to kitchen');
       return;
     }
 
@@ -136,15 +219,9 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       customerId: `CUST-${Date.now()}`,
       customerName: customerDetails.name,
       customerPhone: customerDetails.phone,
-
-      customerAddress: customerDetails.vehicleNumber,
+      customerAddress: orderType === 'delivery' ? customerDetails.vehicleNumber : undefined,
       type: orderType,
-      tableNumber: orderType === 'dine-in' ? tableNumber : undefined,
-
-      customerAddress: customerDetails.address,
-  type: orderType,
-  tableNumber: orderType === 'dine-in' ? selectedTable : undefined,
-
+      tableNumber: orderType === 'dine-in' ? selectedTable : undefined,
       items: orderItems,
       status: 'confirmed',
       total: subtotal,
@@ -156,14 +233,25 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       estimatedTime: Math.max(...orderItems.map(item => item.menuItem.prepTime)) + 10,
     };
 
-    const newOrderId = await addOrder(order);
-    // Show QR modal for tracking
-    setQrForOrderId(newOrderId);
-    
-    // Clear form after showing QR
-    setOrderItems([]);
-    setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
-    setKitchenNotes('');
+    console.log('Order to be sent:', order);
+
+    try {
+      const newOrderId = await addOrder(order);
+      console.log('Order added successfully with ID:', newOrderId);
+      // Show QR modal for tracking
+      setQrForOrderId(newOrderId);
+      
+      // Clear form after showing QR
+      setOrderItems([]);
+      setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
+      setKitchenNotes('');
+      resetOrderState();
+      
+      alert('Order sent to kitchen successfully!');
+    } catch (error) {
+      console.error('Error sending order to kitchen:', error);
+      alert('Failed to send order to kitchen. Please try again.');
+    }
   };
 
   return (
@@ -236,14 +324,14 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
               type="text"
               placeholder="Customer Name *"
               value={customerDetails.name}
-              onChange={(e) => setCustomerDetails(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => updateCustomerDetails('name', e.target.value)}
               className="input-field"
             />
             <input
               type="tel"
               placeholder="Phone Number *"
               value={customerDetails.phone}
-              onChange={(e) => setCustomerDetails(prev => ({ ...prev, phone: e.target.value }))}
+              onChange={(e) => updateCustomerDetails('phone', e.target.value)}
               className="input-field"
             />
             {orderType === 'delivery' && (
@@ -251,13 +339,13 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
                 type="text"
                 placeholder="Vehicle Number"
                 value={customerDetails.vehicleNumber}
-                onChange={(e) => setCustomerDetails(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+                onChange={(e) => updateCustomerDetails('vehicleNumber', e.target.value)}
                 className="input-field"
               />
             )}
             <div className="flex space-x-2">
               <button
-                onClick={() => setOrderType('dine-in')}
+                onClick={() => updateOrderType('dine-in')}
                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                   orderType === 'dine-in' 
                     ? 'bg-primary-600 text-white' 
@@ -267,7 +355,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
                 Dine-in
               </button>
               <button
-                onClick={() => setOrderType('delivery')}
+                onClick={() => updateOrderType('delivery')}
                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                   orderType === 'delivery' 
                     ? 'bg-primary-600 text-white' 
@@ -375,7 +463,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
           <textarea
             placeholder="Special instructions for kitchen..."
             value={kitchenNotes}
-            onChange={(e) => setKitchenNotes(e.target.value)}
+            onChange={(e) => updateKitchenNotes(e.target.value)}
             className="input-field"
             rows={3}
           />
@@ -406,38 +494,59 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
         <div className="space-y-3">
           <button
             onClick={saveOrder}
-            disabled={orderItems.length === 0}
-            className="w-full btn-outlined flex items-center justify-center space-x-2"
+            disabled={orderItems.length === 0 || (isOrderSaved && !isOrderModified)}
+            className={`w-full flex items-center justify-center space-x-2 ${
+              isOrderSaved && !isOrderModified 
+                ? 'btn-disabled' 
+                : 'btn-outlined'
+            }`}
           >
             <Save className="w-4 h-4" />
-            <span>Save Order</span>
+            <span>
+              {isOrderSaved && !isOrderModified ? 'Order Saved' : 'Save Order'}
+            </span>
           </button>
           <button
             onClick={pushToKitchen}
-            disabled={orderItems.length === 0}
-            className="w-full btn-primary flex items-center justify-center space-x-2"
+            disabled={orderItems.length === 0 || !isOrderSaved || isOrderModified}
+            className={`w-full flex items-center justify-center space-x-2 ${
+              !isOrderSaved || isOrderModified 
+                ? 'btn-disabled' 
+                : 'btn-primary'
+            }`}
           >
             <Send className="w-4 h-4" />
-            <span>Send to Kitchen</span>
+            <span>
+              {!isOrderSaved 
+                ? 'Save First' 
+                : isOrderModified 
+                  ? 'Save Changes First' 
+                  : 'Send to Kitchen'
+              }
+            </span>
           </button>
         </div>
 
         {/* Saved Orders */}
         {savedOrders.length > 0 && (
           <div className="card">
-            <h3 className="text-title-medium mb-3">Saved Orders ({savedOrders.length})</h3>
+            <h3 className="text-title-medium mb-3">Latest Saved Order</h3>
             <div className="space-y-2">
-              {savedOrders.map(order => (
-                <div key={order.id} className="flex items-center justify-between p-2 bg-surface-50 rounded-lg">
-                  <div>
-                    <p className="text-body-medium font-medium">{order.customerName}</p>
-                    <p className="text-body-small text-surface-600">${order.grandTotal.toFixed(2)}</p>
+              {/* Show only the most recent saved order */}
+              {(() => {
+                const latestOrder = savedOrders[savedOrders.length - 1];
+                return (
+                  <div key={latestOrder.id} className="flex items-center justify-between p-2 bg-surface-50 rounded-lg">
+                    <div>
+                      <p className="text-body-medium font-medium">{latestOrder.customerName}</p>
+                      <p className="text-body-small text-surface-600">${latestOrder.grandTotal.toFixed(2)}</p>
+                    </div>
+                    <button className="p-2 hover:bg-surface-100 rounded-lg" onClick={() => setSelectedSavedOrder(latestOrder)}>
+                      <Eye className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button className="p-2 hover:bg-surface-100 rounded-lg" onClick={() => setSelectedSavedOrder(order)}>
-                    <Eye className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                );
+              })()}
             </div>
           </div>
         )}
