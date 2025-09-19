@@ -132,7 +132,7 @@ const KitchenDisplaySystem: React.FC = () => {
         <div className="w-full flex justify-center">
           <div className="w-full max-w-[1200px] px-4">
             {/* Sticky Kitchen Header */}
-            <div className="sticky top-0 z-40 bg-gray-50">
+            <div className="sticky top-0 z-40 bg-transparent">
               <KitchenHeader
                 currentTime={currentTime}
                 totalOrders={kitchenOrders.length}
