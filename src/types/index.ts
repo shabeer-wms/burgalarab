@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'customer' | 'waiter' | 'kitchen' | 'admin';
+  role: "customer" | "waiter" | "kitchen" | "admin";
   tableNumber?: string;
 }
 
@@ -22,7 +22,7 @@ export interface OrderItem {
   menuItem: MenuItem;
   quantity: number;
   specialInstructions?: string;
-  status: 'pending' | 'preparing' | 'ready' | 'served';
+  status: "pending" | "preparing" | "ready" | "served";
 }
 
 export interface Order {
@@ -31,15 +31,21 @@ export interface Order {
   customerName: string;
   customerPhone: string;
   customerAddress?: string;
-  type: 'dine-in' | 'delivery';
+  type: "dine-in" | "delivery";
   tableNumber?: string;
   items: OrderItem[];
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+  status:
+    | "pending"
+    | "confirmed"
+    | "preparing"
+    | "ready"
+    | "completed"
+    | "cancelled";
   total: number;
   tax: number;
   grandTotal: number;
-  paymentMethod?: 'cash' | 'card' | 'online' | 'upi';
-  paymentStatus: 'pending' | 'paid' | 'partial' | 'refunded';
+  paymentMethod?: "cash" | "card" | "online" | "upi";
+  paymentStatus: "pending" | "paid" | "partial" | "refunded";
   orderTime: Date | string | { toDate: () => Date };
   completedTime?: Date;
   waiterId?: string;
@@ -66,7 +72,7 @@ export interface Bill {
   total: number;
   generatedAt: Date;
   generatedBy: string;
-  paymentMethod: 'cash' | 'card' | 'online' | 'upi';
+  paymentMethod: "cash" | "card" | "online" | "upi";
   customerDetails: {
     name: string;
     phone: string;
@@ -83,7 +89,8 @@ export interface KitchenDisplayItem {
   items: OrderItem[];
   orderTime: Date;
   estimatedTime: number;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in-progress' | 'ready';
+  priority: "low" | "medium" | "high";
+  status: "pending" | "in-progress" | "ready";
   kitchenNotes?: string;
+  paused?: boolean; // Track if the order was paused and moved back to pending
 }
