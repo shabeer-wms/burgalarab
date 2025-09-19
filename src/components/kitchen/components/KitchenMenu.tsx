@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { kitchenColors } from "../theme/colors";
 import { kitchenLayout } from "../theme/layout";
 
@@ -24,6 +24,24 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  // close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        wrapperRef.current &&
+        event.target instanceof Node &&
+        !wrapperRef.current.contains(event.target)
+      ) {
+        setIsCategoryOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Get unique categories from menu items
   const categories = [...new Set(menuItems.map((item) => item.category))];
@@ -266,28 +284,79 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
                 className={`block w-full pl-10 pr-3 py-2 border ${kitchenColors.ui.primary.border} rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm`}
               />
             </div>
-            {/* Category Filter */}
-            <div className="relative min-w-[140px]">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className={`block w-full pl-3 pr-10 py-2 text-sm border ${kitchenColors.ui.primary.border} rounded-lg ${kitchenColors.ui.primary.background} ${kitchenColors.ui.primary.text} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer shadow-sm hover:shadow-md transition-shadow`}
-                style={{ minWidth: "140px" }}
-              >
-                <option value="all">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-                <span
-                  className={`material-icons ${kitchenColors.ui.primary.textSecondary}`}
-                  style={{ fontSize: 16 }}
+            {/* Category Filter - custom dropdown to match design */}
+            <div
+              className="relative w-full sm:w-auto min-w-[140px]"
+              ref={wrapperRef}
+            >
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryOpen((s) => !s)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setIsCategoryOpen(false);
+                  }}
+                  className={`w-full sm:w-[220px] text-left pl-3 pr-8 py-2 text-sm border ${kitchenColors.ui.primary.border} rounded-lg ${kitchenColors.ui.primary.background} ${kitchenColors.ui.primary.text} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer shadow-sm hover:shadow-md transition-shadow flex items-center justify-between`}
+                  aria-haspopup="listbox"
+                  aria-expanded={isCategoryOpen}
                 >
-                  expand_more
-                </span>
+                  <span className="truncate">
+                    {selectedCategory === "all"
+                      ? "All Categories"
+                      : selectedCategory}
+                  </span>
+                  <span
+                    className={`material-icons ${kitchenColors.ui.primary.textSecondary} ml-2`}
+                    style={{ fontSize: 16 }}
+                  >
+                    expand_more
+                  </span>
+                </button>
+
+                {/* Options panel */}
+                {isCategoryOpen && (
+                  <ul
+                    role="listbox"
+                    aria-activedescendant={selectedCategory}
+                    tabIndex={-1}
+                    className="absolute left-0 mt-2 max-h-52 overflow-auto rounded-xl bg-white shadow-xl ring-1 ring-black ring-opacity-5 z-50 w-full sm:w-[220px]"
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setIsCategoryOpen(false);
+                    }}
+                  >
+                    <li
+                      role="option"
+                      className={`px-4 py-2 text-sm cursor-pointer transition-colors ${
+                        selectedCategory === "all"
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-700 hover:bg-blue-50 hover:text-gray-900"
+                      }`}
+                      onClick={() => {
+                        setSelectedCategory("all");
+                        setIsCategoryOpen(false);
+                      }}
+                    >
+                      All Categories
+                    </li>
+                    {categories.map((category) => (
+                      <li
+                        key={category}
+                        role="option"
+                        className={`px-4 py-2 text-sm cursor-pointer transition-colors ${
+                          selectedCategory === category
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-700 hover:bg-blue-50 hover:text-gray-900"
+                        }`}
+                        onClick={() => {
+                          setSelectedCategory(category);
+                          setIsCategoryOpen(false);
+                        }}
+                      >
+                        {category}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </div>
