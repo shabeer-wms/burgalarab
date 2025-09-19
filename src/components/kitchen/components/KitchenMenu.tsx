@@ -92,96 +92,118 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
     <div
       className={`${kitchenColors.ui.layout.card} ${
         kitchenLayout.spacing.card
-      } rounded-xl ${isUnavailable ? "opacity-60" : ""}`}
+      } rounded-2xl h-full flex flex-col ${isUnavailable ? "opacity-60" : ""}`}
     >
-      <div className="flex items-start space-x-4">
-        <div className="flex-shrink-0">
+      {/* Header Section */}
+      <div className="flex justify-between items-start mb-3 lg:mb-4">
+        <div className="min-w-0 flex-1 mr-3">
+          <h3
+            className={`${kitchenLayout.typography.card.title} ${kitchenColors.ui.primary.text} truncate`}
+          >
+            {item.name}
+          </h3>
+          <p
+            className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.textSecondary} truncate`}
+          >
+            {item.description}
+          </p>
+        </div>
+        <div className="flex-shrink-0 ml-4">
           <img
             src={item.image}
             alt={item.name}
-            className="w-16 h-16 rounded-lg object-cover"
+            className="w-16 h-16 rounded-xl object-cover"
           />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h3
-                className={`${kitchenLayout.typography.card.title} ${kitchenColors.ui.primary.text} truncate`}
-              >
-                {item.name}
-              </h3>
-              <p
-                className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.card.subtitle} truncate mt-1`}
-              >
-                {item.description}
-              </p>
-            </div>
-            <div className="flex items-center space-x-3 ml-4">
-              {/* Prep Time */}
-              <div className="flex items-center">
-                <span
-                  className={`material-icons ${kitchenColors.ui.primary.textSecondary} mr-1`}
-                  style={{ fontSize: 16 }}
-                >
-                  schedule
-                </span>
-                <span
-                  className={`text-sm font-medium ${kitchenColors.ui.primary.text}`}
-                >
-                  {formatPrepTime(item.prepTime)}
-                </span>
-              </div>
-              {/* Availability Toggle */}
-              <button
-                onClick={() =>
-                  handleAvailabilityToggle(item.id, item.available)
-                }
-                className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  item.available
-                    ? `${kitchenColors.status.ready.button} text-white hover:shadow-md`
-                    : "bg-red-500 text-white hover:bg-red-600 hover:shadow-md"
-                } ${
-                  onUpdateMenuItem
-                    ? "cursor-pointer"
-                    : "cursor-not-allowed opacity-60"
-                }`}
-                disabled={!onUpdateMenuItem}
-                title={
-                  onUpdateMenuItem
-                    ? "Click to toggle availability"
-                    : "Read-only mode"
-                }
-              >
-                <span className="material-icons mr-1" style={{ fontSize: 14 }}>
-                  {item.available ? "check_circle" : "cancel"}
-                </span>
-                {item.available ? "Available" : "Unavailable"}
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center">
-              <span
-                className={`material-icons ${getCategoryIconClass(
-                  item.category
-                )} mr-1`}
-                style={{ fontSize: 16 }}
-              >
-                {getCategoryIcon(item.category)}
-              </span>
-              <span
-                className={`text-sm ${kitchenColors.ui.primary.textSecondary}`}
-              >
-                {item.category}
-              </span>
-            </div>
+      </div>
+
+      {/* Details Section */}
+      <div className="mb-3 lg:mb-4 space-y-2 flex-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <span
-              className={`text-lg font-bold ${kitchenColors.ui.primary.text}`}
+              className={`material-icons ${getCategoryIconClass(
+                item.category
+              )} mr-2`}
+              style={{ fontSize: 18 }}
             >
-              ${item.price.toFixed(2)}
+              {getCategoryIcon(item.category)}
+            </span>
+            <span
+              className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.textSecondary}`}
+            >
+              {item.category}
+            </span>
+          </div>
+          <div className="flex items-center">
+            <span
+              className={`material-icons ${kitchenColors.ui.primary.textSecondary} mr-1`}
+              style={{ fontSize: 16 }}
+            >
+              schedule
+            </span>
+            <span
+              className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.text} font-medium`}
+            >
+              {formatPrepTime(item.prepTime)}
             </span>
           </div>
         </div>
+
+        <div className="flex items-center justify-between">
+          <span
+            className={`${kitchenLayout.typography.card.title} ${kitchenColors.ui.primary.text} font-bold`}
+          >
+            ${item.price.toFixed(2)}
+          </span>
+          <div
+            className={`${
+              item.available
+                ? kitchenColors.status.ready.badge
+                : "bg-red-100 text-red-700"
+            } ${kitchenLayout.typography.card.subtitle} font-medium ${
+              kitchenLayout.sizing.button.paddingSmall
+            } rounded-full flex items-center flex-shrink-0`}
+          >
+            <span
+              className={`material-icons ${kitchenLayout.sizing.icon.small} mr-1`}
+            >
+              {item.available ? "check_circle" : "cancel"}
+            </span>
+            {item.available ? "Available" : "Unavailable"}
+          </div>
+        </div>
+      </div>
+
+      {/* Action Button */}
+      <div className="mt-3 lg:mt-4">
+        <button
+          onClick={() => handleAvailabilityToggle(item.id, item.available)}
+          className={`w-full ${
+            item.available
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : `${kitchenColors.status.ready.button} text-white ${kitchenColors.status.ready.hover}`
+          } ${
+            kitchenLayout.sizing.button.padding
+          } rounded-lg font-semibold transition duration-300 flex items-center justify-center ${
+            kitchenLayout.typography.card.button
+          } ${
+            onUpdateMenuItem
+              ? "cursor-pointer"
+              : "cursor-not-allowed opacity-60"
+          }`}
+          disabled={!onUpdateMenuItem}
+          title={
+            onUpdateMenuItem ? "Click to toggle availability" : "Read-only mode"
+          }
+        >
+          <span
+            className={`material-icons mr-2 ${kitchenLayout.sizing.icon.button}`}
+          >
+            {item.available ? "visibility_off" : "visibility"}
+          </span>
+          {item.available ? "Mark Unavailable" : "Mark Available"}
+        </button>
       </div>
     </div>
   );
