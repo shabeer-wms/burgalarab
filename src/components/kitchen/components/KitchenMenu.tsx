@@ -228,12 +228,13 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
 
   return (
     <div className="w-full">
-      {/* Header */}
-      <div
-        className={`${kitchenColors.ui.layout.card} ${kitchenLayout.responsive.header.padding} rounded-2xl ${kitchenLayout.responsive.header.margin} ${kitchenLayout.responsive.header.minHeight}`}
-      >
-        <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-3 lg:gap-4">
-          <div className="flex items-center min-w-0 flex-1 md:flex-initial">
+      {/* Search and Filter with Header */}
+      <div className="mb-6">
+        <div
+          className={`${kitchenColors.ui.layout.card} ${kitchenLayout.spacing.card} rounded-xl`}
+        >
+          {/* Header inside the card */}
+          <div className="flex items-center mb-4">
             <div
               className={`${kitchenColors.ui.layout.header} ${kitchenLayout.sizing.icon.header} rounded-xl mr-3 flex-shrink-0 flex items-center justify-center`}
             >
@@ -257,14 +258,7 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
               </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Search and Filter */}
-      <div className="mb-6">
-        <div
-          className={`${kitchenColors.ui.layout.card} ${kitchenLayout.spacing.card} rounded-xl`}
-        >
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
             {/* Search */}
             <div className="flex-1 relative">
