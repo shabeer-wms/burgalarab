@@ -3,6 +3,18 @@ import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { OrderItem } from "../../types";
 
+// MenuItem interface
+interface MenuItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image: string;
+  available: boolean;
+  prepTime: number;
+}
+
 // Components
 import { KitchenHeader } from "./components/KitchenHeader";
 import { SidebarNavigation } from "./components/SidebarNavigation";
@@ -77,6 +89,14 @@ const KitchenDisplaySystem: React.FC = () => {
     updateOrderItemStatus(orderId, itemId, status);
   };
 
+  const handleUpdateMenuItem = (itemId: string, updates: Partial<MenuItem>) => {
+    setMenuItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === itemId ? { ...item, ...updates } : item
+      )
+    );
+  };
+
   // Filter orders by status
   const pendingOrders = kitchenOrders.filter(
     (order) => order.status === "pending"
@@ -86,8 +106,8 @@ const KitchenDisplaySystem: React.FC = () => {
   );
   const readyOrders = kitchenOrders.filter((order) => order.status === "ready");
 
-  // Mock menu data (should come from context in production)
-  const menuItems = [
+  // Menu items state (should come from context in production)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([
     {
       id: "1",
       name: "Chicken Wings",
@@ -154,7 +174,7 @@ const KitchenDisplaySystem: React.FC = () => {
       available: true,
       prepTime: 3,
     },
-  ];
+  ]);
 
   // UI filter state for navigation
   const [selectedFilter, setSelectedFilter] = useState<
@@ -216,7 +236,10 @@ const KitchenDisplaySystem: React.FC = () => {
 
             {/* Content based on selected filter */}
             {selectedFilter === "menu" ? (
-              <KitchenMenu menuItems={menuItems} />
+              <KitchenMenu
+                menuItems={menuItems}
+                onUpdateMenuItem={handleUpdateMenuItem}
+              />
             ) : (
               <>
                 {/* Order Sections */}

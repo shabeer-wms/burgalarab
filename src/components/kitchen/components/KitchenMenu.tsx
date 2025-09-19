@@ -15,9 +15,13 @@ interface MenuItem {
 
 interface KitchenMenuProps {
   menuItems: MenuItem[];
+  onUpdateMenuItem?: (itemId: string, updates: Partial<MenuItem>) => void;
 }
 
-export const KitchenMenu: React.FC<KitchenMenuProps> = ({ menuItems }) => {
+export const KitchenMenu: React.FC<KitchenMenuProps> = ({
+  menuItems,
+  onUpdateMenuItem,
+}) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
@@ -72,6 +76,15 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({ menuItems }) => {
     return `${minutes}min`;
   };
 
+  const handleAvailabilityToggle = (
+    itemId: string,
+    currentAvailability: boolean
+  ) => {
+    if (onUpdateMenuItem) {
+      onUpdateMenuItem(itemId, { available: !currentAvailability });
+    }
+  };
+
   const MenuItemCard: React.FC<{ item: MenuItem; isUnavailable?: boolean }> = ({
     item,
     isUnavailable = false,
@@ -118,22 +131,32 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({ menuItems }) => {
                   {formatPrepTime(item.prepTime)}
                 </span>
               </div>
-              {/* Availability Status */}
-              <div
-                className={`flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+              {/* Availability Toggle */}
+              <button
+                onClick={() =>
+                  handleAvailabilityToggle(item.id, item.available)
+                }
+                className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
                   item.available
-                    ? kitchenColors.status.ready.badge
-                    : "bg-red-100 text-red-700"
+                    ? `${kitchenColors.status.ready.button} text-white hover:shadow-md`
+                    : "bg-red-500 text-white hover:bg-red-600 hover:shadow-md"
+                } ${
+                  onUpdateMenuItem
+                    ? "cursor-pointer"
+                    : "cursor-not-allowed opacity-60"
                 }`}
+                disabled={!onUpdateMenuItem}
+                title={
+                  onUpdateMenuItem
+                    ? "Click to toggle availability"
+                    : "Read-only mode"
+                }
               >
-                <span
-                  className={`material-icons mr-1`}
-                  style={{ fontSize: 14 }}
-                >
+                <span className="material-icons mr-1" style={{ fontSize: 14 }}>
                   {item.available ? "check_circle" : "cancel"}
                 </span>
                 {item.available ? "Available" : "Unavailable"}
-              </div>
+              </button>
             </div>
           </div>
           <div className="flex items-center justify-between mt-3">
@@ -222,11 +245,12 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({ menuItems }) => {
               />
             </div>
             {/* Category Filter */}
-            <div className="relative">
+            <div className="relative min-w-[140px]">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className={`block w-full pl-3 pr-10 py-2 text-sm border ${kitchenColors.ui.primary.border} rounded-lg ${kitchenColors.ui.primary.background} ${kitchenColors.ui.primary.text} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none`}
+                className={`block w-full pl-3 pr-10 py-2 text-sm border ${kitchenColors.ui.primary.border} rounded-lg ${kitchenColors.ui.primary.background} ${kitchenColors.ui.primary.text} focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer shadow-sm hover:shadow-md transition-shadow`}
+                style={{ minWidth: "140px" }}
               >
                 <option value="all">All Categories</option>
                 {categories.map((category) => (
@@ -235,10 +259,10 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({ menuItems }) => {
                   </option>
                 ))}
               </select>
-              <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+              <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
                 <span
                   className={`material-icons ${kitchenColors.ui.primary.textSecondary}`}
-                  style={{ fontSize: 18 }}
+                  style={{ fontSize: 16 }}
                 >
                   expand_more
                 </span>
