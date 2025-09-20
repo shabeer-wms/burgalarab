@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order, Bill } from '../../types';
-import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe, DollarSign, X } from 'lucide-react';
+import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2 } from 'lucide-react';
 
 const BillingPayments: React.FC = () => {
   const { orders, bills, generateBill, getTodaysRevenue } = useApp();
@@ -13,16 +13,27 @@ const BillingPayments: React.FC = () => {
   const [billingOrder, setBillingOrder] = useState<Order | null>(null);
   const [displayedOrdersCount, setDisplayedOrdersCount] = useState(6);
   const [displayedBillsCount, setDisplayedBillsCount] = useState(6);
+  const [isGeneratingBill, setIsGeneratingBill] = useState(false);
 
   const readyOrders = orders.filter(order => 
     order.status === 'ready' && order.paymentStatus === 'pending'
   );
 
-  const filteredOrders = paymentFilter === 'all' 
+  const filteredOrders = (paymentFilter === 'all' 
     ? orders.filter(order => ['ready', 'completed'].includes(order.status))
     : orders.filter(order => 
         ['ready', 'completed'].includes(order.status) && order.paymentStatus === paymentFilter
-      );
+      )
+  ).sort((a, b) => {
+    // Sort by order time in descending order (most recent first)
+    const timeA = a.orderTime instanceof Date ? a.orderTime : 
+                  typeof a.orderTime === 'string' ? new Date(a.orderTime) : 
+                  a.orderTime?.toDate ? a.orderTime.toDate() : new Date(0);
+    const timeB = b.orderTime instanceof Date ? b.orderTime : 
+                  typeof b.orderTime === 'string' ? new Date(b.orderTime) : 
+                  b.orderTime?.toDate ? b.orderTime.toDate() : new Date(0);
+    return timeB.getTime() - timeA.getTime();
+  });
 
   const todaysRevenue = getTodaysRevenue();
 
@@ -376,15 +387,31 @@ const BillingPayments: React.FC = () => {
       {/* Billing Dialog Modal */}
       {showBillingDialog && billingOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto relative">
+            {/* Loading Overlay */}
+            {isGeneratingBill && (
+              <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 rounded-lg">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-2" />
+                  <p className="text-body-medium text-surface-600">Generating Bill...</p>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between p-6 border-b border-surface-200">
               <h3 className="text-title-large">Generate Bill</h3>
               <button
                 onClick={() => {
-                  setShowBillingDialog(false);
-                  setBillingOrder(null);
+                  if (!isGeneratingBill) {
+                    setShowBillingDialog(false);
+                    setBillingOrder(null);
+                  }
                 }}
-                className="p-2 hover:bg-surface-100 rounded-lg"
+                disabled={isGeneratingBill}
+                className={`p-2 rounded-lg transition-colors ${
+                  isGeneratingBill 
+                    ? 'cursor-not-allowed opacity-50' 
+                    : 'hover:bg-surface-100'
+                }`}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -442,18 +469,19 @@ const BillingPayments: React.FC = () => {
               </div>
 
               {/* Payment Method */}
-              <div>
+              <div className={isGeneratingBill ? 'opacity-50 pointer-events-none' : ''}>
                 <h4 className="text-title-medium mb-3">Payment Method</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {(['cash', 'card', 'upi', 'online'] as Bill['paymentMethod'][]).map(method => (
                     <button
                       key={method}
                       onClick={() => setPaymentMethod(method)}
+                      disabled={isGeneratingBill}
                       className={`flex items-center justify-center space-x-2 p-3 rounded-lg border transition-colors ${
                         paymentMethod === method
                           ? 'border-primary-500 bg-primary-50 text-primary-700'
                           : 'border-surface-300 hover:bg-surface-50'
-                      }`}
+                      } ${isGeneratingBill ? 'cursor-not-allowed' : ''}`}
                     >
                       {getPaymentIcon(method)}
                       <span className="capitalize">{method}</span>
@@ -465,18 +493,37 @@ const BillingPayments: React.FC = () => {
               {/* Action Buttons */}
               <div className="space-y-3">
                 <button
-                  onClick={() => {
-                    if (billingOrder) {
-                      generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
-                      alert('Bill generated successfully!');
-                      setShowBillingDialog(false);
-                      setBillingOrder(null);
+                  onClick={async () => {
+                    if (billingOrder && !isGeneratingBill) {
+                      try {
+                        setIsGeneratingBill(true);
+                        console.log('Generating bill for order:', billingOrder.id);
+                        await generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
+                        alert('Bill generated successfully!');
+                        setShowBillingDialog(false);
+                        setBillingOrder(null);
+                      } catch (error) {
+                        console.error('Error generating bill:', error);
+                        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                        alert(`Failed to generate bill: ${errorMessage}`);
+                      } finally {
+                        setIsGeneratingBill(false);
+                      }
                     }
                   }}
-                  className="w-full btn-primary flex items-center justify-center space-x-2"
+                  disabled={isGeneratingBill}
+                  className={`w-full flex items-center justify-center space-x-2 min-h-[48px] ${
+                    isGeneratingBill 
+                      ? 'bg-surface-300 text-surface-500 cursor-not-allowed' 
+                      : 'btn-primary'
+                  }`}
                 >
-                  <Receipt className="w-4 h-4" />
-                  <span>Generate Bill & Process Payment</span>
+                  {isGeneratingBill ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Receipt className="w-4 h-4" />
+                  )}
+                  <span>{isGeneratingBill ? 'Generating Bill...' : 'Generate Bill & Process Payment'}</span>
                 </button>
                 
                 <button
