@@ -221,7 +221,7 @@ const KitchenDisplaySystem: React.FC = () => {
         className={`flex-1 ${kitchenLayout.responsive.main.padding} min-h-screen ${kitchenLayout.responsive.main.margin} overflow-y-scroll kitchen-main ${kitchenLayout.responsive.main.paddingBottom}`}
       >
         <div className="w-full flex justify-center">
-          <div className="w-full max-w-[1200px] px-4">
+          <div className="w-full max-w-[1200px]">
             {/* Sticky Kitchen Header */}
             <div className="sticky top-0 z-40 bg-transparent">
               <KitchenHeader
