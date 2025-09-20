@@ -254,10 +254,6 @@ npm run lint     # Run ESLint
 - [ ] Offline mode support
 - [ ] Multi-language support
 
-## 📞 Support
-
-For support, email support@restaurant-management.com or create an issue in the GitHub repository.
-
 ## 🏆 Acknowledgments
 
 - React team for the amazing framework
