@@ -2,18 +2,24 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order, Bill } from '../../types';
-import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe } from 'lucide-react';
+import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe, DollarSign } from 'lucide-react';
 
 const BillingPayments: React.FC = () => {
   const { orders, bills, generateBill, getTodaysRevenue } = useApp();
   const { user } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<Bill['paymentMethod']>('cash');
-  const [showBillPreview, setShowBillPreview] = useState<Bill | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<'all' | Order['paymentStatus']>('all');
 
   const readyOrders = orders.filter(order => 
     order.status === 'ready' && order.paymentStatus === 'pending'
   );
+
+  const filteredOrders = paymentFilter === 'all' 
+    ? orders.filter(order => ['ready', 'completed'].includes(order.status))
+    : orders.filter(order => 
+        ['ready', 'completed'].includes(order.status) && order.paymentStatus === paymentFilter
+      );
 
   const todaysRevenue = getTodaysRevenue();
 
@@ -21,8 +27,8 @@ const BillingPayments: React.FC = () => {
     if (!selectedOrder || !user) return;
 
     try {
-      const bill = generateBill(selectedOrder.id, user.name, paymentMethod);
-      setShowBillPreview(bill);
+      generateBill(selectedOrder.id, user.name, paymentMethod);
+      alert('Bill generated successfully!');
       setSelectedOrder(null);
     } catch (error) {
       alert('Error generating bill');
@@ -69,8 +75,8 @@ const BillingPayments: React.FC = () => {
         <div class="header">
           <h2>Hotel Management</h2>
           <p>Bill No: ${bill.id}</p>
-          <p>Date: ${bill.generatedAt.toLocaleDateString()}</p>
-          <p>Time: ${bill.generatedAt.toLocaleTimeString()}</p>
+          <p>Date: ${formatDate(bill.generatedAt)}</p>
+          <p>Time: ${formatTime(bill.generatedAt)}</p>
         </div>
         
         <div>
@@ -133,6 +139,48 @@ const BillingPayments: React.FC = () => {
     }
   };
 
+  const getPaymentStatusColor = (status: Order['paymentStatus']) => {
+    switch (status) {
+      case 'paid': return 'text-success-600';
+      case 'pending': return 'text-warning-600';
+      case 'partial': return 'text-warning-600';
+      case 'refunded': return 'text-error-600';
+      default: return 'text-surface-600';
+    }
+  };
+
+  const getStatusChipColor = (status: Order['status']) => {
+    switch (status) {
+      case 'ready': return 'chip-success';
+      case 'completed': return 'chip-success';
+      default: return 'chip-primary';
+    }
+  };
+
+  const formatDate = (date: any) => {
+    try {
+      if (!date) return 'N/A';
+      if (date instanceof Date) return date.toLocaleDateString();
+      if (date.toDate && typeof date.toDate === 'function') return date.toDate().toLocaleDateString();
+      return new Date(date).toLocaleDateString();
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'N/A';
+    }
+  };
+
+  const formatTime = (date: any) => {
+    try {
+      if (!date) return 'N/A';
+      if (date instanceof Date) return date.toLocaleTimeString();
+      if (date.toDate && typeof date.toDate === 'function') return date.toDate().toLocaleTimeString();
+      return new Date(date).toLocaleTimeString();
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'N/A';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Revenue Stats */}
@@ -152,16 +200,53 @@ const BillingPayments: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Orders Ready for Billing */}
+        {/* Orders Section */}
         <div className="space-y-4">
-          <h2 className="text-title-large">Ready for Billing ({readyOrders.length})</h2>
-          {readyOrders.length === 0 ? (
+          {/* Header and Filters */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-title-large">Orders</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPaymentFilter('all')}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  paymentFilter === 'all' 
+                    ? 'bg-primary-100 text-primary-700' 
+                    : 'bg-surface-100 text-surface-600'
+                }`}
+              >
+                All ({filteredOrders.length})
+              </button>
+              <button
+                onClick={() => setPaymentFilter('pending')}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  paymentFilter === 'pending' 
+                    ? 'bg-warning-100 text-warning-700' 
+                    : 'bg-surface-100 text-surface-600'
+                }`}
+              >
+                Pending ({orders.filter(o => ['ready', 'completed'].includes(o.status) && o.paymentStatus === 'pending').length})
+              </button>
+              <button
+                onClick={() => setPaymentFilter('paid')}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  paymentFilter === 'paid' 
+                    ? 'bg-success-100 text-success-700' 
+                    : 'bg-surface-100 text-surface-600'
+                }`}
+              >
+                Paid ({orders.filter(o => ['ready', 'completed'].includes(o.status) && o.paymentStatus === 'paid').length})
+              </button>
+            </div>
+          </div>
+          
+          {/* Orders List */}
+          {filteredOrders.length === 0 ? (
             <div className="card text-center py-8">
               <Receipt className="w-12 h-12 text-surface-300 mx-auto mb-4" />
-              <p className="text-surface-600">No orders ready for billing</p>
+              <p className="text-surface-600">No orders found</p>
             </div>
           ) : (
-            readyOrders.map(order => (
+            filteredOrders.map(order => (
               <div 
                 key={order.id} 
                 className={`card cursor-pointer transition-all duration-200 hover:shadow-elevation-3 ${
@@ -179,7 +264,13 @@ const BillingPayments: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-title-medium">${order.grandTotal.toFixed(2)}</div>
-                    <div className="chip chip-success text-xs">Ready</div>
+                    <div className={`chip ${getStatusChipColor(order.status)} text-xs mb-2`}>
+                      {order.status.toUpperCase()}
+                    </div>
+                    <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)}`}>
+                      <DollarSign className="w-3 h-3 inline mr-1" />
+                      {order.paymentStatus.toUpperCase()}
+                    </div>
                   </div>
                 </div>
                 
@@ -202,8 +293,16 @@ const BillingPayments: React.FC = () => {
         </div>
 
         {/* Billing Panel */}
-        <div className="sticky top-6">
-          {selectedOrder ? (
+        <div className="space-y-4">
+          {/* Header to align with orders section */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-title-large">Bill Generation</h2>
+            <div className="h-8"></div> {/* Spacer to match filter buttons height */}
+          </div>
+          
+          {/* Billing Content */}
+          <div className="sticky top-6">
+            {selectedOrder ? (
             <div className="space-y-4">
               {/* Bill Details */}
               <div className="card">
@@ -251,6 +350,12 @@ const BillingPayments: React.FC = () => {
                       <span>Total:</span>
                       <span>${(selectedOrder.total + (selectedOrder.total * 0.1) + selectedOrder.tax).toFixed(2)}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span>Payment Status:</span>
+                      <span className={`font-medium ${getPaymentStatusColor(selectedOrder.paymentStatus)}`}>
+                        {selectedOrder.paymentStatus.toUpperCase()}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Payment Method */}
@@ -290,6 +395,7 @@ const BillingPayments: React.FC = () => {
               <p className="text-surface-600">Select an order to generate bill</p>
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -305,7 +411,7 @@ const BillingPayments: React.FC = () => {
                 <div>
                   <p className="text-body-medium font-medium">{bill.id}</p>
                   <p className="text-body-small text-surface-600">
-                    {bill.customerDetails.name} • {bill.generatedAt.toLocaleDateString()}
+                    {bill.customerDetails.name} • {formatDate(bill.generatedAt)}
                   </p>
                 </div>
                 <div className="flex items-center space-x-4">
