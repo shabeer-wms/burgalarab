@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { MenuItem, OrderItem, Order } from '../../types';
 
-import { Plus, Minus, ShoppingCart, Save, Send, FileText, Eye, X, User, Car } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Save, Send, FileText, Eye, X, User, Car, Search } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 
 
@@ -16,6 +16,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   const { menuItems, categories, addOrder } = useApp();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [customerDetails, setCustomerDetails] = useState({
     name: '',
@@ -39,7 +40,6 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   const updateSelectedTable = setSelectedTable || setSelectedTableState;
   const [showTablePicker, setShowTablePicker] = useState(false);
 
-  // Utility function to create order snapshot for comparison
   const createOrderSnapshot = () => {
     return JSON.stringify({
       orderItems: orderItems.map(item => ({ id: item.id, quantity: item.quantity, specialInstructions: item.specialInstructions })),
@@ -80,9 +80,13 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
     setSavedOrderSnapshot('');
   };
 
-  const filteredMenuItems = selectedCategory === 'all' 
-    ? menuItems 
-    : menuItems.filter(item => item.category === selectedCategory);
+  const filteredMenuItems = menuItems.filter(item => {
+    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    const matchesSearch = searchTerm === '' || 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const addToOrder = (menuItem: MenuItem) => {
     const existingItem = orderItems.find(item => item.menuItem.id === menuItem.id);
@@ -258,6 +262,21 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
       {/* Menu Items */}
       <div className="lg:col-span-2 space-y-6">
+        {/* Search Bar */}
+        <div className="card">
+          <h3 className="text-title-large mb-4">Search Menu Items</h3>
+          <div className="relative">
+            <Search className="w-5 h-5 text-surface-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-body-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+            />
+          </div>
+        </div>
+
         {/* Category Filter */}
         <div className="card">
           <h3 className="text-title-large mb-4">Menu Categories</h3>
@@ -296,13 +315,43 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
                   <span className="text-title-medium text-primary-600">${item.price.toFixed(2)}</span>
                   <div className="flex items-center space-x-2">
                     <span className="text-body-small text-surface-600">{item.prepTime}min</span>
-                    <button
-                      onClick={() => addToOrder(item)}
-                      disabled={!item.available}
-                      className="btn-primary p-2 min-w-0"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    {/* Quick quantity controls */}
+                    {(() => {
+                      const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
+                      const quantity = existingItem?.quantity || 0;
+                      
+                      if (quantity > 0) {
+                        return (
+                          <div className="flex items-center space-x-1 bg-primary-50 rounded-lg p-1">
+                            <button
+                              onClick={() => updateQuantity(existingItem!.id, -1)}
+                              className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="text-sm font-medium text-primary-700 min-w-[20px] text-center">
+                              {quantity}
+                            </span>
+                            <button
+                              onClick={() => addToOrder(item)}
+                              className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <button
+                            onClick={() => addToOrder(item)}
+                            disabled={!item.available}
+                            className="btn-primary p-2 min-w-0"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        );
+                      }
+                    })()}
                   </div>
                 </div>
                 {!item.available && (

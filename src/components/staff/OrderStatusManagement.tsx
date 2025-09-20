@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Order } from '../../types';
-import { Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, Filter, ChefHat, Trash2 } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, Filter, ChefHat, Trash2, X } from 'lucide-react';
 
 const OrderStatusManagement: React.FC = () => {
   const { orders, getActiveOrders, updateOrder } = useApp();
   const [selectedStatus, setSelectedStatus] = useState<'all' | Order['status']>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
 
   const activeOrders = getActiveOrders();
   
@@ -137,21 +138,19 @@ const OrderStatusManagement: React.FC = () => {
       </div>
 
       {/* Orders List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         <div className="space-y-4">
           {/* Header Section */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-title-large">Orders ({filteredOrders.length})</h2>
-            <div className="h-8"></div> {/* Spacer to align with right panel header */}
-          </div>
+          <h2 className="text-title-large">Orders ({filteredOrders.length})</h2>
           
-          {/* Orders List */}
+          {/* Orders Grid */}
           {filteredOrders.length === 0 ? (
             <div className="card text-center py-8">
               <p className="text-surface-600">No orders found</p>
             </div>
           ) : (
-            filteredOrders.map(order => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredOrders.map(order => (
               <div key={order.id} className="card hover:shadow-elevation-3 transition-all duration-200">
                 <div className="flex items-start justify-between mb-4">
                   <div>
@@ -229,7 +228,10 @@ const OrderStatusManagement: React.FC = () => {
                   </div>
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => setSelectedOrder(order)}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setShowOrderDialog(true);
+                      }}
                       className="p-2 hover:bg-surface-100 rounded-lg"
                       title="View details"
                     >
@@ -247,54 +249,46 @@ const OrderStatusManagement: React.FC = () => {
                   </div>
                 </div>
               </div>
-            ))
+            ))}
+            </div>
           )}
         </div>
+      </div>
 
-        {/* Order Details */}
-        <div className="space-y-4">
-          {/* Header to align with orders section */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-title-large">Order Details</h2>
-            <div className="h-8"></div> {/* Spacer to match left panel header height */}
-          </div>
-          
-          {/* Order Details Content */}
-          <div className="sticky top-6">
-            {selectedOrder ? (
-              <OrderDetailsPanel order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-            ) : (
-              <div className="card text-center py-12">
-                <Eye className="w-12 h-12 text-surface-300 mx-auto mb-4" />
-                <p className="text-surface-600">Select an order to view details</p>
-              </div>
-            )}
+      {/* Order Details Dialog Modal */}
+      {showOrderDialog && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-surface-200">
+              <h3 className="text-title-large">Order Details</h3>
+              <button
+                onClick={() => {
+                  setShowOrderDialog(false);
+                  setSelectedOrder(null);
+                }}
+                className="p-2 hover:bg-surface-100 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <OrderDetailsPanel order={selectedOrder} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
 interface OrderDetailsPanelProps {
   order: Order;
-  onClose: () => void;
 }
 
-const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order, onClose }) => {
+const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
   return (
-    <div className="card">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-title-large">Order Details</h3>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-surface-100 rounded-lg"
-        >
-          ×
-        </button>
-      </div>
-
-      <div className="space-y-4">
+    <div className="space-y-6">
         {/* Order Info */}
         <div>
           <h4 className="text-title-medium mb-2">Order #{order.id.slice(-6)}</h4>
@@ -404,7 +398,6 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order, onClose })
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 };
