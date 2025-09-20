@@ -128,7 +128,7 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
         </div>
 
         <div className="flex justify-between items-center">
-          {/* Available/Unavailable Toggle */}
+          {/* Available/Unavailable Toggle (checkbox only) */}
           <label className="flex items-center select-none">
             <input
               type="checkbox"
@@ -145,22 +145,6 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
               {item.available ? "Available" : "Unavailable"}
             </span>
           </label>
-
-          {onUpdateMenuItem && (
-            <button
-              onClick={() => handleAvailabilityToggle(item.id, item.available)}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                item.available
-                  ? "bg-red-100 text-red-700 hover:bg-red-200"
-                  : "bg-green-100 text-green-700 hover:bg-green-200"
-              }`}
-              title={
-                item.available ? "Mark as unavailable" : "Mark as available"
-              }
-            >
-              {item.available ? "Mark Unavailable" : "Mark Available"}
-            </button>
-          )}
         </div>
       </div>
     </div>
