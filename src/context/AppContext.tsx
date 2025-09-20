@@ -46,7 +46,7 @@ interface AppContextType {
     orderId: string,
     generatedBy: string,
     paymentMethod: Bill["paymentMethod"]
-  ) => Bill;
+  ) => Promise<Bill>;
   getTodaysRevenue: () => number;
   getActiveOrders: () => Order[];
 }
@@ -212,15 +212,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } = {
         orderId: docRef.id,
         orderNumber: `#${docRef.id.slice(-4)}`,
-        tableNumber: orderData.tableNumber,
         customerName: orderData.customerName,
         items: orderData.items,
         orderTime,
         estimatedTime: orderData.estimatedTime || 30,
         priority: orderData.type === "dine-in" ? "high" : "medium",
         status: "pending",
-        kitchenNotes: orderData.kitchenNotes,
       };
+      
+      // Add optional fields only if they have values
+      if (orderData.tableNumber) {
+        kitchenItem.tableNumber = orderData.tableNumber;
+      }
+      
+      if (orderData.kitchenNotes) {
+        kitchenItem.kitchenNotes = orderData.kitchenNotes;
+      }
+      
       await setDoc(doc(db, "kitchenOrders", docRef.id), kitchenItem);
     }
     return docRef.id;
@@ -263,9 +271,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const ref = doc(db, "kitchenOrders", orderId);
     updateDoc(ref, updateData as Partial<Record<string, unknown>>);
+    
     // Update main order status
     if (status === 'ready') {
-      updateOrder(orderId, { status: 'ready' });
+      // Check if payment is already made for this order
+      const order = orders.find(o => o.id === orderId);
+      if (order?.paymentStatus === 'paid') {
+        // If payment is already made, mark as completed
+        updateOrder(orderId, { status: 'completed' });
+      } else {
+        // If payment is pending, mark as ready
+        updateOrder(orderId, { status: 'ready' });
+      }
     } else if (status === 'in-progress') {
       updateOrder(orderId, { status: 'preparing' });
     }
@@ -282,42 +299,76 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
 
-  const generateBill = (
+  const generateBill = async (
     orderId: string,
     generatedBy: string,
     paymentMethod: Bill["paymentMethod"]
-  ): Bill => {
-    const order = orders.find((o) => o.id === orderId);
-    if (!order) throw new Error("Order not found");
+  ): Promise<Bill> => {
+    try {
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) {
+        throw new Error(`Order with ID ${orderId} not found`);
+      }
 
-    const subtotal = order.items.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
-    const taxRate = 0.18; // 18% GST
-    const taxAmount = subtotal * taxRate;
-    const serviceCharge = subtotal * 0.1; // 10% service charge
-    const total = subtotal + taxAmount + serviceCharge;
+      console.log('Generating bill for order:', order);
 
-    const bill: Omit<Bill, 'id'> = {
-      orderId,
-      items: order.items,
-      subtotal,
-      taxRate,
-      taxAmount,
-      serviceCharge,
-      total,
-      generatedAt: new Date(),
-      generatedBy,
-      paymentMethod,
-      customerDetails: {
-        name: order.customerName,
-        phone: order.customerPhone,
-        address: order.customerAddress,
-        tableNumber: order.tableNumber,
-      },
-    };
+      const subtotal = order.items.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
+      const taxRate = 0.18; // 18% GST
+      const taxAmount = subtotal * taxRate;
+      const serviceCharge = subtotal * 0.1; // 10% service charge
+      const total = subtotal + taxAmount + serviceCharge;
 
-    addDoc(collection(db, 'bills'), bill);
-    updateOrder(orderId, { paymentStatus: 'paid', status: 'completed' });
-    return { ...bill, id: '' } as Bill;
+      const billData: Omit<Bill, 'id'> = {
+        orderId,
+        items: order.items,
+        subtotal,
+        taxRate,
+        taxAmount,
+        serviceCharge,
+        total,
+        generatedAt: new Date(),
+        generatedBy,
+        paymentMethod,
+        customerDetails: {
+          name: order.customerName,
+          phone: order.customerPhone,
+        },
+      };
+
+      // Add optional fields only if they have values
+      if (order.customerAddress) {
+        billData.customerDetails.address = order.customerAddress;
+      }
+      
+      if (order.tableNumber) {
+        billData.customerDetails.tableNumber = order.tableNumber;
+      }
+
+      console.log('Bill data to be saved:', billData);
+
+      // Add bill to Firebase
+      const billRef = await addDoc(collection(db, 'bills'), billData);
+      console.log('Bill saved with ID:', billRef.id);
+
+      // Update order status
+      await updateOrder(orderId, { paymentStatus: 'paid', status: 'completed' });
+      console.log('Order status updated successfully');
+
+      // Also update kitchen order status to completed
+      try {
+        const kitchenRef = doc(db, "kitchenOrders", orderId);
+        await updateDoc(kitchenRef, { status: 'completed' });
+        console.log('Kitchen order status updated to completed');
+      } catch (kitchenError) {
+        console.log('Kitchen order may not exist or already updated:', kitchenError);
+      }
+
+      const completeBill: Bill = { ...billData, id: billRef.id };
+      return completeBill;
+    } catch (error) {
+      console.error('Error generating bill:', error);
+      throw new Error(`Failed to generate bill: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const getTodaysRevenue = (): number => {
