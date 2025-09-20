@@ -159,7 +159,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     const unsubBills = onSnapshot(collection(db, "bills"), (snapshot) => {
       setBills(
-        snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Bill))
+        snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+            generatedAt: data.generatedAt?.toDate ? data.generatedAt.toDate() : data.generatedAt,
+          } as Bill;
+        })
       );
     });
     const unsubKitchen = onSnapshot(

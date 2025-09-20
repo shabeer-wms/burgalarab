@@ -139,7 +139,13 @@ const OrderStatusManagement: React.FC = () => {
       {/* Orders List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h2 className="text-title-large">Orders ({filteredOrders.length})</h2>
+          {/* Header Section */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-title-large">Orders ({filteredOrders.length})</h2>
+            <div className="h-8"></div> {/* Spacer to align with right panel header */}
+          </div>
+          
+          {/* Orders List */}
           {filteredOrders.length === 0 ? (
             <div className="card text-center py-8">
               <p className="text-surface-600">No orders found</p>
@@ -246,15 +252,24 @@ const OrderStatusManagement: React.FC = () => {
         </div>
 
         {/* Order Details */}
-        <div className="sticky top-6">
-          {selectedOrder ? (
-            <OrderDetailsPanel order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-          ) : (
-            <div className="card text-center py-12">
-              <Eye className="w-12 h-12 text-surface-300 mx-auto mb-4" />
-              <p className="text-surface-600">Select an order to view details</p>
-            </div>
-          )}
+        <div className="space-y-4">
+          {/* Header to align with orders section */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-title-large">Order Details</h2>
+            <div className="h-8"></div> {/* Spacer to match left panel header height */}
+          </div>
+          
+          {/* Order Details Content */}
+          <div className="sticky top-6">
+            {selectedOrder ? (
+              <OrderDetailsPanel order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+            ) : (
+              <div className="card text-center py-12">
+                <Eye className="w-12 h-12 text-surface-300 mx-auto mb-4" />
+                <p className="text-surface-600">Select an order to view details</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
