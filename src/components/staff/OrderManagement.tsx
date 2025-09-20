@@ -38,6 +38,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   // Payment dialog states
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selectedPaymentOption, setSelectedPaymentOption] = useState<'now' | 'later' | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const [selectedTableState, setSelectedTableState] = useState<string>(tableNumber || '1');
   const selectedTable = tableNumber || selectedTableState;
@@ -226,31 +227,59 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   };
 
   const handlePaymentOptionSelected = async (paymentOption: 'now' | 'later') => {
+    // Prevent multiple submissions
+    if (isProcessingPayment) {
+      console.log('Payment already being processed, ignoring duplicate click');
+      return;
+    }
+
+    setIsProcessingPayment(true);
     setSelectedPaymentOption(paymentOption);
     
     const { subtotal, tax, total } = calculateTotal();
     
+    // Build order object without undefined fields
     const order: Omit<Order, 'id' | 'orderTime'> = {
       customerId: `CUST-${Date.now()}`,
       customerName: customerDetails.name,
       customerPhone: customerDetails.phone,
-      customerAddress: orderType === 'delivery' ? customerDetails.vehicleNumber : undefined,
       type: orderType,
-      tableNumber: orderType === 'dine-in' ? selectedTable : undefined,
       items: orderItems,
       status: 'confirmed',
       total: subtotal,
       tax,
       grandTotal: total,
       paymentStatus: paymentOption === 'now' ? 'paid' : 'pending',
-      waiterId: user?.id,
-      kitchenNotes,
       estimatedTime: Math.max(...orderItems.map(item => item.menuItem.prepTime)) + 10,
     };
 
+    // Add optional fields only if they have values
+    if (orderType === 'delivery' && customerDetails.vehicleNumber) {
+      order.customerAddress = customerDetails.vehicleNumber;
+    }
+    
+    if (orderType === 'dine-in' && selectedTable) {
+      order.tableNumber = selectedTable;
+    }
+    
+    if (user?.id) {
+      order.waiterId = user.id;
+    }
+    
+    if (kitchenNotes) {
+      order.kitchenNotes = kitchenNotes;
+    }
+
     console.log('Order to be sent with payment option:', paymentOption, order);
+    console.log('Order validation:');
+    console.log('- Customer Name:', customerDetails.name);
+    console.log('- Customer Phone:', customerDetails.phone);
+    console.log('- Order Items Length:', orderItems.length);
+    console.log('- User ID:', user?.id);
+    console.log('- Total Calculation:', { subtotal, tax, total });
 
     try {
+      console.log('Attempting to add order to Firebase...');
       const newOrderId = await addOrder(order);
       console.log('Order added successfully with ID:', newOrderId);
       
@@ -265,8 +294,17 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       resetOrderState();
       alert(`Order sent to kitchen with payment status: ${paymentOption === 'now' ? 'Paid' : 'Pay Later'}`);
     } catch (error) {
-      console.error('Error adding order:', error);
-      alert('Failed to send order to kitchen');
+      console.error('Detailed error adding order:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      alert(`Failed to send order to kitchen: ${errorMessage}`);
+    } finally {
+      // Reset processing state regardless of success or failure
+      setIsProcessingPayment(false);
     }
   };
 
@@ -772,30 +810,53 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
             <div className="flex justify-between items-center p-6 border-b border-surface-200">
               <h3 className="text-title-large">Choose Payment Option</h3>
               <button
-                onClick={() => setShowPaymentDialog(false)}
-                className="p-2 hover:bg-surface-50 rounded-lg transition-colors"
+                onClick={() => {
+                  if (!isProcessingPayment) {
+                    setShowPaymentDialog(false);
+                    setIsProcessingPayment(false); // Reset processing state when dialog is closed
+                  }
+                }}
+                disabled={isProcessingPayment}
+                className={`p-2 rounded-lg transition-colors ${
+                  isProcessingPayment 
+                    ? 'cursor-not-allowed opacity-50' 
+                    : 'hover:bg-surface-50'
+                }`}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <p className="text-body-medium text-surface-700 text-center mb-6">
-                How would the customer like to handle payment?
+                {isProcessingPayment 
+                  ? 'Processing your order, please wait...' 
+                  : 'How would the customer like to handle payment?'
+                }
               </p>
               
               <div className="space-y-3">
                 <button
                   onClick={() => handlePaymentOptionSelected('now')}
-                  className="w-full p-4 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors text-body-large font-medium"
+                  disabled={isProcessingPayment}
+                  className={`w-full p-4 rounded-xl transition-colors text-body-large font-medium ${
+                    isProcessingPayment
+                      ? 'bg-surface-300 text-surface-500 cursor-not-allowed'
+                      : 'bg-primary-500 hover:bg-primary-600 text-white'
+                  }`}
                 >
-                  💳 Pay Now
+                  {isProcessingPayment ? '⏳ Processing...' : '💳 Pay Now'}
                 </button>
                 
                 <button
                   onClick={() => handlePaymentOptionSelected('later')}
-                  className="w-full p-4 bg-surface-100 hover:bg-surface-200 text-surface-900 rounded-xl transition-colors text-body-large font-medium border border-surface-300"
+                  disabled={isProcessingPayment}
+                  className={`w-full p-4 rounded-xl transition-colors text-body-large font-medium border ${
+                    isProcessingPayment
+                      ? 'bg-surface-200 text-surface-500 border-surface-300 cursor-not-allowed'
+                      : 'bg-surface-100 hover:bg-surface-200 text-surface-900 border-surface-300'
+                  }`}
                 >
-                  ⏰ Pay Later
+                  {isProcessingPayment ? '⏳ Processing...' : '⏰ Pay Later'}
                 </button>
               </div>
               

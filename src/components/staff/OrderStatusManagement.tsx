@@ -11,9 +11,19 @@ const OrderStatusManagement: React.FC = () => {
 
   const activeOrders = getActiveOrders();
   
-  const filteredOrders = selectedStatus === 'all' 
+  const filteredOrders = (selectedStatus === 'all' 
     ? orders 
-    : orders.filter(order => order.status === selectedStatus);
+    : orders.filter(order => order.status === selectedStatus)
+  ).sort((a, b) => {
+    // Sort by order time in descending order (most recent first)
+    const timeA = a.orderTime instanceof Date ? a.orderTime : 
+                  typeof a.orderTime === 'string' ? new Date(a.orderTime) : 
+                  a.orderTime?.toDate ? a.orderTime.toDate() : new Date(0);
+    const timeB = b.orderTime instanceof Date ? b.orderTime : 
+                  typeof b.orderTime === 'string' ? new Date(b.orderTime) : 
+                  b.orderTime?.toDate ? b.orderTime.toDate() : new Date(0);
+    return timeB.getTime() - timeA.getTime();
+  });
 
   const getStatusIcon = (status: Order['status']) => {
     switch (status) {
