@@ -1,7 +1,13 @@
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { MenuItem, Order, OrderItem, Category, Bill, KitchenDisplayItem } from '../types';
-import { db } from '../firebase';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import {
+  MenuItem,
+  Order,
+  OrderItem,
+  Category,
+  Bill,
+  KitchenDisplayItem,
+} from "../types";
+import { db } from "../firebase";
 import {
   collection,
   addDoc,
@@ -11,8 +17,8 @@ import {
   query,
   where,
   getDocs,
-  setDoc
-} from 'firebase/firestore';
+  setDoc,
+} from "firebase/firestore";
 
 interface AppContextType {
   categories: Category[];
@@ -21,14 +27,26 @@ interface AppContextType {
   bills: Bill[];
   kitchenOrders: KitchenDisplayItem[];
 
-  addOrder: (order: Omit<Order, 'id' | 'orderTime'>) => Promise<string>;
+  addOrder: (order: Omit<Order, "id" | "orderTime">) => Promise<string>;
   updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
 
-  updateOrderItemStatus: (orderId: string, itemId: string, status: OrderItem['status']) => void;
-  updateKitchenOrderStatus: (orderId: string, status: 'pending' | 'in-progress' | 'ready') => void;
-  getOrdersByStatus: (status: Order['status']) => Order[];
-  getOrdersByType: (type: Order['type']) => Order[];
-  generateBill: (orderId: string, generatedBy: string, paymentMethod: Bill['paymentMethod']) => Bill;
+  updateOrderItemStatus: (
+    orderId: string,
+    itemId: string,
+    status: OrderItem["status"]
+  ) => void;
+  updateKitchenOrderStatus: (
+    orderId: string,
+    status: "pending" | "in-progress" | "ready",
+    paused?: boolean
+  ) => void;
+  getOrdersByStatus: (status: Order["status"]) => Order[];
+  getOrdersByType: (type: Order["type"]) => Order[];
+  generateBill: (
+    orderId: string,
+    generatedBy: string,
+    paymentMethod: Bill["paymentMethod"]
+  ) => Bill;
   getTodaysRevenue: () => number;
   getActiveOrders: () => Order[];
 }
@@ -134,23 +152,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Real-time Firestore listeners
   useEffect(() => {
-    const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
-      setOrders(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as Order));
+    const unsubOrders = onSnapshot(collection(db, "orders"), (snapshot) => {
+      setOrders(
+        snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Order))
+      );
     });
-    const unsubBills = onSnapshot(collection(db, 'bills'), (snapshot) => {
-      setBills(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as Bill));
+    const unsubBills = onSnapshot(collection(db, "bills"), (snapshot) => {
+      setBills(
+        snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Bill))
+      );
     });
-    const unsubKitchen = onSnapshot(collection(db, 'kitchenOrders'), (snapshot) => {
-      setKitchenOrders(snapshot.docs.map(docSnap => {
-        const data = docSnap.data();
-        // Firestore stores dates as Timestamps, convert if needed
-        return {
-          ...data,
-          id: docSnap.id,
-          orderTime: data.orderTime && data.orderTime.toDate ? data.orderTime.toDate() : data.orderTime
-        } as unknown as KitchenDisplayItem;
-      }));
-    });
+    const unsubKitchen = onSnapshot(
+      collection(db, "kitchenOrders"),
+      (snapshot) => {
+        setKitchenOrders(
+          snapshot.docs.map((docSnap) => {
+            const data = docSnap.data();
+            // Firestore stores dates as Timestamps, convert if needed
+            return {
+              ...data,
+              id: docSnap.id,
+              orderTime:
+                data.orderTime && data.orderTime.toDate
+                  ? data.orderTime.toDate()
+                  : data.orderTime,
+            } as unknown as KitchenDisplayItem;
+          })
+        );
+      }
+    );
     return () => {
       unsubOrders();
       unsubBills();
@@ -158,18 +188,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-
-  const addOrder = async (orderData: Omit<Order, 'id' | 'orderTime'>): Promise<string> => {
+  const addOrder = async (
+    orderData: Omit<Order, "id" | "orderTime">
+  ): Promise<string> => {
     const orderTime = new Date();
-    const newOrder: Omit<Order, 'id'> = {
+    const newOrder: Omit<Order, "id"> = {
       ...orderData,
       orderTime,
     };
-    const ref = collection(db, 'orders');
+    const ref = collection(db, "orders");
     const docRef = await addDoc(ref, newOrder);
     // Add to kitchen display if confirmed
-    if (orderData.status === 'confirmed') {
-      const kitchenItem: Omit<KitchenDisplayItem, 'orderId'> & { orderId: string } = {
+    if (orderData.status === "confirmed") {
+      const kitchenItem: Omit<KitchenDisplayItem, "orderId"> & {
+        orderId: string;
+      } = {
         orderId: docRef.id,
         orderNumber: `#${docRef.id.slice(-4)}`,
         tableNumber: orderData.tableNumber,
@@ -177,11 +210,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         items: orderData.items,
         orderTime,
         estimatedTime: orderData.estimatedTime || 30,
-        priority: orderData.type === 'dine-in' ? 'high' : 'medium',
-        status: 'pending',
+        priority: orderData.type === "dine-in" ? "high" : "medium",
+        status: "pending",
         kitchenNotes: orderData.kitchenNotes,
       };
-      await setDoc(doc(db, 'kitchenOrders', docRef.id), kitchenItem);
+      await setDoc(doc(db, "kitchenOrders", docRef.id), kitchenItem);
     }
     return docRef.id;
   };
@@ -192,23 +225,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await updateDoc(ref, updates);
   };
 
-
-  const updateOrderItemStatus = async (orderId: string, itemId: string, status: OrderItem['status']) => {
-    const orderRef = doc(db, 'orders', orderId);
-    const orderSnap = await getDocs(query(collection(db, 'orders'), where('__name__', '==', orderId)));
+  const updateOrderItemStatus = async (
+    orderId: string,
+    itemId: string,
+    status: OrderItem["status"]
+  ) => {
+    const orderRef = doc(db, "orders", orderId);
+    const orderSnap = await getDocs(
+      query(collection(db, "orders"), where("__name__", "==", orderId))
+    );
     if (!orderSnap.empty) {
       const order = orderSnap.docs[0].data() as Order;
-      const updatedItems = order.items.map(item =>
+      const updatedItems = order.items.map((item) =>
         item.id === itemId ? { ...item, status } : item
       );
       updateDoc(orderRef, { items: updatedItems });
     }
   };
 
+  const updateKitchenOrderStatus = (
+    orderId: string,
+    status: "pending" | "in-progress" | "ready",
+    paused?: boolean
+  ) => {
+    // Use a properly typed partial of KitchenDisplayItem so lint rules don't flag `any`
+    const updateData: Partial<KitchenDisplayItem> = { status };
+    if (paused !== undefined) {
+      updateData.paused = paused;
+    }
 
-  const updateKitchenOrderStatus = (orderId: string, status: 'pending' | 'in-progress' | 'ready') => {
-    const ref = doc(db, 'kitchenOrders', orderId);
-    updateDoc(ref, { status });
+    const ref = doc(db, "kitchenOrders", orderId);
+    updateDoc(ref, updateData as Partial<Record<string, unknown>>);
     // Update main order status
     if (status === 'ready') {
       updateOrder(orderId, { status: 'ready' });
@@ -218,19 +265,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
 
-  const getOrdersByStatus = (status: Order['status']) => {
-    return orders.filter(order => order.status === status);
+  const getOrdersByStatus = (status: Order["status"]) => {
+    return orders.filter((order) => order.status === status);
   };
 
 
-  const getOrdersByType = (type: Order['type']) => {
-    return orders.filter(order => order.type === type);
+  const getOrdersByType = (type: Order["type"]) => {
+    return orders.filter((order) => order.type === type);
   };
 
 
-  const generateBill = (orderId: string, generatedBy: string, paymentMethod: Bill['paymentMethod']): Bill => {
-    const order = orders.find(o => o.id === orderId);
-    if (!order) throw new Error('Order not found');
+  const generateBill = (
+    orderId: string,
+    generatedBy: string,
+    paymentMethod: Bill["paymentMethod"]
+  ): Bill => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Order not found");
 
     const subtotal = order.items.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
     const taxRate = 0.18; // 18% GST
@@ -265,9 +316,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const getTodaysRevenue = (): number => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     return bills
-      .filter(bill => bill.generatedAt >= today)
+      .filter((bill) => bill.generatedAt >= today)
       .reduce((sum, bill) => sum + bill.total, 0);
   };
 
@@ -279,20 +330,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return (
     <AppContext.Provider value={{
-      categories: mockCategories,
-      menuItems: mockMenuItems,
-      orders,
-      bills,
-      kitchenOrders,
-      addOrder,
-      updateOrder,
-      updateOrderItemStatus,
-      updateKitchenOrderStatus,
-      getOrdersByStatus,
-      getOrdersByType,
-      generateBill,
-      getTodaysRevenue,
-      getActiveOrders,
+        categories: mockCategories,
+        menuItems: mockMenuItems,
+        orders,
+        bills,
+        kitchenOrders,
+        addOrder,
+        updateOrder,
+        updateOrderItemStatus,
+        updateKitchenOrderStatus,
+        getOrdersByStatus,
+        getOrdersByType,
+        generateBill,
+        getTodaysRevenue,
+        getActiveOrders,
     }}>
       {children}
     </AppContext.Provider>
