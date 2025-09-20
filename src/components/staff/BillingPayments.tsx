@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order, Bill } from '../../types';
-import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe, DollarSign } from 'lucide-react';
+import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe, DollarSign, X } from 'lucide-react';
 
 const BillingPayments: React.FC = () => {
   const { orders, bills, generateBill, getTodaysRevenue } = useApp();
   const { user } = useAuth();
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<Bill['paymentMethod']>('cash');
   const [paymentFilter, setPaymentFilter] = useState<'all' | Order['paymentStatus']>('all');
+  const [showBillingDialog, setShowBillingDialog] = useState(false);
+  const [billingOrder, setBillingOrder] = useState<Order | null>(null);
+  const [displayedOrdersCount, setDisplayedOrdersCount] = useState(6);
+  const [displayedBillsCount, setDisplayedBillsCount] = useState(6);
 
   const readyOrders = orders.filter(order => 
     order.status === 'ready' && order.paymentStatus === 'pending'
@@ -22,18 +25,6 @@ const BillingPayments: React.FC = () => {
       );
 
   const todaysRevenue = getTodaysRevenue();
-
-  const handleGenerateBill = () => {
-    if (!selectedOrder || !user) return;
-
-    try {
-      generateBill(selectedOrder.id, user.name, paymentMethod);
-      alert('Bill generated successfully!');
-      setSelectedOrder(null);
-    } catch (error) {
-      alert('Error generating bill');
-    }
-  };
 
   const downloadBillPDF = (bill: Bill) => {
     // In a real app, this would generate and download a PDF
@@ -199,7 +190,7 @@ const BillingPayments: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         {/* Orders Section */}
         <div className="space-y-4">
           {/* Header and Filters */}
@@ -239,20 +230,19 @@ const BillingPayments: React.FC = () => {
             </div>
           </div>
           
-          {/* Orders List */}
+          {/* Orders Grid */}
           {filteredOrders.length === 0 ? (
             <div className="card text-center py-8">
               <Receipt className="w-12 h-12 text-surface-300 mx-auto mb-4" />
               <p className="text-surface-600">No orders found</p>
             </div>
           ) : (
-            filteredOrders.map(order => (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredOrders.slice(0, displayedOrdersCount).map(order => (
               <div 
                 key={order.id} 
-                className={`card cursor-pointer transition-all duration-200 hover:shadow-elevation-3 ${
-                  selectedOrder?.id === order.id ? 'ring-2 ring-primary-500' : ''
-                }`}
-                onClick={() => setSelectedOrder(order)}
+                className="card hover:shadow-elevation-3 transition-all duration-200"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -274,7 +264,7 @@ const BillingPayments: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="space-y-1">
+                <div className="space-y-2 mb-4">
                   {order.items.slice(0, 2).map(item => (
                     <div key={item.id} className="flex justify-between text-body-small">
                       <span>{item.quantity}x {item.menuItem.name}</span>
@@ -287,126 +277,51 @@ const BillingPayments: React.FC = () => {
                     </p>
                   )}
                 </div>
-              </div>
-            ))
-          )}
-        </div>
 
-        {/* Billing Panel */}
-        <div className="space-y-4">
-          {/* Header to align with orders section */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-title-large">Bill Generation</h2>
-            <div className="h-8"></div> {/* Spacer to match filter buttons height */}
-          </div>
-          
-          {/* Billing Content */}
-          <div className="sticky top-6">
-            {selectedOrder ? (
-            <div className="space-y-4">
-              {/* Bill Details */}
-              <div className="card">
-                <h3 className="text-title-large mb-4">Generate Bill</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-title-medium mb-2">Order #{selectedOrder.id.slice(-6)}</h4>
-                    <p className="text-body-medium text-surface-600">
-                      {selectedOrder.customerName} • {selectedOrder.customerPhone}
-                    </p>
-                    {selectedOrder.tableNumber && (
-                      <p className="text-body-medium text-surface-600">Table {selectedOrder.tableNumber}</p>
-                    )}
-                  </div>
-
-                  {/* Items */}
-                  <div>
-                    <h4 className="text-title-medium mb-2">Items</h4>
-                    <div className="space-y-2">
-                      {selectedOrder.items.map(item => (
-                        <div key={item.id} className="flex justify-between text-body-medium">
-                          <span>{item.quantity}x {item.menuItem.name}</span>
-                          <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bill Calculation */}
-                  <div className="border-t border-surface-200 pt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>${selectedOrder.total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Service Charge (10%):</span>
-                      <span>${(selectedOrder.total * 0.1).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Tax (18%):</span>
-                      <span>${selectedOrder.tax.toFixed(2)}</span>
-                    </div>
-                    <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
-                      <span>Total:</span>
-                      <span>${(selectedOrder.total + (selectedOrder.total * 0.1) + selectedOrder.tax).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Payment Status:</span>
-                      <span className={`font-medium ${getPaymentStatusColor(selectedOrder.paymentStatus)}`}>
-                        {selectedOrder.paymentStatus.toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Payment Method */}
-                  <div>
-                    <h4 className="text-title-medium mb-3">Payment Method</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(['cash', 'card', 'upi', 'online'] as Bill['paymentMethod'][]).map(method => (
-                        <button
-                          key={method}
-                          onClick={() => setPaymentMethod(method)}
-                          className={`flex items-center justify-center space-x-2 p-3 rounded-lg border transition-colors ${
-                            paymentMethod === method
-                              ? 'border-primary-500 bg-primary-50 text-primary-700'
-                              : 'border-surface-300 hover:bg-surface-50'
-                          }`}
-                        >
-                          {getPaymentIcon(method)}
-                          <span className="capitalize">{method}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
+                {/* Generate Bill Button - Only show for unpaid orders */}
+                {order.paymentStatus !== 'paid' ? (
                   <button
-                    onClick={handleGenerateBill}
+                    onClick={() => {
+                      setBillingOrder(order);
+                      setShowBillingDialog(true);
+                    }}
                     className="w-full btn-primary flex items-center justify-center space-x-2"
                   >
                     <Receipt className="w-4 h-4" />
-                    <span>Generate Bill & Process Payment</span>
+                    <span>Generate Bill</span>
+                  </button>
+                ) : (
+                  <div className="w-full bg-success-50 text-success-700 rounded-lg text-center font-medium flex items-center justify-center space-x-2 min-h-[44px]">
+                    ✓ Payment Completed
+                  </div>
+                )}
+              </div>
+            ))}
+              </div>
+              
+              {/* View More Orders Button */}
+              {filteredOrders.length > displayedOrdersCount && (
+                <div className="flex justify-center mt-6">
+                  <button
+                    onClick={() => setDisplayedOrdersCount(filteredOrders.length)}
+                    className="btn-secondary px-6 py-2 flex items-center space-x-2"
+                  >
+                    <span>View More Orders ({filteredOrders.length - displayedOrdersCount} remaining)</span>
                   </button>
                 </div>
-              </div>
-            </div>
-          ) : (
-            <div className="card text-center py-12">
-              <Receipt className="w-12 h-12 text-surface-300 mx-auto mb-4" />
-              <p className="text-surface-600">Select an order to generate bill</p>
-            </div>
+              )}
+            </>
           )}
-          </div>
         </div>
-      </div>
-
-      {/* Recent Bills */}
+      </div>      {/* Recent Bills */}
       <div className="card">
         <h3 className="text-title-large mb-4">Recent Bills ({bills.length})</h3>
         {bills.length === 0 ? (
           <p className="text-surface-600 text-center py-8">No bills generated yet</p>
         ) : (
-          <div className="space-y-3">
-            {bills.slice(-10).reverse().map(bill => (
+          <>
+            <div className="space-y-3">
+              {bills.slice(-Math.min(displayedBillsCount, bills.length)).reverse().map(bill => (
               <div key={bill.id} className="flex items-center justify-between p-4 bg-surface-50 rounded-lg">
                 <div>
                   <p className="text-body-medium font-medium">{bill.id}</p>
@@ -441,11 +356,164 @@ const BillingPayments: React.FC = () => {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+            
+            {/* View More Bills Button */}
+            {bills.length > displayedBillsCount && (
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={() => setDisplayedBillsCount(bills.length)}
+                  className="btn-secondary px-6 py-2 flex items-center space-x-2"
+                >
+                  <span>View More Bills ({bills.length - displayedBillsCount} remaining)</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      // ... Bill Preview Modal removed as per request ...
+      {/* Billing Dialog Modal */}
+      {showBillingDialog && billingOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-surface-200">
+              <h3 className="text-title-large">Generate Bill</h3>
+              <button
+                onClick={() => {
+                  setShowBillingDialog(false);
+                  setBillingOrder(null);
+                }}
+                className="p-2 hover:bg-surface-100 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Order Details */}
+              <div>
+                <h4 className="text-title-medium mb-2">Order #{billingOrder.id.slice(-6)}</h4>
+                <p className="text-body-medium text-surface-600">
+                  {billingOrder.customerName} • {billingOrder.customerPhone}
+                </p>
+                {billingOrder.tableNumber && (
+                  <p className="text-body-medium text-surface-600">Table {billingOrder.tableNumber}</p>
+                )}
+              </div>
+
+              {/* Items */}
+              <div>
+                <h4 className="text-title-medium mb-2">Items</h4>
+                <div className="space-y-2">
+                  {billingOrder.items.map(item => (
+                    <div key={item.id} className="flex justify-between text-body-medium">
+                      <span>{item.quantity}x {item.menuItem.name}</span>
+                      <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bill Calculation */}
+              <div className="border-t border-surface-200 pt-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>${billingOrder.total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Service Charge (10%):</span>
+                  <span>${(billingOrder.total * 0.1).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Tax (18%):</span>
+                  <span>${billingOrder.tax.toFixed(2)}</span>
+                </div>
+                <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
+                  <span>Total:</span>
+                  <span>${billingOrder.grandTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Payment Status:</span>
+                  <span className={`font-medium ${getPaymentStatusColor(billingOrder.paymentStatus)}`}>
+                    {billingOrder.paymentStatus.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Payment Method */}
+              <div>
+                <h4 className="text-title-medium mb-3">Payment Method</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['cash', 'card', 'upi', 'online'] as Bill['paymentMethod'][]).map(method => (
+                    <button
+                      key={method}
+                      onClick={() => setPaymentMethod(method)}
+                      className={`flex items-center justify-center space-x-2 p-3 rounded-lg border transition-colors ${
+                        paymentMethod === method
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-surface-300 hover:bg-surface-50'
+                      }`}
+                    >
+                      {getPaymentIcon(method)}
+                      <span className="capitalize">{method}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    if (billingOrder) {
+                      generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
+                      alert('Bill generated successfully!');
+                      setShowBillingDialog(false);
+                      setBillingOrder(null);
+                    }
+                  }}
+                  className="w-full btn-primary flex items-center justify-center space-x-2"
+                >
+                  <Receipt className="w-4 h-4" />
+                  <span>Generate Bill & Process Payment</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    if (billingOrder) {
+                      const bill = {
+                        id: `BILL-${Date.now()}`,
+                        orderId: billingOrder.id,
+                        items: billingOrder.items,
+                        subtotal: billingOrder.total,
+                        taxRate: 0.18,
+                        taxAmount: billingOrder.tax,
+                        serviceCharge: billingOrder.total * 0.1,
+                        total: billingOrder.grandTotal,
+                        generatedAt: new Date(),
+                        generatedBy: user?.name || 'Unknown',
+                        paymentMethod,
+                        customerDetails: {
+                          name: billingOrder.customerName,
+                          phone: billingOrder.customerPhone,
+                          address: billingOrder.customerAddress,
+                          tableNumber: billingOrder.tableNumber,
+                        },
+                      };
+                      printBill(bill);
+                    }
+                  }}
+                  className="w-full btn-secondary flex items-center justify-center space-x-2"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print Invoice</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

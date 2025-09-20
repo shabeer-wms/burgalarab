@@ -2,25 +2,30 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { MenuItem, OrderItem } from '../../types';
-import { Plus, Minus, ShoppingCart, MapPin, Phone, CreditCard, Banknote, X } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, MapPin, Phone, CreditCard, Banknote, X, Search } from 'lucide-react';
 
 const CustomerDashboard: React.FC = () => {
   const { categories, menuItems, addOrder } = useApp();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [orderType, setOrderType] = useState<'dine-in' | 'delivery'>('dine-in');
   const [customerDetails, setCustomerDetails] = useState({
     name: user?.name || '',
     phone: '',
     vehicleNumber: '',
-    paymentMethod: 'cash' as 'cash' | 'card' | 'online' | 'cod'
+    paymentMethod: 'cash' as 'cash' | 'card' | 'online' | 'upi'
   });
   const [showCheckout, setShowCheckout] = useState(false);
 
-  const filteredItems = selectedCategory === 'All' 
-    ? menuItems 
-    : menuItems.filter(item => item.category === selectedCategory);
+  const filteredItems = menuItems.filter(item => {
+    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
+    const matchesSearch = searchTerm === '' || 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const addToCart = (menuItem: MenuItem) => {
     const existingItem = cart.find(item => item.menuItem.id === menuItem.id);
@@ -134,6 +139,21 @@ const CustomerDashboard: React.FC = () => {
           >
             Home Delivery
           </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="bg-white rounded-3xl shadow-elevation-2 p-6">
+        <h2 className="text-title-large text-surface-900 mb-4">Search Menu</h2>
+        <div className="relative">
+          <Search className="w-5 h-5 text-surface-400 absolute left-4 top-1/2 transform -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search by name or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-4 border border-surface-200 rounded-2xl text-body-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+          />
         </div>
       </div>
 
