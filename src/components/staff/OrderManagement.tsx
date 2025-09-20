@@ -35,6 +35,10 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   const [selectedSavedOrder, setSelectedSavedOrder] = useState<Order | null>(null);
   const [qrForOrderId, setQrForOrderId] = useState<string | null>(null);
 
+  // Payment dialog states
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState<'now' | 'later' | null>(null);
+
   const [selectedTableState, setSelectedTableState] = useState<string>(tableNumber || '1');
   const selectedTable = tableNumber || selectedTableState;
   const updateSelectedTable = setSelectedTable || setSelectedTableState;
@@ -217,6 +221,13 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       return;
     }
 
+    // Show payment dialog instead of directly sending order
+    setShowPaymentDialog(true);
+  };
+
+  const handlePaymentOptionSelected = async (paymentOption: 'now' | 'later') => {
+    setSelectedPaymentOption(paymentOption);
+    
     const { subtotal, tax, total } = calculateTotal();
     
     const order: Omit<Order, 'id' | 'orderTime'> = {
@@ -231,18 +242,20 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       total: subtotal,
       tax,
       grandTotal: total,
-      paymentStatus: 'pending',
+      paymentStatus: paymentOption === 'now' ? 'paid' : 'pending',
       waiterId: user?.id,
       kitchenNotes,
       estimatedTime: Math.max(...orderItems.map(item => item.menuItem.prepTime)) + 10,
     };
 
-    console.log('Order to be sent:', order);
+    console.log('Order to be sent with payment option:', paymentOption, order);
 
     try {
       const newOrderId = await addOrder(order);
       console.log('Order added successfully with ID:', newOrderId);
-      // Show QR modal for tracking
+      
+      // Hide payment dialog and show QR modal for tracking
+      setShowPaymentDialog(false);
       setQrForOrderId(newOrderId);
       
       // Clear form after showing QR
@@ -250,11 +263,10 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
       setKitchenNotes('');
       resetOrderState();
-      
-      alert('Order sent to kitchen successfully!');
+      alert(`Order sent to kitchen with payment status: ${paymentOption === 'now' ? 'Paid' : 'Pay Later'}`);
     } catch (error) {
-      console.error('Error sending order to kitchen:', error);
-      alert('Failed to send order to kitchen. Please try again.');
+      console.error('Error adding order:', error);
+      alert('Failed to send order to kitchen');
     }
   };
 
@@ -747,6 +759,50 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
               <p className="text-body-medium text-surface-700">Scan to view live order status</p>
               <div className="bg-surface-50 border border-surface-200 rounded-xl p-3 text-left">
                 <p className="text-body-small text-surface-600 break-all">Link: {`${window.location.origin}/track.html?order=${qrForOrderId}`}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Options Dialog */}
+      {showPaymentDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-elevation-3 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center p-6 border-b border-surface-200">
+              <h3 className="text-title-large">Choose Payment Option</h3>
+              <button
+                onClick={() => setShowPaymentDialog(false)}
+                className="p-2 hover:bg-surface-50 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-body-medium text-surface-700 text-center mb-6">
+                How would the customer like to handle payment?
+              </p>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => handlePaymentOptionSelected('now')}
+                  className="w-full p-4 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors text-body-large font-medium"
+                >
+                  💳 Pay Now
+                </button>
+                
+                <button
+                  onClick={() => handlePaymentOptionSelected('later')}
+                  className="w-full p-4 bg-surface-100 hover:bg-surface-200 text-surface-900 rounded-xl transition-colors text-body-large font-medium border border-surface-300"
+                >
+                  ⏰ Pay Later
+                </button>
+              </div>
+              
+              <div className="mt-6 p-4 bg-surface-50 rounded-xl">
+                <p className="text-body-small text-surface-600 text-center">
+                  Order total: ₹{calculateTotal().total.toFixed(2)}
+                </p>
               </div>
             </div>
           </div>
