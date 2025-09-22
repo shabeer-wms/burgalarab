@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { MenuItem, OrderItem, Order } from '../../types';
 
-import { Plus, Minus, ShoppingCart, Save, Send, FileText, Eye, X, User, Car } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Save, Send, FileText, Eye, X, User, Car, Search } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 
 
@@ -16,6 +16,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   const { menuItems, categories, addOrder } = useApp();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [customerDetails, setCustomerDetails] = useState({
     name: '',
@@ -34,12 +35,16 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
   const [selectedSavedOrder, setSelectedSavedOrder] = useState<Order | null>(null);
   const [qrForOrderId, setQrForOrderId] = useState<string | null>(null);
 
+  // Payment dialog states
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState<'now' | 'later' | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
   const [selectedTableState, setSelectedTableState] = useState<string>(tableNumber || '1');
   const selectedTable = tableNumber || selectedTableState;
   const updateSelectedTable = setSelectedTable || setSelectedTableState;
   const [showTablePicker, setShowTablePicker] = useState(false);
 
-  // Utility function to create order snapshot for comparison
   const createOrderSnapshot = () => {
     return JSON.stringify({
       orderItems: orderItems.map(item => ({ id: item.id, quantity: item.quantity, specialInstructions: item.specialInstructions })),
@@ -80,9 +85,13 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
     setSavedOrderSnapshot('');
   };
 
-  const filteredMenuItems = selectedCategory === 'all' 
-    ? menuItems 
-    : menuItems.filter(item => item.category === selectedCategory);
+  const filteredMenuItems = menuItems.filter(item => {
+    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    const matchesSearch = searchTerm === '' || 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const addToOrder = (menuItem: MenuItem) => {
     const existingItem = orderItems.find(item => item.menuItem.id === menuItem.id);
@@ -213,32 +222,69 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       return;
     }
 
+    // Show payment dialog instead of directly sending order
+    setShowPaymentDialog(true);
+  };
+
+  const handlePaymentOptionSelected = async (paymentOption: 'now' | 'later') => {
+    // Prevent multiple submissions
+    if (isProcessingPayment) {
+      console.log('Payment already being processed, ignoring duplicate click');
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    setSelectedPaymentOption(paymentOption);
+    
     const { subtotal, tax, total } = calculateTotal();
     
+    // Build order object without undefined fields
     const order: Omit<Order, 'id' | 'orderTime'> = {
       customerId: `CUST-${Date.now()}`,
       customerName: customerDetails.name,
       customerPhone: customerDetails.phone,
-      customerAddress: orderType === 'delivery' ? customerDetails.vehicleNumber : undefined,
       type: orderType,
-      tableNumber: orderType === 'dine-in' ? selectedTable : undefined,
       items: orderItems,
       status: 'confirmed',
       total: subtotal,
       tax,
       grandTotal: total,
-      paymentStatus: 'pending',
-      waiterId: user?.id,
-      kitchenNotes,
+      paymentStatus: paymentOption === 'now' ? 'paid' : 'pending',
       estimatedTime: Math.max(...orderItems.map(item => item.menuItem.prepTime)) + 10,
     };
 
-    console.log('Order to be sent:', order);
+    // Add optional fields only if they have values
+    if (orderType === 'delivery' && customerDetails.vehicleNumber) {
+      order.customerAddress = customerDetails.vehicleNumber;
+    }
+    
+    if (orderType === 'dine-in' && selectedTable) {
+      order.tableNumber = selectedTable;
+    }
+    
+    if (user?.id) {
+      order.waiterId = user.id;
+    }
+    
+    if (kitchenNotes) {
+      order.kitchenNotes = kitchenNotes;
+    }
+
+    console.log('Order to be sent with payment option:', paymentOption, order);
+    console.log('Order validation:');
+    console.log('- Customer Name:', customerDetails.name);
+    console.log('- Customer Phone:', customerDetails.phone);
+    console.log('- Order Items Length:', orderItems.length);
+    console.log('- User ID:', user?.id);
+    console.log('- Total Calculation:', { subtotal, tax, total });
 
     try {
+      console.log('Attempting to add order to Firebase...');
       const newOrderId = await addOrder(order);
       console.log('Order added successfully with ID:', newOrderId);
-      // Show QR modal for tracking
+      
+      // Hide payment dialog and show QR modal for tracking
+      setShowPaymentDialog(false);
       setQrForOrderId(newOrderId);
       
       // Clear form after showing QR
@@ -246,11 +292,19 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
       setKitchenNotes('');
       resetOrderState();
-      
-      alert('Order sent to kitchen successfully!');
+      alert(`Order sent to kitchen with payment status: ${paymentOption === 'now' ? 'Paid' : 'Pay Later'}`);
     } catch (error) {
-      console.error('Error sending order to kitchen:', error);
-      alert('Failed to send order to kitchen. Please try again.');
+      console.error('Detailed error adding order:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      alert(`Failed to send order to kitchen: ${errorMessage}`);
+    } finally {
+      // Reset processing state regardless of success or failure
+      setIsProcessingPayment(false);
     }
   };
 
@@ -258,6 +312,21 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
       {/* Menu Items */}
       <div className="lg:col-span-2 space-y-6">
+        {/* Search Bar */}
+        <div className="card">
+          <h3 className="text-title-large mb-4">Search Menu Items</h3>
+          <div className="relative">
+            <Search className="w-5 h-5 text-surface-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-body-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+            />
+          </div>
+        </div>
+
         {/* Category Filter */}
         <div className="card">
           <h3 className="text-title-large mb-4">Menu Categories</h3>
@@ -296,13 +365,43 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
                   <span className="text-title-medium text-primary-600">${item.price.toFixed(2)}</span>
                   <div className="flex items-center space-x-2">
                     <span className="text-body-small text-surface-600">{item.prepTime}min</span>
-                    <button
-                      onClick={() => addToOrder(item)}
-                      disabled={!item.available}
-                      className="btn-primary p-2 min-w-0"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    {/* Quick quantity controls */}
+                    {(() => {
+                      const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
+                      const quantity = existingItem?.quantity || 0;
+                      
+                      if (quantity > 0) {
+                        return (
+                          <div className="flex items-center space-x-1 bg-primary-50 rounded-lg p-1">
+                            <button
+                              onClick={() => updateQuantity(existingItem!.id, -1)}
+                              className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="text-sm font-medium text-primary-700 min-w-[20px] text-center">
+                              {quantity}
+                            </span>
+                            <button
+                              onClick={() => addToOrder(item)}
+                              className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <button
+                            onClick={() => addToOrder(item)}
+                            disabled={!item.available}
+                            className="btn-primary p-2 min-w-0"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        );
+                      }
+                    })()}
                   </div>
                 </div>
                 {!item.available && (
@@ -698,6 +797,73 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
               <p className="text-body-medium text-surface-700">Scan to view live order status</p>
               <div className="bg-surface-50 border border-surface-200 rounded-xl p-3 text-left">
                 <p className="text-body-small text-surface-600 break-all">Link: {`${window.location.origin}/track.html?order=${qrForOrderId}`}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Options Dialog */}
+      {showPaymentDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-elevation-3 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center p-6 border-b border-surface-200">
+              <h3 className="text-title-large">Choose Payment Option</h3>
+              <button
+                onClick={() => {
+                  if (!isProcessingPayment) {
+                    setShowPaymentDialog(false);
+                    setIsProcessingPayment(false); // Reset processing state when dialog is closed
+                  }
+                }}
+                disabled={isProcessingPayment}
+                className={`p-2 rounded-lg transition-colors ${
+                  isProcessingPayment 
+                    ? 'cursor-not-allowed opacity-50' 
+                    : 'hover:bg-surface-50'
+                }`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-body-medium text-surface-700 text-center mb-6">
+                {isProcessingPayment 
+                  ? 'Processing your order, please wait...' 
+                  : 'How would the customer like to handle payment?'
+                }
+              </p>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => handlePaymentOptionSelected('now')}
+                  disabled={isProcessingPayment}
+                  className={`w-full p-4 rounded-xl transition-colors text-body-large font-medium ${
+                    isProcessingPayment
+                      ? 'bg-surface-300 text-surface-500 cursor-not-allowed'
+                      : 'bg-primary-500 hover:bg-primary-600 text-white'
+                  }`}
+                >
+                  {isProcessingPayment ? '⏳ Processing...' : '💳 Pay Now'}
+                </button>
+                
+                <button
+                  onClick={() => handlePaymentOptionSelected('later')}
+                  disabled={isProcessingPayment}
+                  className={`w-full p-4 rounded-xl transition-colors text-body-large font-medium border ${
+                    isProcessingPayment
+                      ? 'bg-surface-200 text-surface-500 border-surface-300 cursor-not-allowed'
+                      : 'bg-surface-100 hover:bg-surface-200 text-surface-900 border-surface-300'
+                  }`}
+                >
+                  {isProcessingPayment ? '⏳ Processing...' : '⏰ Pay Later'}
+                </button>
+              </div>
+              
+              <div className="mt-6 p-4 bg-surface-50 rounded-xl">
+                <p className="text-body-small text-surface-600 text-center">
+                  Order total: ₹{calculateTotal().total.toFixed(2)}
+                </p>
               </div>
             </div>
           </div>

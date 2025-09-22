@@ -3,11 +3,24 @@ import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { OrderItem } from "../../types";
 
+// MenuItem interface
+interface MenuItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image: string;
+  available: boolean;
+  prepTime: number;
+}
+
 // Components
 import { KitchenHeader } from "./components/KitchenHeader";
 import { SidebarNavigation } from "./components/SidebarNavigation";
 import { BottomNavigation } from "./components/BottomNavigation";
 import { OrderSection } from "./components/OrderSection";
+import { KitchenMenu } from "./components/KitchenMenu";
 
 // Theme
 import { kitchenColors } from "./theme/colors";
@@ -76,6 +89,14 @@ const KitchenDisplaySystem: React.FC = () => {
     updateOrderItemStatus(orderId, itemId, status);
   };
 
+  const handleUpdateMenuItem = (itemId: string, updates: Partial<MenuItem>) => {
+    setMenuItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === itemId ? { ...item, ...updates } : item
+      )
+    );
+  };
+
   // Filter orders by status
   const pendingOrders = kitchenOrders.filter(
     (order) => order.status === "pending"
@@ -85,9 +106,79 @@ const KitchenDisplaySystem: React.FC = () => {
   );
   const readyOrders = kitchenOrders.filter((order) => order.status === "ready");
 
+  // Menu items state (should come from context in production)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([
+    {
+      id: "1",
+      name: "Chicken Wings",
+      description: "Spicy buffalo wings with ranch dressing",
+      price: 12.99,
+      category: "Appetizers",
+      image:
+        "https://images.pexels.com/photos/60616/fried-chicken-chicken-fried-crunchy-60616.jpeg?auto=compress&cs=tinysrgb&w=400",
+      available: true,
+      prepTime: 15,
+    },
+    {
+      id: "2",
+      name: "Caesar Salad",
+      description: "Fresh romaine lettuce with parmesan and croutons",
+      price: 9.99,
+      category: "Appetizers",
+      image:
+        "https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400",
+      available: true,
+      prepTime: 10,
+    },
+    {
+      id: "3",
+      name: "Grilled Salmon",
+      description: "Fresh Atlantic salmon with seasonal vegetables",
+      price: 24.99,
+      category: "Main Course",
+      image:
+        "https://images.pexels.com/photos/725992/pexels-photo-725992.jpeg?auto=compress&cs=tinysrgb&w=400",
+      available: true,
+      prepTime: 25,
+    },
+    {
+      id: "4",
+      name: "Beef Steak",
+      description: "Premium ribeye steak cooked to perfection",
+      price: 32.99,
+      category: "Main Course",
+      image:
+        "https://images.pexels.com/photos/769289/pexels-photo-769289.jpeg?auto=compress&cs=tinysrgb&w=400",
+      available: false,
+      prepTime: 30,
+    },
+    {
+      id: "5",
+      name: "Chocolate Cake",
+      description: "Rich chocolate cake with vanilla ice cream",
+      price: 7.99,
+      category: "Desserts",
+      image:
+        "https://images.pexels.com/photos/291528/pexels-photo-291528.jpeg?auto=compress&cs=tinysrgb&w=400",
+      available: true,
+      prepTime: 5,
+    },
+    {
+      id: "6",
+      name: "Fresh Juice",
+      description: "Freshly squeezed orange juice",
+      price: 4.99,
+      category: "Beverages",
+      image:
+        "https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?auto=compress&cs=tinysrgb&w=400",
+      available: true,
+      prepTime: 3,
+    },
+  ]);
+
   // UI filter state for navigation
   const [selectedFilter, setSelectedFilter] = useState<
-    "all" | "pending" | "in-progress" | "ready"
+    "all" | "pending" | "in-progress" | "ready" | "menu"
   >("all");
 
   const handleFilterClick = (
@@ -130,9 +221,9 @@ const KitchenDisplaySystem: React.FC = () => {
         className={`flex-1 ${kitchenLayout.responsive.main.padding} min-h-screen ${kitchenLayout.responsive.main.margin} overflow-y-scroll kitchen-main ${kitchenLayout.responsive.main.paddingBottom}`}
       >
         <div className="w-full flex justify-center">
-          <div className="w-full max-w-[1200px] px-4">
+          <div className="w-full max-w-[1200px]">
             {/* Sticky Kitchen Header */}
-            <div className="sticky top-0 z-40 bg-gray-50">
+            <div className="sticky top-0 z-40 bg-transparent">
               <KitchenHeader
                 currentTime={currentTime}
                 totalOrders={kitchenOrders.length}
@@ -143,66 +234,81 @@ const KitchenDisplaySystem: React.FC = () => {
               />
             </div>
 
-            {/* Order Sections */}
-            <div
-              className={
-                selectedFilter === "all" ? kitchenLayout.grid.main : "w-full"
-              }
-            >
-              {/* Pending Orders Section */}
-              {(selectedFilter === "all" || selectedFilter === "pending") && (
-                <OrderSection
-                  title="Pending"
-                  icon="hourglass_top"
-                  iconColorClass={kitchenColors.status.pending.icon}
-                  orders={pendingOrders}
-                  currentTime={currentTime}
-                  onStatusChange={handleStatusChange}
-                  onItemStatusChange={handleItemStatusChange}
-                  selectedFilter={selectedFilter}
-                  onViewAllClick={() => setSelectedFilter("pending")}
-                  viewAllButtonColor={kitchenColors.status.pending.button}
-                  viewAllButtonHover={kitchenColors.status.pending.hover}
-                />
-              )}
+            {/* Content based on selected filter */}
+            {selectedFilter === "menu" ? (
+              <KitchenMenu
+                menuItems={menuItems}
+                onUpdateMenuItem={handleUpdateMenuItem}
+              />
+            ) : (
+              <>
+                {/* Order Sections */}
+                <div
+                  className={
+                    selectedFilter === "all"
+                      ? kitchenLayout.grid.main
+                      : "w-full"
+                  }
+                >
+                  {/* Pending Orders Section */}
+                  {(selectedFilter === "all" ||
+                    selectedFilter === "pending") && (
+                    <OrderSection
+                      title="Pending"
+                      icon="hourglass_top"
+                      iconColorClass={kitchenColors.status.pending.icon}
+                      orders={pendingOrders}
+                      currentTime={currentTime}
+                      onStatusChange={handleStatusChange}
+                      onItemStatusChange={handleItemStatusChange}
+                      selectedFilter={selectedFilter}
+                      onViewAllClick={() => setSelectedFilter("pending")}
+                      viewAllButtonColor={kitchenColors.status.pending.button}
+                      viewAllButtonHover={kitchenColors.status.pending.hover}
+                    />
+                  )}
 
-              {/* In Progress Orders Section */}
-              {(selectedFilter === "all" ||
-                selectedFilter === "in-progress") && (
-                <OrderSection
-                  title="In Progress"
-                  icon="autorenew"
-                  iconColorClass={kitchenColors.status.inProgress.icon}
-                  orders={inProgressOrders}
-                  currentTime={currentTime}
-                  onStatusChange={handleStatusChange}
-                  onItemStatusChange={handleItemStatusChange}
-                  selectedFilter={selectedFilter}
-                  onViewAllClick={() => setSelectedFilter("in-progress")}
-                  inProgress={true}
-                  viewAllButtonColor={kitchenColors.status.inProgress.button}
-                  viewAllButtonHover={kitchenColors.status.inProgress.hover}
-                />
-              )}
+                  {/* In Progress Orders Section */}
+                  {(selectedFilter === "all" ||
+                    selectedFilter === "in-progress") && (
+                    <OrderSection
+                      title="In Progress"
+                      icon="autorenew"
+                      iconColorClass={kitchenColors.status.inProgress.icon}
+                      orders={inProgressOrders}
+                      currentTime={currentTime}
+                      onStatusChange={handleStatusChange}
+                      onItemStatusChange={handleItemStatusChange}
+                      selectedFilter={selectedFilter}
+                      onViewAllClick={() => setSelectedFilter("in-progress")}
+                      inProgress={true}
+                      viewAllButtonColor={
+                        kitchenColors.status.inProgress.button
+                      }
+                      viewAllButtonHover={kitchenColors.status.inProgress.hover}
+                    />
+                  )}
 
-              {/* Ready Orders Section */}
-              {(selectedFilter === "all" || selectedFilter === "ready") && (
-                <OrderSection
-                  title="Ready"
-                  icon="check_circle"
-                  iconColorClass={kitchenColors.status.ready.icon}
-                  orders={readyOrders}
-                  currentTime={currentTime}
-                  onStatusChange={handleStatusChange}
-                  onItemStatusChange={handleItemStatusChange}
-                  selectedFilter={selectedFilter}
-                  onViewAllClick={() => setSelectedFilter("ready")}
-                  ready={true}
-                  viewAllButtonColor={kitchenColors.status.ready.button}
-                  viewAllButtonHover={kitchenColors.status.ready.hover}
-                />
-              )}
-            </div>
+                  {/* Ready Orders Section */}
+                  {(selectedFilter === "all" || selectedFilter === "ready") && (
+                    <OrderSection
+                      title="Ready"
+                      icon="check_circle"
+                      iconColorClass={kitchenColors.status.ready.icon}
+                      orders={readyOrders}
+                      currentTime={currentTime}
+                      onStatusChange={handleStatusChange}
+                      onItemStatusChange={handleItemStatusChange}
+                      selectedFilter={selectedFilter}
+                      onViewAllClick={() => setSelectedFilter("ready")}
+                      ready={true}
+                      viewAllButtonColor={kitchenColors.status.ready.button}
+                      viewAllButtonHover={kitchenColors.status.ready.hover}
+                    />
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </main>

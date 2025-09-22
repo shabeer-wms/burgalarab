@@ -70,7 +70,7 @@ export interface Bill {
   serviceCharge?: number;
   discount?: number;
   total: number;
-  generatedAt: Date;
+  generatedAt: Date | string | { toDate: () => Date };
   generatedBy: string;
   paymentMethod: "cash" | "card" | "online" | "upi";
   customerDetails: {

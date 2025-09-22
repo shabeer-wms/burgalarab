@@ -185,7 +185,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
         )}
       </div>
 
-      <div className="mb-3 lg:mb-4 space-y-1 flex-1">
+      <div className="mb-3 lg:mb-4 space-y-2 flex-1">
         {order.items.map((item) => {
           const isOrderReady = order.status === "ready";
           const badgeText = isOrderReady ? "ready" : item.status;
@@ -196,17 +196,43 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           return (
             <div
               key={item.id}
-              className={`flex items-center justify-between ${kitchenColors.ui.primary.text}`}
+              className={`flex items-start justify-between ${kitchenColors.ui.primary.text}`}
             >
               <div className="truncate">
-                {item.quantity}x {item.menuItem.name}
+                <div className="font-medium">
+                  {item.quantity}x {item.menuItem.name}
+                </div>
+                {item.specialInstructions && (
+                  <p
+                    className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.textSecondary} mt-1`}
+                  >
+                    Note: {item.specialInstructions}
+                  </p>
+                )}
               </div>
+
               <div className="ml-4 flex-shrink-0">
                 <span className={badgeClass}>{badgeText}</span>
               </div>
             </div>
           );
         })}
+
+        {/* Order-level kitchen notes (from waiter) */}
+        {order.kitchenNotes && (
+          <div className="mt-2 rounded-md bg-gray-50 p-3">
+            <h4
+              className={`${kitchenLayout.typography.card.subtitle} font-semibold mb-1 ${kitchenColors.ui.primary.text}`}
+            >
+              Kitchen Notes
+            </h4>
+            <p
+              className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.textSecondary}`}
+            >
+              {order.kitchenNotes}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mt-3 lg:mt-4">{renderStatusButtons()}</div>
