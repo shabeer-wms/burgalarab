@@ -156,9 +156,6 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                 className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
               />
             </div>
-            <div className="text-sm text-gray-500">
-              Total items: {menuItems.length}
-            </div>
             <div
               className="relative w-full sm:w-auto"
               style={{ minWidth: "120px", maxWidth: "170px" }}

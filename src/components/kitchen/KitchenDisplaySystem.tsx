@@ -1,19 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
-import { OrderItem } from "../../types";
-
-// MenuItem interface
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  image: string;
-  available: boolean;
-  prepTime: number;
-}
+import { OrderItem, MenuItem } from "../../types";
 
 // Components
 import { KitchenHeader } from "./components/KitchenHeader";
@@ -27,7 +15,7 @@ import { kitchenColors } from "./theme/colors";
 import { kitchenLayout } from "./theme/layout";
 
 const KitchenDisplaySystem: React.FC = () => {
-  const { kitchenOrders, updateKitchenOrderStatus, updateOrderItemStatus } =
+  const { kitchenOrders, updateKitchenOrderStatus, updateOrderItemStatus, menuItems, updateMenuItem } =
     useApp();
   const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -90,11 +78,7 @@ const KitchenDisplaySystem: React.FC = () => {
   };
 
   const handleUpdateMenuItem = (itemId: string, updates: Partial<MenuItem>) => {
-    setMenuItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === itemId ? { ...item, ...updates } : item
-      )
-    );
+    updateMenuItem(itemId, updates);
   };
 
   // Filter orders by status
@@ -105,76 +89,6 @@ const KitchenDisplaySystem: React.FC = () => {
     (order) => order.status === "in-progress"
   );
   const readyOrders = kitchenOrders.filter((order) => order.status === "ready");
-
-  // Menu items state (should come from context in production)
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([
-    {
-      id: "1",
-      name: "Chicken Wings",
-      description: "Spicy buffalo wings with ranch dressing",
-      price: 12.99,
-      category: "Appetizers",
-      image:
-        "https://images.pexels.com/photos/60616/fried-chicken-chicken-fried-crunchy-60616.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 15,
-    },
-    {
-      id: "2",
-      name: "Caesar Salad",
-      description: "Fresh romaine lettuce with parmesan and croutons",
-      price: 9.99,
-      category: "Appetizers",
-      image:
-        "https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 10,
-    },
-    {
-      id: "3",
-      name: "Grilled Salmon",
-      description: "Fresh Atlantic salmon with seasonal vegetables",
-      price: 24.99,
-      category: "Main Course",
-      image:
-        "https://images.pexels.com/photos/725992/pexels-photo-725992.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 25,
-    },
-    {
-      id: "4",
-      name: "Beef Steak",
-      description: "Premium ribeye steak cooked to perfection",
-      price: 32.99,
-      category: "Main Course",
-      image:
-        "https://images.pexels.com/photos/769289/pexels-photo-769289.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: false,
-      prepTime: 30,
-    },
-    {
-      id: "5",
-      name: "Chocolate Cake",
-      description: "Rich chocolate cake with vanilla ice cream",
-      price: 7.99,
-      category: "Desserts",
-      image:
-        "https://images.pexels.com/photos/291528/pexels-photo-291528.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 5,
-    },
-    {
-      id: "6",
-      name: "Fresh Juice",
-      description: "Freshly squeezed orange juice",
-      price: 4.99,
-      category: "Beverages",
-      image:
-        "https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 3,
-    },
-  ]);
 
   // UI filter state for navigation
   const [selectedFilter, setSelectedFilter] = useState<
