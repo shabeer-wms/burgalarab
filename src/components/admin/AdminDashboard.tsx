@@ -9,7 +9,7 @@ import { AdminMenu } from "./components/AdminMenu";
 import { TrendingUp, Users, Plus, LogOut } from "lucide-react";
 
 const AdminDashboard: React.FC = () => {
-  const { orders, updateOrder } = useApp();
+  const { orders, updateOrder, menuItems, staff } = useApp();
   const { user, logout } = useAuth();
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -50,116 +50,6 @@ const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
     "overview" | "orders" | "menu" | "staff"
   >("overview");
-
-  // Mock staff data
-  const [staff, setStaff] = useState([
-    {
-      id: "1",
-      name: "John Smith",
-      email: "john.smith@restaurant.com",
-      phoneNumber: "+1-555-0101",
-      role: "waiter",
-      attendance: true,
-      dateJoined: "2024-01-15",
-    },
-    {
-      id: "2",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@restaurant.com",
-      phoneNumber: "+1-555-0102",
-      role: "kitchen",
-      attendance: true,
-      dateJoined: "2024-02-01",
-    },
-    {
-      id: "3",
-      name: "Mike Davis",
-      email: "mike.davis@restaurant.com",
-      phoneNumber: "+1-555-0103",
-      role: "manager",
-      attendance: false,
-      dateJoined: "2023-12-10",
-    },
-    {
-      id: "4",
-      name: "Emily Chen",
-      email: "emily.chen@restaurant.com",
-      phoneNumber: "+1-555-0104",
-      role: "admin",
-      attendance: true,
-      dateJoined: "2024-01-05",
-    },
-  ]);
-
-  // Mock menu data
-  const [menuItems, setMenuItems] = useState([
-    {
-      id: "1",
-      name: "Chicken Wings",
-      description: "Spicy buffalo wings with ranch dressing",
-      price: 12.99,
-      category: "Appetizers",
-      image:
-        "https://images.pexels.com/photos/60616/fried-chicken-chicken-fried-crunchy-60616.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 15,
-    },
-    {
-      id: "2",
-      name: "Caesar Salad",
-      description: "Fresh romaine lettuce with parmesan and croutons",
-      price: 9.99,
-      category: "Appetizers",
-      image:
-        "https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 10,
-    },
-    {
-      id: "3",
-      name: "Grilled Salmon",
-      description: "Fresh Atlantic salmon with seasonal vegetables",
-      price: 24.99,
-      category: "Main Course",
-      image:
-        "https://images.pexels.com/photos/725992/pexels-photo-725992.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 25,
-    },
-    {
-      id: "4",
-      name: "Beef Steak",
-      description: "Premium ribeye steak cooked to perfection",
-      price: 32.99,
-      category: "Main Course",
-      image:
-        "https://images.pexels.com/photos/769289/pexels-photo-769289.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: false,
-      prepTime: 30,
-    },
-    {
-      id: "5",
-      name: "Chocolate Cake",
-      description: "Rich chocolate cake with vanilla ice cream",
-      price: 7.99,
-      category: "Desserts",
-      image:
-        "https://images.pexels.com/photos/291528/pexels-photo-291528.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 5,
-    },
-    {
-      id: "6",
-      name: "Fresh Juice",
-      description: "Freshly squeezed orange juice",
-      price: 4.99,
-      category: "Beverages",
-      image:
-        "https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?auto=compress&cs=tinysrgb&w=400",
-      available: true,
-      prepTime: 3,
-    },
-  ]);
 
   const categories = ["Appetizers", "Main Course", "Desserts", "Beverages"];
 
@@ -240,14 +130,12 @@ const AdminDashboard: React.FC = () => {
 
           {activeTab === "menu" && (
             <AdminMenu
-              menuItems={menuItems}
-              setMenuItems={setMenuItems}
               categories={categories}
             />
           )}
 
           {activeTab === "staff" && (
-            <AdminStaff staff={staff} setStaff={setStaff} />
+            <AdminStaff />
           )}
         </div>
       </main>
