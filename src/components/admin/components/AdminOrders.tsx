@@ -167,9 +167,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-0">
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          {/* <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Order Management
-          </h2> */}
           <div className="sm:flex-1"></div>
           
           <div

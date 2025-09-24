@@ -123,9 +123,6 @@ export const AdminStaff: React.FC<AdminStaffProps> = () => {
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-0">
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          {/* <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Staff Management
-          </h2> */}
           <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 sm:flex-1">
             <div className="relative w-full sm:flex-1">
               <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
