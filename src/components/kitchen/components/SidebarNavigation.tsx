@@ -3,16 +3,16 @@ import { kitchenColors } from "../theme/colors";
 import { kitchenLayout } from "../theme/layout";
 
 interface NavigationItem {
-  id: "all" | "pending" | "in-progress" | "ready";
+  id: "all" | "pending" | "in-progress" | "ready" | "menu";
   label: string;
   icon: string;
 }
 
 interface SidebarNavigationProps {
-  selectedFilter: "all" | "pending" | "in-progress" | "ready";
+  selectedFilter: "all" | "pending" | "in-progress" | "ready" | "menu";
   onFilterClick: (
     e: React.MouseEvent,
-    filter: "all" | "pending" | "in-progress" | "ready"
+    filter: "all" | "pending" | "in-progress" | "ready" | "menu"
   ) => void;
   userName?: string;
   userRole?: string;
@@ -24,11 +24,12 @@ const navigationItems: NavigationItem[] = [
   { id: "pending", label: "Pending", icon: "hourglass_top" },
   { id: "in-progress", label: "In Progress", icon: "autorenew" },
   { id: "ready", label: "Ready", icon: "check_circle_outline" },
+  { id: "menu", label: "Menu", icon: "menu_book" },
 ];
 
 const getNavItemClasses = (
   isSelected: boolean,
-  filterId: "all" | "pending" | "in-progress" | "ready"
+  filterId: "all" | "pending" | "in-progress" | "ready" | "menu"
 ) => {
   const baseClasses = `flex items-center ${kitchenLayout.sizing.button.nav} rounded-lg`;
 
@@ -41,6 +42,8 @@ const getNavItemClasses = (
         return `${baseClasses} ${kitchenColors.ui.sidebar.text} ${kitchenColors.status.pending.background}`;
       case "ready":
         return `${baseClasses} ${kitchenColors.ui.sidebar.text} ${kitchenColors.status.ready.background}`;
+      case "menu":
+        return `${baseClasses} ${kitchenColors.ui.sidebar.text} ${kitchenColors.ui.sidebar.active}`;
       default:
         return `${baseClasses} ${kitchenColors.ui.sidebar.text} ${kitchenColors.ui.sidebar.active}`;
     }

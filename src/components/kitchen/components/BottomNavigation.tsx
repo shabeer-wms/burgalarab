@@ -3,16 +3,16 @@ import { kitchenColors } from "../theme/colors";
 import { kitchenLayout } from "../theme/layout";
 
 interface NavigationItem {
-  id: "all" | "pending" | "in-progress" | "ready";
+  id: "all" | "pending" | "in-progress" | "ready" | "menu";
   label: string;
   icon: string;
 }
 
 interface BottomNavigationProps {
-  selectedFilter: "all" | "pending" | "in-progress" | "ready";
+  selectedFilter: "all" | "pending" | "in-progress" | "ready" | "menu";
   onFilterClick: (
     e: React.MouseEvent,
-    filter: "all" | "pending" | "in-progress" | "ready"
+    filter: "all" | "pending" | "in-progress" | "ready" | "menu"
   ) => void;
 }
 
@@ -21,11 +21,12 @@ const navigationItems: NavigationItem[] = [
   { id: "pending", label: "Pending", icon: "hourglass_top" },
   { id: "in-progress", label: "In Progress", icon: "autorenew" },
   { id: "ready", label: "Ready", icon: "check_circle_outline" },
+  { id: "menu", label: "Menu", icon: "menu_book" },
 ];
 
 const getButtonClasses = (
   isSelected: boolean,
-  filterId: "all" | "pending" | "in-progress" | "ready"
+  filterId: "all" | "pending" | "in-progress" | "ready" | "menu"
 ) => {
   const baseClasses = `flex flex-col items-center justify-center ${kitchenLayout.sizing.button.navBottom}`;
 
@@ -38,6 +39,8 @@ const getButtonClasses = (
         return `${baseClasses} ${kitchenColors.status.inProgress.navActive}`;
       case "ready":
         return `${baseClasses} ${kitchenColors.status.ready.navActive}`;
+      case "menu":
+        return `${baseClasses} ${kitchenColors.status.inProgress.navActive}`;
       default:
         return `${baseClasses} ${kitchenColors.status.inProgress.navActive}`;
     }
@@ -55,7 +58,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       className={`${kitchenLayout.responsive.bottomNav.position} ${kitchenColors.navigation.bottom.background} ${kitchenColors.navigation.bottom.border} ${kitchenLayout.responsive.bottomNav.hidden} z-50`}
     >
       <div
-        className={`grid grid-cols-4 ${kitchenLayout.responsive.bottomNav.height}`}
+        className={`grid grid-cols-5 ${kitchenLayout.responsive.bottomNav.height}`}
       >
         {navigationItems.map((item) => (
           <button
