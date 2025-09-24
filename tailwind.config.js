@@ -141,6 +141,7 @@ export default {
         'slide-up': 'slideUp 0.3s ease-out',
         'scale-in': 'scaleIn 0.2s ease-out',
         'ripple': 'ripple 0.6s linear',
+        'slideDown': 'slideDown 0.3s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -158,6 +159,10 @@ export default {
         ripple: {
           '0%': { transform: 'scale(0)', opacity: '1' },
           '100%': { transform: 'scale(4)', opacity: '0' },
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
         },
       },
     },

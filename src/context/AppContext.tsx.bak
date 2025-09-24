@@ -226,27 +226,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addOrder = async (
     orderData: Omit<Order, "id" | "orderTime">
   ): Promise<string> => {
-    const orderTime = new Date();
-    const newOrder: Omit<Order, "id"> = {
-      ...orderData,
-      orderTime,
-    };
-    const ref = collection(db, "orders");
-    const docRef = await addDoc(ref, newOrder);
-    // Add to kitchen display if confirmed
-    if (orderData.status === "confirmed") {
-      const kitchenItem: Omit<KitchenDisplayItem, "orderId"> & {
-        orderId: string;
-      } = {
-        orderId: docRef.id,
-        orderNumber: `#${docRef.id.slice(-4)}`,
-        customerName: orderData.customerName,
-        items: orderData.items,
+    try {
+      console.log('Adding new order with data:', JSON.stringify(orderData));
+      
+      // Validate required fields
+      if (!orderData.customerName || !orderData.customerPhone || !orderData.items || orderData.items.length === 0) {
+        console.error('Order validation failed:', {
+          hasCustomerName: !!orderData.customerName,
+          hasCustomerPhone: !!orderData.customerPhone,
+          items: orderData.items?.length || 0
+        });
+        throw new Error('Invalid order data: Missing required fields');
+      }
+      
+      const orderTime = new Date();
+      const newOrder: Omit<Order, "id"> = {
+        ...orderData,
         orderTime,
-        estimatedTime: orderData.estimatedTime || 30,
-        priority: orderData.type === "dine-in" ? "high" : "medium",
-        status: "pending",
       };
+      
+      const ref = collection(db, "orders");
+      const docRef = await addDoc(ref, newOrder);
+      console.log('Order added to Firestore with ID:', docRef.id);
+      
+      // Add to kitchen display if confirmed
+      if (orderData.status === "confirmed") {
+        const kitchenItem: Omit<KitchenDisplayItem, "orderId"> & {
+          orderId: string;
+        } = {
+          orderId: docRef.id,
+          orderNumber: `#${docRef.id.slice(-4)}`,
+          customerName: orderData.customerName,
+          items: orderData.items,
+          orderTime,
+          estimatedTime: orderData.estimatedTime || 30,
+          priority: orderData.type === "dine-in" ? "high" : "medium",
+          status: "pending",
+        };
+        
+        // Add optional fields only if they have values
+        if (orderData.tableNumber) {
+          kitchenItem.tableNumber = orderData.tableNumber;
+        }
+        
+        if (orderData.kitchenNotes) {
+          kitchenItem.kitchenNotes = orderData.kitchenNotes;
+        }
+        
+        await setDoc(doc(db, "kitchenOrders", docRef.id), kitchenItem);
+      }
+      
+      return docRef.id;
+    } catch (error) {
+      console.error('Error adding order:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to add order: ${errorMessage}`);
+    }
       
       // Add optional fields only if they have values
       if (orderData.tableNumber) {
@@ -300,22 +335,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const ref = doc(db, "kitchenOrders", orderId);
     updateDoc(ref, updateData as Partial<Record<string, unknown>>);
     
-    // Update main order status based on kitchen status
+    // Update main order status
     if (status === 'ready') {
       // Check if payment is already made for this order
       const order = orders.find(o => o.id === orderId);
       if (order?.paymentStatus === 'paid') {
         // If payment is already made, mark as completed
-        updateOrder(orderId, { status: 'completed', paused: false });
+        updateOrder(orderId, { status: 'completed' });
       } else {
         // If payment is pending, mark as ready
-        updateOrder(orderId, { status: 'ready', paused: false });
+        updateOrder(orderId, { status: 'ready' });
       }
     } else if (status === 'in-progress') {
-      updateOrder(orderId, { status: 'preparing', paused: false });
-    } else if (status === 'pending' && paused) {
-      // When paused, change main order status back to confirmed and mark as paused
-      updateOrder(orderId, { status: 'confirmed', paused: true });
+      updateOrder(orderId, { status: 'preparing' });
     }
   };
 
@@ -534,7 +566,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const hideNotification = () => {
     setNotification(null);
   };
-
+  
+  // Return AppContext Provider
   return (
     <AppContext.Provider value={{
         categories: defaultCategories,
@@ -566,7 +599,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       {children}
     </AppContext.Provider>
   );
-};export const useApp = () => {
+};
+
+export const useApp = () => {
   const context = useContext(AppContext);
   if (context === undefined) {
     throw new Error('useApp must be used within an AppProvider');
