@@ -1,70 +1,91 @@
 import React, { useState } from "react";
-import { Plus, Search, Edit, Trash2, X } from "lucide-react";
+import { Plus, Search, Edit, Trash2, X, Eye, EyeOff } from "lucide-react";
+import { useApp } from "../../../context/AppContext";
 
-interface StaffMember {
-  id: string;
-  name: string;
-  email: string;
-  phoneNumber: string;
-  role: string;
-  attendance: boolean;
-  dateJoined: string;
-}
-
-interface AdminStaffProps {
-  staff: StaffMember[];
-  setStaff: React.Dispatch<React.SetStateAction<StaffMember[]>>;
-}
-
-export const AdminStaff: React.FC<AdminStaffProps> = ({ staff, setStaff }) => {
+export const AdminStaff: React.FC = () => {
+  const { staff, addStaff, updateStaff, deleteStaff } = useApp();
   const [staffSearchTerm, setStaffSearchTerm] = useState("");
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [showEditStaffModal, setShowEditStaffModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const [showDeleteStaffModal, setShowDeleteStaffModal] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<any>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [newStaff, setNewStaff] = useState({
     name: "",
     email: "",
     phoneNumber: "",
     password: "",
-    role: "waiter",
+    role: "waiter" as "waiter" | "kitchen" | "admin" | "manager",
+    attendance: true,
+    dateJoined: new Date().toISOString().split("T")[0],
   });
 
   // Staff management functions
-  const filteredStaff = staff.filter(
-    (member) =>
-      member.name.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
-      member.role.toLowerCase().includes(staffSearchTerm.toLowerCase())
-  );
+  const filteredStaff = staff
+    .filter(
+      (member) =>
+        member.name.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+        member.email.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+        member.role.toLowerCase().includes(staffSearchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Sort by createdAt first (if available), then by dateJoined as fallback
+      // Handle different date formats (Date object, Firestore Timestamp, or string)
+      const getDateValue = (staff: any) => {
+        if (staff.createdAt) {
+          if (staff.createdAt.toDate) {
+            return staff.createdAt.toDate().getTime(); // Firestore Timestamp
+          }
+          return new Date(staff.createdAt).getTime(); // Date object or string
+        }
+        return new Date(staff.dateJoined).getTime(); // Fallback to dateJoined
+      };
 
-  const handleAddStaff = () => {
-    const newStaffMember = {
-      id: Date.now().toString(),
-      ...newStaff,
-      attendance: true,
-      dateJoined: new Date().toISOString().split("T")[0],
-    };
-    setStaff([...staff, newStaffMember]);
-    setNewStaff({
-      name: "",
-      email: "",
-      phoneNumber: "",
-      password: "",
-      role: "waiter",
+      const aTime = getDateValue(a);
+      const bTime = getDateValue(b);
+
+      // Sort in descending order (newest first)
+      return bTime - aTime;
     });
-    setShowAddStaffModal(false);
+
+  const handleAddStaff = async () => {
+    try {
+      await addStaff(newStaff);
+
+      setNewStaff({
+        name: "",
+        email: "",
+        phoneNumber: "",
+        password: "",
+        role: "waiter",
+        attendance: true,
+        dateJoined: new Date().toISOString().split("T")[0],
+      });
+      setShowAddStaffModal(false);
+    } catch (error) {
+      console.error("Error adding staff:", error);
+      alert("Failed to add staff member. Please try again.");
+    }
   };
 
-  const handleEditStaff = () => {
-    setStaff(
-      staff.map((member) =>
-        member.id === selectedStaff.id ? selectedStaff : member
-      )
-    );
-    setShowEditStaffModal(false);
-    setSelectedStaff(null);
+  const handleEditStaff = async () => {
+    try {
+      const updates = {
+        name: selectedStaff.name,
+        email: selectedStaff.email,
+        phoneNumber: selectedStaff.phoneNumber,
+        role: selectedStaff.role,
+        attendance: selectedStaff.attendance,
+      };
+
+      await updateStaff(selectedStaff.id, updates);
+      setShowEditStaffModal(false);
+      setSelectedStaff(null);
+    } catch (error) {
+      console.error("Error updating staff:", error);
+      alert("Failed to update staff member. Please try again.");
+    }
   };
 
   const handleDeleteStaff = (staffId: string) => {
@@ -72,11 +93,16 @@ export const AdminStaff: React.FC<AdminStaffProps> = ({ staff, setStaff }) => {
     setShowDeleteStaffModal(true);
   };
 
-  const confirmDeleteStaff = () => {
+  const confirmDeleteStaff = async () => {
     if (staffToDelete) {
-      setStaff(staff.filter((member) => member.id !== staffToDelete));
-      setStaffToDelete(null);
-      setShowDeleteStaffModal(false);
+      try {
+        await deleteStaff(staffToDelete);
+        setStaffToDelete(null);
+        setShowDeleteStaffModal(false);
+      } catch (error) {
+        console.error("Error deleting staff:", error);
+        alert("Failed to delete staff member. Please try again.");
+      }
     }
   };
 
@@ -85,14 +111,15 @@ export const AdminStaff: React.FC<AdminStaffProps> = ({ staff, setStaff }) => {
     setShowDeleteStaffModal(false);
   };
 
-  const toggleAttendance = (staffId: string) => {
-    setStaff(
-      staff.map((member) =>
-        member.id === staffId
-          ? { ...member, attendance: !member.attendance }
-          : member
-      )
-    );
+  const toggleAttendance = async (staffId: string) => {
+    try {
+      const staffMember = staff.find((member) => member.id === staffId);
+      if (staffMember) {
+        await updateStaff(staffId, { attendance: !staffMember.attendance });
+      }
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+    }
   };
 
   const openEditModal = (staffMember: any) => {
@@ -348,15 +375,28 @@ export const AdminStaff: React.FC<AdminStaffProps> = ({ staff, setStaff }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Password
                 </label>
-                <input
-                  type="password"
-                  value={newStaff.password}
-                  onChange={(e) =>
-                    setNewStaff({ ...newStaff, password: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter password"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={newStaff.password}
+                    onChange={(e) =>
+                      setNewStaff({ ...newStaff, password: e.target.value })
+                    }
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Enter password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="relative">
@@ -366,7 +406,14 @@ export const AdminStaff: React.FC<AdminStaffProps> = ({ staff, setStaff }) => {
                 <select
                   value={newStaff.role}
                   onChange={(e) =>
-                    setNewStaff({ ...newStaff, role: e.target.value })
+                    setNewStaff({
+                      ...newStaff,
+                      role: e.target.value as
+                        | "waiter"
+                        | "kitchen"
+                        | "admin"
+                        | "manager",
+                    })
                   }
                   className="w-full px-3 py-2 border border-gray-300 border-[1px] rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-white appearance-none pr-10 transition-colors"
                 >
@@ -426,9 +473,7 @@ export const AdminStaff: React.FC<AdminStaffProps> = ({ staff, setStaff }) => {
         >
           <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-4 sm:p-6 border-b">
-              <h3 className="text-lg font-medium text-gray-900">
-                Edit Staff
-              </h3>
+              <h3 className="text-lg font-medium text-gray-900">Edit Staff</h3>
               <button
                 onClick={() => setShowEditStaffModal(false)}
                 className="text-gray-400 hover:text-gray-600 p-1"

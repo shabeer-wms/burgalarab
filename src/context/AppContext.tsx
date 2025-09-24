@@ -6,8 +6,9 @@ import {
   Category,
   Bill,
   KitchenDisplayItem,
+  Staff,
 } from "../types";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import {
   collection,
   addDoc,
@@ -18,14 +19,29 @@ import {
   where,
   getDocs,
   setDoc,
+  deleteDoc,
 } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { seedMenuItems } from "../utils/seedMenuItems";
 
 interface AppContextType {
   categories: Category[];
   menuItems: MenuItem[];
+  staff: Staff[];
   orders: Order[];
   bills: Bill[];
   kitchenOrders: KitchenDisplayItem[];
+
+  // Menu management functions
+  addMenuItem: (menuItem: Omit<MenuItem, "id">) => Promise<void>;
+  updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
+  deleteMenuItem: (id: string) => Promise<void>;
+
+  // Staff management functions
+  addStaff: (staff: Omit<Staff, "id" | "uid"> & { password: string }) => Promise<void>;
+  updateStaff: (id: string, updates: Partial<Staff>) => Promise<void>;
+  deleteStaff: (id: string) => Promise<void>;
+  authenticateStaff: (email: string, password: string) => Promise<Staff | null>;
 
   addOrder: (order: Omit<Order, "id" | "orderTime">) => Promise<string>;
   updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
@@ -53,8 +69,8 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Mock data
-const mockCategories: Category[] = [
+// Default categories
+const defaultCategories: Category[] = [
   {
     id: '1',
     name: 'Appetizers',
@@ -81,77 +97,38 @@ const mockCategories: Category[] = [
   }
 ];
 
-const mockMenuItems: MenuItem[] = [
-  {
-    id: '1',
-    name: 'Chicken Wings',
-    description: 'Spicy buffalo wings with ranch dressing',
-    price: 12.99,
-    category: 'Appetizers',
-    image: 'https://images.pexels.com/photos/60616/fried-chicken-chicken-fried-crunchy-60616.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 15
-  },
-  {
-    id: '2',
-    name: 'Caesar Salad',
-    description: 'Fresh romaine lettuce with parmesan and croutons',
-    price: 9.99,
-    category: 'Appetizers',
-    image: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 10
-  },
-  {
-    id: '3',
-    name: 'Grilled Salmon',
-    description: 'Fresh Atlantic salmon with seasonal vegetables',
-    price: 24.99,
-    category: 'Main Course',
-    image: 'https://images.pexels.com/photos/725992/pexels-photo-725992.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 25
-  },
-  {
-    id: '4',
-    name: 'Beef Steak',
-    description: 'Premium ribeye steak cooked to perfection',
-    price: 32.99,
-    category: 'Main Course',
-    image: 'https://images.pexels.com/photos/769289/pexels-photo-769289.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 30
-  },
-  {
-    id: '5',
-    name: 'Chocolate Cake',
-    description: 'Rich chocolate cake with vanilla ice cream',
-    price: 7.99,
-    category: 'Desserts',
-    image: 'https://images.pexels.com/photos/291528/pexels-photo-291528.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 5
-  },
-  {
-    id: '6',
-    name: 'Fresh Juice',
-    description: 'Freshly squeezed orange juice',
-    price: 4.99,
-    category: 'Beverages',
-    image: 'https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?auto=compress&cs=tinysrgb&w=400',
-    available: true,
-    prepTime: 3
-  }
-];
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [kitchenOrders, setKitchenOrders] = useState<KitchenDisplayItem[]>([]);
 
   // Real-time Firestore listeners
   useEffect(() => {
+    // Menu items listener
+    const unsubMenuItems = onSnapshot(collection(db, "menuItems"), async (snapshot) => {
+      const items = snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as MenuItem));
+      setMenuItems(items);
+      
+      // If no menu items exist, seed with sample data
+      if (items.length === 0) {
+        console.log("No menu items found, seeding with sample data...");
+        try {
+          await seedMenuItems();
+        } catch (error) {
+          console.error("Error seeding menu items:", error);
+        }
+      }
+    });
+
+    // Staff listener
+    const unsubStaff = onSnapshot(collection(db, "staff"), (snapshot) => {
+      setStaff(
+        snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Staff))
+      );
+    });
+
     const unsubOrders = onSnapshot(collection(db, "orders"), (snapshot) => {
       setOrders(
         snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Order))
@@ -189,6 +166,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     );
     return () => {
+      unsubMenuItems();
+      unsubStaff();
       unsubOrders();
       unsubBills();
       unsubKitchen();
@@ -386,13 +365,130 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  // Menu management functions
+  const addMenuItem = async (menuItemData: Omit<MenuItem, "id">): Promise<void> => {
+    try {
+      const menuItem = {
+        ...menuItemData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await addDoc(collection(db, "menuItems"), menuItem);
+    } catch (error) {
+      console.error("Error adding menu item:", error);
+      throw error;
+    }
+  };
+
+  const updateMenuItem = async (id: string, updates: Partial<MenuItem>): Promise<void> => {
+    try {
+      const updateData = { ...updates, updatedAt: new Date() };
+      await updateDoc(doc(db, "menuItems", id), updateData);
+    } catch (error) {
+      console.error("Error updating menu item:", error);
+      throw error;
+    }
+  };
+
+  const deleteMenuItem = async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, "menuItems", id));
+    } catch (error) {
+      console.error("Error deleting menu item:", error);
+      throw error;
+    }
+  };
+
+  // Staff management functions
+  const addStaff = async (staffData: Omit<Staff, "id" | "uid"> & { password: string }): Promise<void> => {
+    try {
+      // Create Firebase Auth user
+      const userCredential = await createUserWithEmailAndPassword(auth, staffData.email, staffData.password);
+      const uid = userCredential.user.uid;
+
+      // Prepare staff data for Firestore (without password)
+      const { password, ...staffWithoutPassword } = staffData;
+      const staffDoc = {
+        ...staffWithoutPassword,
+        uid,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Save staff to Firestore
+      await addDoc(collection(db, "staff"), staffDoc);
+      
+      console.log("Staff member created successfully");
+    } catch (error) {
+      console.error("Error adding staff:", error);
+      throw error;
+    }
+  };
+
+  const updateStaff = async (id: string, updates: Partial<Staff>): Promise<void> => {
+    try {
+      const updateData = { ...updates, updatedAt: new Date() };
+      await updateDoc(doc(db, "staff", id), updateData);
+    } catch (error) {
+      console.error("Error updating staff:", error);
+      throw error;
+    }
+  };
+
+  const deleteStaff = async (id: string): Promise<void> => {
+    try {
+      // Find the staff member to get their UID
+      const staffMember = staff.find(s => s.id === id);
+      
+      // Delete from Firestore
+      await deleteDoc(doc(db, "staff", id));
+      
+      // Note: In a production app, you might want to disable the Firebase Auth account
+      // rather than delete it completely for audit purposes
+      console.log("Staff member deleted from database");
+      
+    } catch (error) {
+      console.error("Error deleting staff:", error);
+      throw error;
+    }
+  };
+
+  const authenticateStaff = async (email: string, password: string): Promise<Staff | null> => {
+    try {
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const uid = userCredential.user.uid;
+
+      // Find the staff member in Firestore
+      const staffMember = staff.find(s => s.uid === uid);
+      
+      if (staffMember) {
+        return staffMember;
+      } else {
+        throw new Error("Staff member not found in database");
+      }
+    } catch (error) {
+      console.error("Error authenticating staff:", error);
+      return null;
+    }
+  };
+
   return (
     <AppContext.Provider value={{
-        categories: mockCategories,
-        menuItems: mockMenuItems,
+        categories: defaultCategories,
+        menuItems,
+        staff,
         orders,
         bills,
         kitchenOrders,
+        addMenuItem,
+        updateMenuItem,
+        deleteMenuItem,
+        addStaff,
+        updateStaff,
+        deleteStaff,
+        authenticateStaff,
         addOrder,
         updateOrder,
         updateOrderItemStatus,
@@ -402,13 +498,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         generateBill,
         getTodaysRevenue,
         getActiveOrders,
-    }}>
+      }}>
       {children}
     </AppContext.Provider>
   );
-};
-
-export const useApp = () => {
+};export const useApp = () => {
   const context = useContext(AppContext);
   if (context === undefined) {
     throw new Error('useApp must be used within an AppProvider');

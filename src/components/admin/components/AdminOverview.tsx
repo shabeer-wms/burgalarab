@@ -15,32 +15,58 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 }) => {
   // Analytics calculations
   const today = new Date();
-  const todayOrders = orders.filter((order) => {
+  const todayDateString = today.toDateString();
+
+  // Helper function to safely get order date
+  const getOrderDate = (order: Order): Date | null => {
     try {
-      let orderDate: Date;
       if (order.orderTime instanceof Date) {
-        orderDate = order.orderTime;
+        return order.orderTime;
       } else if (
         typeof order.orderTime === "object" &&
         order.orderTime.toDate
       ) {
-        orderDate = order.orderTime.toDate();
+        return order.orderTime.toDate();
       } else {
-        orderDate = new Date(order.orderTime as string);
+        return new Date(order.orderTime as string);
       }
-      return orderDate.toDateString() === today.toDateString();
     } catch {
-      return false;
+      return null;
     }
-  });
+  };
 
-  const completedOrders = orders.filter(
-    (order) => order.status === "completed"
-  );
-  const totalRevenue = completedOrders.reduce(
-    (sum, order) => sum + (order.grandTotal || 0),
+  // Filter all paid orders
+  const paidOrders = orders.filter((order) => order.paymentStatus === "paid");
+
+  // Calculate total revenue from all paid orders
+  const totalRevenue = paidOrders.reduce(
+    (sum, order) => sum + (order.grandTotal || order.total || 0),
     0
   );
+
+  // Filter today's paid orders (combining both filters for efficiency)
+  const todayPaidOrders = orders.filter((order) => {
+    // First check if payment is made
+    if (order.paymentStatus !== "paid") return false;
+
+    // Then check if order is from today
+    const orderDate = getOrderDate(order);
+    if (!orderDate) return false;
+
+    return orderDate.toDateString() === todayDateString;
+  });
+
+  // Calculate today's revenue from today's paid orders
+  const todayRevenue = todayPaidOrders.reduce(
+    (sum, order) => sum + (order.grandTotal || order.total || 0),
+    0
+  );
+
+  // Calculate today's orders count (all orders, not just paid)
+  const todayOrders = orders.filter((order) => {
+    const orderDate = getOrderDate(order);
+    return orderDate && orderDate.toDateString() === todayDateString;
+  });
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -126,11 +152,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           <div className="text-center sm:text-left">
             <p className="text-sm text-gray-600">Revenue Today</p>
             <p className="text-xl sm:text-2xl font-bold text-green-600">
-              $
-              {todayOrders
-                .filter((order) => order.status === "completed")
-                .reduce((sum, order) => sum + order.grandTotal, 0)
-                .toFixed(2)}
+              ${todayRevenue.toFixed(2)}
             </p>
           </div>
           <div className="text-center sm:text-left">
@@ -138,12 +160,9 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <p className="text-xl sm:text-2xl font-bold text-orange-600">
               {
                 orders.filter((order) =>
-                  [
-                    "pending",
-                    "confirmed",
-                    "preparing",
-                    "ready",
-                  ].includes(order.status)
+                  ["pending", "confirmed", "preparing", "ready"].includes(
+                    order.status
+                  )
                 ).length
               }
             </p>
