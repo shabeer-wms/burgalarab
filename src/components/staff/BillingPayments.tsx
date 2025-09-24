@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order, Bill } from '../../types';
-import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2 } from 'lucide-react';
+import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2, CheckCircle } from 'lucide-react';
 
 const BillingPayments: React.FC = () => {
-  const { orders, bills, generateBill, getTodaysRevenue } = useApp();
+  const { orders, bills, generateBill, getTodaysRevenue, showNotification } = useApp();
   const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<Bill['paymentMethod']>('cash');
   const [paymentFilter, setPaymentFilter] = useState<'all' | Order['paymentStatus']>('all');
@@ -60,6 +60,19 @@ const BillingPayments: React.FC = () => {
   };
 
   const generateBillHTML = (bill: Bill) => {
+    console.log('Generating bill HTML for:', bill);
+    
+    if (!bill || !bill.items) {
+      console.error('Invalid bill data:', bill);
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Bill Error</title></head>
+        <body><p>Error: Could not generate bill - missing data</p></body>
+        </html>
+      `;
+    }
+    
     return `
       <!DOCTYPE html>
       <html>
@@ -82,17 +95,17 @@ const BillingPayments: React.FC = () => {
         </div>
         
         <div>
-          <p><strong>Customer:</strong> ${bill.customerDetails.name}</p>
-          <p><strong>Phone:</strong> ${bill.customerDetails.phone}</p>
-          ${bill.customerDetails.tableNumber ? `<p><strong>Table:</strong> ${bill.customerDetails.tableNumber}</p>` : ''}
-          ${bill.customerDetails.address ? `<p><strong>Vehicle No:</strong> ${bill.customerDetails.address}</p>` : ''}
+          <p><strong>Customer:</strong> ${bill.customerDetails?.name || 'N/A'}</p>
+          <p><strong>Phone:</strong> ${bill.customerDetails?.phone || 'N/A'}</p>
+          ${bill.customerDetails?.tableNumber ? `<p><strong>Table:</strong> ${bill.customerDetails.tableNumber}</p>` : ''}
+          ${bill.customerDetails?.address ? `<p><strong>Vehicle No:</strong> ${bill.customerDetails.address}</p>` : ''}
         </div>
         
         <div style="margin: 20px 0;">
           ${bill.items.map(item => `
             <div class="item">
-              <span>${item.quantity}x ${item.menuItem.name}</span>
-              <span>$${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+              <span>${item.quantity}x ${item.menuItem?.name || 'Unknown Item'}</span>
+              <span>$${((item.menuItem?.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
             </div>
           `).join('')}
         </div>
@@ -100,7 +113,7 @@ const BillingPayments: React.FC = () => {
         <div class="total">
           <div class="item">
             <span>Subtotal:</span>
-            <span>$${bill.subtotal.toFixed(2)}</span>
+            <span>$${bill.subtotal ? bill.subtotal.toFixed(2) : '0.00'}</span>
           </div>
           ${bill.serviceCharge ? `
             <div class="item">
@@ -109,12 +122,12 @@ const BillingPayments: React.FC = () => {
             </div>
           ` : ''}
           <div class="item">
-            <span>Tax (${(bill.taxRate * 100).toFixed(0)}%):</span>
-            <span>$${bill.taxAmount.toFixed(2)}</span>
+            <span>Tax (${bill.taxRate ? (bill.taxRate * 100).toFixed(0) : '0'}%):</span>
+            <span>$${bill.taxAmount ? bill.taxAmount.toFixed(2) : '0.00'}</span>
           </div>
           <div class="item" style="font-size: 18px;">
             <span>Total:</span>
-            <span>$${bill.total.toFixed(2)}</span>
+            <span>$${bill.total ? bill.total.toFixed(2) : '0.00'}</span>
           </div>
           <div class="item">
             <span>Payment Method:</span>
@@ -151,14 +164,6 @@ const BillingPayments: React.FC = () => {
     }
   };
 
-  const getStatusChipColor = (status: Order['status']) => {
-    switch (status) {
-      case 'ready': return 'chip-success';
-      case 'completed': return 'chip-success';
-      default: return 'chip-primary';
-    }
-  };
-
   const formatDate = (date: any) => {
     try {
       if (!date) return 'N/A';
@@ -187,16 +192,16 @@ const BillingPayments: React.FC = () => {
     <div className="space-y-6">
       {/* Revenue Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card text-center">
-          <div className="text-title-large text-success-600">${todaysRevenue.toFixed(2)}</div>
+        <div className="card text-center p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="text-title-large text-success-600 font-bold">${todaysRevenue.toFixed(2)}</div>
           <div className="text-body-medium text-surface-600">Today's Revenue</div>
         </div>
-        <div className="card text-center">
-          <div className="text-title-large text-primary-600">{readyOrders.length}</div>
+        <div className="card text-center p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="text-title-large text-primary-600 font-bold">{readyOrders.length}</div>
           <div className="text-body-medium text-surface-600">Ready for Billing</div>
         </div>
-        <div className="card text-center">
-          <div className="text-title-large text-surface-900">{bills.length}</div>
+        <div className="card text-center p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="text-title-large text-surface-900 font-bold">{bills.length}</div>
           <div className="text-body-medium text-surface-600">Bills Generated</div>
         </div>
       </div>
@@ -243,71 +248,76 @@ const BillingPayments: React.FC = () => {
           
           {/* Orders Grid */}
           {filteredOrders.length === 0 ? (
-            <div className="card text-center py-8">
-              <Receipt className="w-12 h-12 text-surface-300 mx-auto mb-4" />
-              <p className="text-surface-600">No orders found</p>
+            <div className="card text-center py-12 border border-dashed border-surface-300">
+              <Receipt className="w-16 h-16 text-surface-300 mx-auto mb-4" />
+              <p className="text-headline-small text-surface-600">No orders found</p>
+              <p className="text-body-medium text-surface-500 mt-2">Orders will appear here once they are ready for billing</p>
             </div>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredOrders.slice(0, displayedOrdersCount).map(order => (
-              <div 
-                key={order.id} 
-                className="card hover:shadow-elevation-3 transition-all duration-200"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="text-title-medium">#{order.id.slice(-6)}</h3>
-                    <p className="text-body-medium text-surface-600">
-                      {order.customerName}
-                      {order.tableNumber && ` • Table ${order.tableNumber}`}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-title-medium">${order.grandTotal.toFixed(2)}</div>
-                    <div className={`chip ${getStatusChipColor(order.status)} text-xs mb-2`}>
-                      {order.status.toUpperCase()}
-                    </div>
-                    <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)}`}>
-                      <DollarSign className="w-3 h-3 inline mr-1" />
-                      {order.paymentStatus.toUpperCase()}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-2 mb-4">
-                  {order.items.slice(0, 2).map(item => (
-                    <div key={item.id} className="flex justify-between text-body-small">
-                      <span>{item.quantity}x {item.menuItem.name}</span>
-                      <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
-                    </div>
-                  ))}
-                  {order.items.length > 2 && (
-                    <p className="text-body-small text-surface-600">
-                      +{order.items.length - 2} more items
-                    </p>
-                  )}
-                </div>
-
-                {/* Generate Bill Button - Only show for unpaid orders */}
-                {order.paymentStatus !== 'paid' ? (
-                  <button
-                    onClick={() => {
-                      setBillingOrder(order);
-                      setShowBillingDialog(true);
-                    }}
-                    className="w-full btn-primary flex items-center justify-center space-x-2"
+                  <div 
+                    key={order.id} 
+                    className="card p-4 border border-surface-200 hover:shadow-md transition-all duration-300"
                   >
-                    <Receipt className="w-4 h-4" />
-                    <span>Generate Bill</span>
-                  </button>
-                ) : (
-                  <div className="w-full bg-success-50 text-success-700 rounded-lg text-center font-medium flex items-center justify-center space-x-2 min-h-[44px]">
-                    ✓ Payment Completed
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="text-title-medium text-primary-900">Order #{order.id.slice(-6)}</h3>
+                        <p className="text-body-medium text-surface-700">
+                          {order.customerName}
+                          {order.tableNumber && ` • Table ${order.tableNumber}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-title-medium font-bold">${order.grandTotal.toFixed(2)}</div>
+                        <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-1 ${
+                          order.status === 'ready' ? 'bg-success-100 text-success-800' : 
+                          order.status === 'completed' ? 'bg-primary-100 text-primary-800' : 
+                          'bg-surface-100 text-surface-800'
+                        }`}>
+                          {order.status.toUpperCase()}
+                        </div>
+                        <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)} flex items-center justify-end`}>
+                          <DollarSign className="w-3 h-3 mr-1" />
+                          {order.paymentStatus.toUpperCase()}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4 border-t border-b border-surface-100 py-2">
+                      {order.items.slice(0, 2).map(item => (
+                        <div key={item.id} className="flex justify-between text-body-small">
+                          <span>{item.quantity}x {item.menuItem.name}</span>
+                          <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                      ))}
+                      {order.items.length > 2 && (
+                        <p className="text-body-small text-surface-600">
+                          +{order.items.length - 2} more items
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Generate Bill Button - Only show for unpaid orders */}
+                    {order.paymentStatus !== 'paid' ? (
+                      <button
+                        onClick={() => {
+                          setBillingOrder(order);
+                          setShowBillingDialog(true);
+                        }}
+                        className="w-full btn-primary flex items-center justify-center space-x-2 mt-2"
+                      >
+                        <Receipt className="w-4 h-4" />
+                        <span>Generate Bill</span>
+                      </button>
+                    ) : (
+                      <div className="w-full bg-success-50 text-success-700 rounded-lg text-center font-medium flex items-center justify-center space-x-2 min-h-[44px] mt-2">
+                        <CheckCircle className="w-4 h-4 mr-1" /> Payment Completed
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                ))}
               </div>
               
               {/* View More Orders Button */}
@@ -324,54 +334,87 @@ const BillingPayments: React.FC = () => {
             </>
           )}
         </div>
-      </div>      {/* Recent Bills */}
-      <div className="card">
-        <h3 className="text-title-large mb-4">Recent Bills ({bills.length})</h3>
+      </div>
+
+      {/* Recent Bills */}
+      <div>
+        <h2 className="text-headline-medium text-primary-700 mb-4">All Bills</h2>
         {bills.length === 0 ? (
-          <p className="text-surface-600 text-center py-8">No bills generated yet</p>
+          <div className="card text-center py-12 border border-dashed border-surface-300">
+            <Receipt className="w-16 h-16 text-surface-300 mx-auto mb-4" />
+            <p className="text-headline-small text-surface-600">No bills generated yet</p>
+            <p className="text-body-medium text-surface-500 mt-2">Bills will appear here once they are generated</p>
+          </div>
         ) : (
           <>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {bills.slice(-Math.min(displayedBillsCount, bills.length)).reverse().map(bill => (
-              <div key={bill.id} className="flex items-center justify-between p-4 bg-surface-50 rounded-lg">
-                <div>
-                  <p className="text-body-medium font-medium">{bill.id}</p>
-                  <p className="text-body-small text-surface-600">
-                    {bill.customerDetails.name} • {formatDate(bill.generatedAt)}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="text-body-medium font-medium">${bill.total.toFixed(2)}</p>
-                    <div className="flex items-center space-x-1 text-body-small text-surface-600">
-                      {getPaymentIcon(bill.paymentMethod)}
-                      <span className="capitalize">{bill.paymentMethod}</span>
+                <div key={bill.id} className="card p-4 border border-surface-200 hover:shadow-md transition-shadow duration-300">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="text-title-medium text-primary-900">Bill #{bill.id.substring(0, 8)}</p>
+                      <p className="text-body-medium text-surface-700">
+                        {bill.customerDetails?.name || 'N/A'} • {formatDate(bill.generatedAt)}
+                      </p>
+                      <p className="text-body-small text-surface-600">
+                        {bill.customerDetails?.tableNumber ? `Table: ${bill.customerDetails.tableNumber}` : 'Takeaway'}
+                      </p>
+                    </div>
+                    <div className="bg-success-100 text-success-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                      <span>Payment Done</span>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => downloadBillPDF(bill)}
-                      className="p-2 hover:bg-surface-200 rounded-lg"
-                      title="Download PDF"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => printBill(bill)}
-                      className="p-2 hover:bg-surface-200 rounded-lg"
-                      title="Print"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </button>
+                  
+                  <div className="border-t border-surface-100 my-2 pt-2">
+                    <div className="flex justify-between text-body-medium mb-1">
+                      <span>Subtotal:</span>
+                      <span>${bill.subtotal ? bill.subtotal.toFixed(2) : '0.00'}</span>
+                    </div>
+                    {bill.serviceCharge ? (
+                      <div className="flex justify-between text-body-small text-surface-700 mb-1">
+                        <span>Service Charge:</span>
+                        <span>${bill.serviceCharge.toFixed(2)}</span>
+                      </div>
+                    ) : null}
+                    <div className="flex justify-between text-body-small text-surface-700 mb-1">
+                      <span>Tax:</span>
+                      <span>${bill.taxAmount ? bill.taxAmount.toFixed(2) : '0.00'}</span>
+                    </div>
+                    <div className="flex justify-between text-body-large font-medium pt-1 border-t border-surface-100">
+                      <span>Total:</span>
+                      <span>${bill.total ? bill.total.toFixed(2) : '0.00'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 flex justify-between items-center">
+                    <div className="flex items-center text-body-medium text-surface-600">
+                      {bill.paymentMethod && getPaymentIcon(bill.paymentMethod)}
+                      <span className="capitalize ml-1">{bill.paymentMethod || 'N/A'}</span>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => downloadBillPDF(bill)}
+                        className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
+                        title="Download PDF"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => printBill(bill)}
+                        className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
+                        title="Print"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
             </div>
             
             {/* View More Bills Button */}
             {bills.length > displayedBillsCount && (
-              <div className="flex justify-center mt-4">
+              <div className="flex justify-center mt-6">
                 <button
                   onClick={() => setDisplayedBillsCount(bills.length)}
                   className="btn-secondary px-6 py-2 flex items-center space-x-2"
@@ -499,13 +542,13 @@ const BillingPayments: React.FC = () => {
                         setIsGeneratingBill(true);
                         console.log('Generating bill for order:', billingOrder.id);
                         await generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
-                        alert('Bill generated successfully!');
+                        showNotification('Bill generated successfully!', 'success');
                         setShowBillingDialog(false);
                         setBillingOrder(null);
                       } catch (error) {
                         console.error('Error generating bill:', error);
                         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                        alert(`Failed to generate bill: ${errorMessage}`);
+                        showNotification(`Failed to generate bill: ${errorMessage}`, 'error');
                       } finally {
                         setIsGeneratingBill(false);
                       }
