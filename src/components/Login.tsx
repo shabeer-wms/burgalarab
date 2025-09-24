@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
 import { Eye, EyeOff, Lock, Mail, ChefHat } from 'lucide-react';
 
 const Login: React.FC = () => {
@@ -8,12 +9,13 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { login, isLoading } = useAuth();
+  const { staff } = useApp();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
-    const success = await login(email, password);
+    const success = await login(email, password, staff);
     if (!success) {
       setError('Invalid email or password');
     }
@@ -21,9 +23,7 @@ const Login: React.FC = () => {
 
   const demoAccounts = [
     { role: 'Customer', email: 'customer@demo.com', color: 'bg-blue-100 text-blue-800' },
-    { role: 'Waiter', email: 'waiter@demo.com', color: 'bg-green-100 text-green-800' },
-    { role: 'Kitchen', email: 'kitchen@demo.com', color: 'bg-orange-100 text-orange-800' },
-    { role: 'Admin', email: 'admin@demo.com', color: 'bg-purple-100 text-purple-800' },
+    { role: 'Admin', email: 'admin@pro.com', color: 'bg-purple-100 text-purple-800' },
   ];
 
   return (
@@ -127,7 +127,11 @@ const Login: React.FC = () => {
                   key={account.email}
                   onClick={() => {
                     setEmail(account.email);
-                    setPassword('demo123');
+                    if (account.email === 'admin@pro.com') {
+                      setPassword('admin123');
+                    } else {
+                      setPassword('demo123');
+                    }
                   }}
                   className={`text-label-medium px-4 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 ${account.color} shadow-elevation-1 hover:shadow-elevation-2`}
                 >
@@ -135,9 +139,10 @@ const Login: React.FC = () => {
                 </button>
               ))}
             </div>
-            <p className="text-body-small text-center text-surface-500 mt-3">
-              Password for all demo accounts: <code className="bg-surface-100 px-2 py-1 rounded-md font-mono">demo123</code>
-            </p>
+            <div className="text-body-small text-center text-surface-500 mt-3">
+              <p>Customer password: <code className="bg-surface-100 px-2 py-1 rounded-md font-mono">demo123</code></p>
+              <p>Admin password: <code className="bg-surface-100 px-2 py-1 rounded-md font-mono">admin123</code></p>
+            </div>
           </div>
         </div>
       </div>

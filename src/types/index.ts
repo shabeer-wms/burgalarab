@@ -94,3 +94,17 @@ export interface KitchenDisplayItem {
   kitchenNotes?: string;
   paused?: boolean; // Track if the order was paused and moved back to pending
 }
+
+export interface Staff {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  role: "waiter" | "kitchen" | "admin" | "manager";
+  attendance: boolean;
+  dateJoined: string;
+  password?: string; // Only used during creation, not stored in Firestore
+  uid?: string; // Firebase Auth UID
+  createdAt?: Date;
+  updatedAt?: Date;
+}
