@@ -1,28 +1,15 @@
 import React, { useState } from "react";
 import { Search, Plus, Clock, Edit, Trash2, X } from "lucide-react";
-
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  image: string;
-  available: boolean;
-  prepTime: number;
-}
+import { useApp } from "../../../context/AppContext";
 
 interface AdminMenuProps {
-  menuItems: MenuItem[];
-  setMenuItems: React.Dispatch<React.SetStateAction<MenuItem[]>>;
   categories: string[];
 }
 
 export const AdminMenu: React.FC<AdminMenuProps> = ({
-  menuItems,
-  setMenuItems,
   categories,
 }) => {
+  const { menuItems, addMenuItem, updateMenuItem, deleteMenuItem } = useApp();
   const [menuSearchTerm, setMenuSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showAddMenuModal, setShowAddMenuModal] = useState(false);
@@ -30,11 +17,12 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
   const [selectedMenuItem, setSelectedMenuItem] = useState<any>(null);
   const [showDeleteMenuModal, setShowDeleteMenuModal] = useState(false);
   const [menuItemToDelete, setMenuItemToDelete] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [newMenuItem, setNewMenuItem] = useState<{
     name: string;
     description: string;
     category: string;
-    image: string | File;
+    image: string;
     price: string;
     prepTime: string;
     available: boolean;
@@ -58,46 +46,61 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
     return matchesSearch && matchesCategory;
   });
 
-  const handleAddMenuItem = () => {
-    let imageUrl = "";
-    if (typeof newMenuItem.image === "string") {
-      imageUrl = newMenuItem.image;
-    } else if (newMenuItem.image) {
-      imageUrl = URL.createObjectURL(newMenuItem.image);
+  const handleAddMenuItem = async () => {
+    try {
+      setIsLoading(true);
+      const menuItemData = {
+        name: newMenuItem.name,
+        description: newMenuItem.description,
+        category: newMenuItem.category,
+        image: newMenuItem.image,
+        price: parseFloat(newMenuItem.price),
+        prepTime: parseInt(newMenuItem.prepTime),
+        available: newMenuItem.available,
+      };
+
+      await addMenuItem(menuItemData);
+      
+      setNewMenuItem({
+        name: "",
+        description: "",
+        category: "",
+        image: "",
+        price: "",
+        prepTime: "",
+        available: true,
+      });
+      setShowAddMenuModal(false);
+    } catch (error) {
+      console.error("Error adding menu item:", error);
+      alert("Failed to add menu item. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-    const newItem = {
-      id: Date.now().toString(),
-      ...newMenuItem,
-      image: imageUrl,
-      price: parseFloat(newMenuItem.price),
-      prepTime: parseInt(newMenuItem.prepTime),
-    };
-    setMenuItems([...menuItems, newItem]);
-    setNewMenuItem({
-      name: "",
-      description: "",
-      category: "",
-      image: "",
-      price: "",
-      prepTime: "",
-      available: true,
-    });
-    setShowAddMenuModal(false);
   };
 
-  const handleEditMenuItem = () => {
-    const updatedItem = {
-      ...selectedMenuItem,
-      price: parseFloat(selectedMenuItem.price),
-      prepTime: parseInt(selectedMenuItem.prepTime),
-    };
-    setMenuItems(
-      menuItems.map((item) =>
-        item.id === selectedMenuItem.id ? updatedItem : item
-      )
-    );
-    setShowEditMenuModal(false);
-    setSelectedMenuItem(null);
+  const handleEditMenuItem = async () => {
+    try {
+      setIsLoading(true);
+      const updates = {
+        name: selectedMenuItem.name,
+        description: selectedMenuItem.description,
+        category: selectedMenuItem.category,
+        price: parseFloat(selectedMenuItem.price),
+        prepTime: parseInt(selectedMenuItem.prepTime),
+        available: selectedMenuItem.available,
+      };
+
+      await updateMenuItem(selectedMenuItem.id, updates);
+      
+      setShowEditMenuModal(false);
+      setSelectedMenuItem(null);
+    } catch (error) {
+      console.error("Error updating menu item:", error);
+      alert("Failed to update menu item. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDeleteMenuItem = (itemId: string) => {
@@ -105,11 +108,19 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
     setShowDeleteMenuModal(true);
   };
 
-  const confirmDeleteMenuItem = () => {
+  const confirmDeleteMenuItem = async () => {
     if (menuItemToDelete) {
-      setMenuItems(menuItems.filter((item) => item.id !== menuItemToDelete));
-      setMenuItemToDelete(null);
-      setShowDeleteMenuModal(false);
+      try {
+        setIsLoading(true);
+        await deleteMenuItem(menuItemToDelete);
+        setMenuItemToDelete(null);
+        setShowDeleteMenuModal(false);
+      } catch (error) {
+        console.error("Error deleting menu item:", error);
+        alert("Failed to delete menu item. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -131,18 +142,15 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-0">
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Menu Management
-          </h2>
-          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-            <div className="relative w-full sm:w-44">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 sm:flex-1">
+            <div className="relative w-full sm:flex-1">
               <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search menu items..."
                 value={menuSearchTerm}
                 onChange={(e) => setMenuSearchTerm(e.target.value)}
-                className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
               />
             </div>
             <div
@@ -152,7 +160,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none  focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[120px] transition-colors duration-150 pr-8"
+                className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none  focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[120px] transition-colors duration-150 pr-8 h-10"
                 style={{
                   minWidth: "120px",
                   maxWidth: "170px",
@@ -187,15 +195,15 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                 </svg>
               </span>
             </div>
-
-            <button
-              onClick={() => setShowAddMenuModal(true)}
-              className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Item</span>
-            </button>
           </div>
+
+          <button
+            onClick={() => setShowAddMenuModal(true)}
+            className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 sm:ml-4"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Item</span>
+          </button>
         </div>
 
         {/* Menu Items Grid */}
@@ -257,14 +265,12 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                     <input
                       type="checkbox"
                       checked={item.available}
-                      onChange={() => {
-                        setMenuItems(
-                          menuItems.map((m) =>
-                            m.id === item.id
-                              ? { ...m, available: !m.available }
-                              : m
-                          )
-                        );
+                      onChange={async () => {
+                        try {
+                          await updateMenuItem(item.id, { available: !item.available });
+                        } catch (error) {
+                          console.error("Error updating availability:", error);
+                        }
                       }}
                       className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                     />
@@ -435,24 +441,26 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Image Upload
+                  Image URL
                 </label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files && e.target.files[0];
-                    if (file) {
-                      setNewMenuItem({ ...newMenuItem, image: file });
-                    }
-                  }}
+                  type="url"
+                  value={newMenuItem.image}
+                  onChange={(e) =>
+                    setNewMenuItem({ ...newMenuItem, image: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 border-[1px] rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="https://example.com/image.jpg"
                 />
-                {newMenuItem.image && typeof newMenuItem.image !== "string" && (
+                {newMenuItem.image && (
                   <img
-                    src={URL.createObjectURL(newMenuItem.image)}
+                    src={newMenuItem.image}
                     alt="Preview"
                     className="mt-2 w-32 h-32 object-cover rounded"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
                   />
                 )}
               </div>
@@ -527,9 +535,10 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
               </button>
               <button
                 onClick={handleAddMenuItem}
-                className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                disabled={isLoading}
+                className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add Item
+                {isLoading ? "Adding..." : "Add Item"}
               </button>
             </div>
           </div>
@@ -636,31 +645,29 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Image Upload
+                  Image URL
                 </label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files && e.target.files[0];
-                    if (file) {
-                      setSelectedMenuItem({
-                        ...selectedMenuItem,
-                        image: file,
-                      });
-                    }
-                  }}
+                  type="url"
+                  value={selectedMenuItem.image}
+                  onChange={(e) =>
+                    setSelectedMenuItem({
+                      ...selectedMenuItem,
+                      image: e.target.value,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 border-[1px] rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="https://example.com/image.jpg"
                 />
                 {selectedMenuItem.image && (
                   <img
-                    src={
-                      typeof selectedMenuItem.image === "string"
-                        ? selectedMenuItem.image
-                        : URL.createObjectURL(selectedMenuItem.image)
-                    }
+                    src={selectedMenuItem.image}
                     alt="Preview"
                     className="mt-2 w-32 h-32 object-cover rounded"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
                   />
                 )}
               </div>
