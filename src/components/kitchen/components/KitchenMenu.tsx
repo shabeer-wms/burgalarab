@@ -97,7 +97,7 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
           </span>
         </div>
         <div className="absolute top-2 left-2">
-          <span className="bg-blue-100 text-blue-800 px-2 py-1 text-xs font-medium rounded-full">
+          <span className="bg-purple-100 text-purple-800 px-2 py-1 text-xs font-medium rounded-full">
             {item.category}
           </span>
         </div>
@@ -108,7 +108,7 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate flex-1 pr-2">
             {item.name}
           </h3>
-          <span className="text-base sm:text-lg font-bold text-blue-600 flex-shrink-0">
+          <span className="text-base sm:text-lg font-bold text-purple-600 flex-shrink-0">
             ${item.price.toFixed(2)}
           </span>
         </div>
@@ -135,7 +135,7 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
               checked={item.available}
               onChange={() => handleAvailabilityToggle(item.id, item.available)}
               disabled={!onUpdateMenuItem}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
             />
             <span
               className={`ml-2 text-xs sm:text-sm ${
@@ -178,7 +178,7 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
               placeholder="Search menu items..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
 
@@ -194,7 +194,7 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
               onKeyDown={(e) => {
                 if (e.key === "Escape") setIsCategoryOpen(false);
               }}
-              className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm min-w-[140px] transition-colors duration-150 flex items-center justify-between"
+              className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[140px] transition-colors duration-150 flex items-center justify-between"
               aria-haspopup="listbox"
               aria-expanded={isCategoryOpen}
             >
@@ -224,9 +224,9 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
               >
                 <li
                   role="option"
-                  className={`px-4 py-2 text-sm cursor-pointer transition-colors hover:bg-blue-50 ${
+                  className={`px-4 py-2 text-sm cursor-pointer transition-colors hover:bg-purple-50 ${
                     selectedCategory === "all"
-                      ? "bg-blue-600 text-white hover:bg-blue-600"
+                      ? "bg-purple-600 text-white hover:bg-purple-600"
                       : "text-gray-700"
                   }`}
                   onClick={() => {
@@ -240,9 +240,9 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
                   <li
                     key={category}
                     role="option"
-                    className={`px-4 py-2 text-sm cursor-pointer transition-colors hover:bg-blue-50 ${
+                    className={`px-4 py-2 text-sm cursor-pointer transition-colors hover:bg-purple-50 ${
                       selectedCategory === category
-                        ? "bg-blue-600 text-white hover:bg-blue-600"
+                        ? "bg-purple-600 text-white hover:bg-purple-600"
                         : "text-gray-700"
                     }`}
                     onClick={() => {

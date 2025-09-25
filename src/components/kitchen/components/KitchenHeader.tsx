@@ -1,4 +1,5 @@
 import React from "react";
+import { LogOut } from "lucide-react";
 import { StatusCounters } from "./StatusCounters";
 import { kitchenColors } from "../theme/colors";
 import { kitchenLayout } from "../theme/layout";
@@ -57,10 +58,10 @@ export const KitchenHeader: React.FC<KitchenHeaderProps> = ({
           {/* Logout button for mobile only - hidden on tablet and desktop */}
           <button
             onClick={onLogout}
-            className={`md:hidden ml-2 p-2 rounded-md ${kitchenColors.ui.button.danger} flex items-center flex-shrink-0`}
+            className="md:hidden ml-3 p-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors flex-shrink-0"
             aria-label="Logout"
           >
-            <span className="material-icons text-lg">logout</span>
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
 
@@ -79,7 +80,7 @@ export const KitchenHeader: React.FC<KitchenHeaderProps> = ({
             className={`hidden md:flex lg:hidden p-2 rounded-md ${kitchenColors.ui.button.danger} items-center flex-shrink-0`}
             aria-label="Logout"
           >
-            <span className="material-icons text-lg">logout</span>
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>

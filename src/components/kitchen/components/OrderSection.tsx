@@ -40,8 +40,8 @@ export const OrderSection: React.FC<OrderSectionProps> = ({
   onViewAllClick,
   inProgress,
   ready,
-  viewAllButtonColor = "bg-blue-500",
-  viewAllButtonHover = "hover:bg-blue-600",
+  viewAllButtonColor = "bg-purple-600",
+  viewAllButtonHover = "hover:bg-purple-700",
 }) => {
   const isAllView = selectedFilter === "all";
   const displayOrders = isAllView ? orders.slice(0, 4) : orders;
