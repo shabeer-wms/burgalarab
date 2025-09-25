@@ -64,12 +64,12 @@ const AdminDashboard: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 md:p-6 h-full ml-0 md:ml-64 mb-16 md:mb-0 overflow-auto">
+      <main className="flex-1 p-4 md:p-6 h-full ml-0 lg:ml-64 mb-16 lg:mb-0 overflow-auto">
         <div className="w-full h-full">
           {/* Dynamic Header */}
           <header className="bg-white p-6 rounded-2xl shadow-md mb-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
-              <div className="flex items-center w-full md:w-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center flex-1 min-w-0">
                 <div className="bg-purple-100 p-3 rounded-xl mr-3 flex-shrink-0">
                   {activeTab === "overview" && (
                     <TrendingUp className="w-7 h-7 text-purple-600" />
@@ -102,16 +102,16 @@ const AdminDashboard: React.FC = () => {
                     {activeTab === "staff" && "Manage staff accounts and roles"}
                   </p>
                 </div>
-
-                {/* Mobile Logout Icon */}
-                <button
-                  className="md:hidden ml-3 p-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors flex-shrink-0"
-                  aria-label="Logout"
-                  onClick={logout}
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
               </div>
+
+              {/* Logout Button - Show on mobile and tablet, hide on desktop (desktop uses sidebar) */}
+              <button
+                className="lg:hidden ml-4 p-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors flex-shrink-0"
+                aria-label="Logout"
+                onClick={logout}
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
           </header>
 
@@ -128,15 +128,9 @@ const AdminDashboard: React.FC = () => {
             <AdminOrders orders={orders} updateOrder={updateOrder} />
           )}
 
-          {activeTab === "menu" && (
-            <AdminMenu
-              categories={categories}
-            />
-          )}
+          {activeTab === "menu" && <AdminMenu categories={categories} />}
 
-          {activeTab === "staff" && (
-            <AdminStaff />
-          )}
+          {activeTab === "staff" && <AdminStaff />}
         </div>
       </main>
     </div>

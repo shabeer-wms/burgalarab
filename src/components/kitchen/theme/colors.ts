@@ -1,4 +1,4 @@
-// Color scheme configuration for Kitchen Display System
+// Color scheme configuration for Kitchen Display System (Updated to match Admin module)
 export const kitchenColors = {
   // Status colors
   status: {
@@ -13,14 +13,14 @@ export const kitchenColors = {
       navHover: "hover:text-yellow-500",
     },
     inProgress: {
-      primary: "text-blue-500",
-      background: "bg-blue-100",
-      hover: "hover:bg-blue-600",
-      button: "bg-blue-500",
-      badge: "bg-blue-100 text-blue-600",
-      icon: "text-blue-500",
-      navActive: "text-blue-500 bg-blue-50",
-      navHover: "hover:text-blue-500",
+      primary: "text-purple-600",
+      background: "bg-purple-100",
+      hover: "hover:bg-purple-600",
+      button: "bg-purple-600",
+      badge: "bg-purple-100 text-purple-600",
+      icon: "text-purple-600",
+      navActive: "text-purple-700 bg-purple-100",
+      navHover: "hover:text-purple-600",
     },
     ready: {
       primary: "text-green-500",
@@ -46,21 +46,21 @@ export const kitchenColors = {
     sidebar: {
       background: "bg-white",
       text: "text-gray-700",
-      hover: "hover:bg-gray-200",
-      active: "bg-blue-100",
-      border: "border-t",
+      hover: "hover:bg-gray-100",
+      active: "bg-purple-100 border border-purple-200",
+      border: "border-t border-gray-200",
     },
     button: {
-      primary: "bg-blue-500 text-white hover:bg-blue-600",
+      primary: "bg-purple-600 text-white hover:bg-purple-700",
       secondary: "bg-gray-200 text-gray-700 hover:bg-gray-300",
-      danger: "text-red-500 border-red-500 hover:bg-red-500 hover:text-white",
+      danger: "text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400",
       disabled: "bg-gray-700 text-white hover:bg-gray-800",
     },
     layout: {
-      background: "bg-gray-100",
-      card: "bg-white shadow-md",
-      header: "bg-blue-100",
-      headerIcon: "text-blue-500",
+      background: "bg-gray-50",
+      card: "bg-white shadow-lg",
+      header: "bg-purple-100",
+      headerIcon: "text-purple-600",
     },
   },
 
@@ -70,7 +70,7 @@ export const kitchenColors = {
       background: "bg-white",
       border: "border-t border-gray-200",
       text: "text-gray-600",
-      hover: "hover:bg-gray-50",
+      hover: "hover:text-gray-900",
     },
   },
 } as const;

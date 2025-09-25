@@ -44,8 +44,16 @@
     @apply border border-surface-300 text-surface-700 px-6 py-3 rounded-xl font-medium hover:bg-surface-50 focus:outline-none focus:ring-2 focus:ring-surface-500 focus:ring-offset-2 transition-all duration-200;
   }
 
+  .btn-disabled {
+    @apply bg-surface-200 text-surface-500 px-6 py-3 rounded-xl font-medium cursor-not-allowed transition-all duration-200 opacity-60;
+  }
+
+  .btn-warning {
+    @apply bg-warning-100 text-warning-800 px-6 py-3 rounded-xl font-medium hover:bg-warning-200 focus:outline-none focus:ring-2 focus:ring-warning-500 focus:ring-offset-2 transition-all duration-200 shadow-elevation-1 hover:shadow-elevation-2 border border-warning-300;
+  }
+
   .card {
-    @apply bg-white rounded-3xl shadow-elevation-2 p-6 hover:shadow-elevation-3 transition-all duration-200;
+    @apply bg-white rounded-3xl shadow-elevation-2 p-6 hover:shadow-elevation-3 transition-all duration-200 overflow-hidden;
   }
 
   .input-field {

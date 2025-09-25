@@ -1,4 +1,6 @@
 import React from 'react';
+import Snackbar from './components/SnackBar';
+
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; message?: string }>{
   constructor(props: { children: React.ReactNode }) {
     super(props);
@@ -32,7 +34,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { AppProvider } from './context/AppContext';
+import { AppProvider, useApp } from './context/AppContext';
 import Login from './components/Login';
 import Layout from './components/Layout';
 import CustomerDashboard from './components/customer/CustomerDashboard';
@@ -42,6 +44,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
+  const { notification, hideNotification } = useApp();
 
   if (isLoading) {
     return (
@@ -76,6 +79,14 @@ const AppContent: React.FC = () => {
   return (
     <Layout>
       {renderDashboard()}
+      {notification && (
+        <Snackbar 
+          message={notification.message}
+          type={notification.type}
+          show={!!notification}
+          onClose={hideNotification}
+        />
+      )}
     </Layout>
   );
 };
