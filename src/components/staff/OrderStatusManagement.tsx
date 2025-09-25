@@ -14,8 +14,6 @@ const OrderStatusManagement: React.FC = () => {
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
-  const [showPushToKitchenConfirmation, setShowPushToKitchenConfirmation] = useState(false);
-  const [orderToPush, setOrderToPush] = useState<string | null>(null);
 
   const activeOrders = getActiveOrders();
   
@@ -87,28 +85,6 @@ const OrderStatusManagement: React.FC = () => {
         // Clear the state
         setShowCancelConfirmation(false);
         setOrderToCancel(null);
-      }
-    }
-  };
-
-  const handlePushToKitchen = (orderId: string) => {
-    setOrderToPush(orderId);
-    setShowPushToKitchenConfirmation(true);
-  };
-
-  const confirmPushToKitchen = async () => {
-    if (orderToPush) {
-      try {
-        await updateOrder(orderToPush, { 
-          status: 'confirmed'
-        });
-        showNotification('Order pushed to kitchen successfully', 'success');
-      } catch (error) {
-        console.error('Error pushing order to kitchen:', error);
-        showNotification('Failed to push order to kitchen. Please try again.', 'error');
-      } finally {
-        setShowPushToKitchenConfirmation(false);
-        setOrderToPush(null);
       }
     }
   };
@@ -194,110 +170,110 @@ const OrderStatusManagement: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredOrders.map(order => (
-              <div key={order.id} className="card hover:shadow-elevation-3 transition-all duration-200">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-title-medium">#{order.id.slice(-6)}</h3>
-                    <p className="text-body-medium text-surface-600">
-                      {order.customerName} • {order.type}
-                      {order.tableNumber && ` • Table ${order.tableNumber}`}
-                    </p>
-                    <p className="text-body-small text-surface-500">
-                      {(() => {
-                        let date: Date;
-                        if (order.orderTime instanceof Date) {
-                          date = order.orderTime;
-                        } else if (
-                          typeof order.orderTime === 'object' &&
-                          order.orderTime !== null &&
-                          'toDate' in order.orderTime &&
-                          typeof (order.orderTime as { toDate?: unknown }).toDate === 'function'
-                        ) {
-                          date = (order.orderTime as { toDate: () => Date }).toDate(); // Firestore Timestamp
-                        } else {
-                          date = new Date(order.orderTime as string);
-                        }
-                        return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-                      })()}
-                    </p>
+              <div key={order.id} className="card p-0 border border-surface-200 hover:shadow-elevation-3 transition-all duration-200 flex flex-col h-full">
+                {/* Card Content - Main body */}
+                <div className="flex-1 p-4">
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-title-medium">#{order.id.slice(-6)}</h3>
+                      <p className="text-body-medium text-surface-600">
+                        {order.customerName} • {order.type}
+                        {order.tableNumber && ` • Table ${order.tableNumber}`}
+                      </p>
+                      <p className="text-body-small text-surface-500">
+                        {(() => {
+                          let date: Date;
+                          if (order.orderTime instanceof Date) {
+                            date = order.orderTime;
+                          } else if (
+                            typeof order.orderTime === 'object' &&
+                            order.orderTime !== null &&
+                            'toDate' in order.orderTime &&
+                            typeof (order.orderTime as { toDate?: unknown }).toDate === 'function'
+                          ) {
+                            date = (order.orderTime as { toDate: () => Date }).toDate(); // Firestore Timestamp
+                          } else {
+                            date = new Date(order.orderTime as string);
+                          }
+                          return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                        })()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className={`chip ${getStatusColor(order.status)} mb-2`}>
+                        {getStatusIcon(order.status)}
+                        <span className="ml-1">{order.status.toUpperCase()}</span>
+                      </div>
+                      <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)}`}>
+                        <DollarSign className="w-3 h-3 inline mr-1" />
+                        {order.paymentStatus.toUpperCase()}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`chip ${getStatusColor(order.status)} mb-2`}>
-                      {getStatusIcon(order.status)}
-                      <span className="ml-1">{order.status.toUpperCase()}</span>
-                    </div>
-                    <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)}`}>
-                      <DollarSign className="w-3 h-3 inline mr-1" />
-                      {order.paymentStatus.toUpperCase()}
-                    </div>
+
+                  <div className="space-y-2 mb-4">
+                    {order.items.slice(0, 2).map(item => (
+                      <div key={item.id} className="flex justify-between text-body-small">
+                        <span>{item.quantity}x {item.menuItem.name}</span>
+                        <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    {order.items.length > 2 && (
+                      <p className="text-body-small text-surface-600">
+                        +{order.items.length - 2} more items
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-2 mb-4">
-                  {order.items.slice(0, 2).map(item => (
-                    <div key={item.id} className="flex justify-between text-body-small">
-                      <span>{item.quantity}x {item.menuItem.name}</span>
-                      <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                {/* Card Footer - Price, time and actions */}
+                <div className="border-t border-surface-100 bg-surface-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                      <div className="text-title-medium font-semibold text-primary-600">
+                        ${order.grandTotal.toFixed(2)}
+                      </div>
+                      <div className="text-body-small text-surface-600 flex items-center">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {(() => {
+                          let date: Date;
+                          if (order.orderTime instanceof Date) {
+                            date = order.orderTime;
+                          } else if (
+                            typeof order.orderTime === 'object' &&
+                            order.orderTime !== null &&
+                            'toDate' in order.orderTime &&
+                            typeof (order.orderTime as { toDate?: unknown }).toDate === 'function'
+                          ) {
+                            date = (order.orderTime as { toDate: () => Date }).toDate();
+                          } else {
+                            date = new Date(order.orderTime as string);
+                          }
+                          return getTimeElapsed(date);
+                        })()}min ago
+                      </div>
                     </div>
-                  ))}
-                  {order.items.length > 2 && (
-                    <p className="text-body-small text-surface-600">
-                      +{order.items.length - 2} more items
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-title-medium">${order.grandTotal.toFixed(2)}</span>
-                    <span className="text-body-small text-surface-600 ml-2">
-                      {(() => {
-                        let date: Date;
-                        if (order.orderTime instanceof Date) {
-                          date = order.orderTime;
-                        } else if (
-                          typeof order.orderTime === 'object' &&
-                          order.orderTime !== null &&
-                          'toDate' in order.orderTime &&
-                          typeof (order.orderTime as { toDate?: unknown }).toDate === 'function'
-                        ) {
-                          date = (order.orderTime as { toDate: () => Date }).toDate();
-                        } else {
-                          date = new Date(order.orderTime as string);
-                        }
-                        return getTimeElapsed(date);
-                      })()}min ago
-                    </span>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setShowOrderDialog(true);
-                      }}
-                      className="p-2 hover:bg-surface-100 rounded-lg"
-                      title="View details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    {order.status === 'pending' && (
+                    <div className="flex space-x-2 shrink-0">
                       <button
-                        onClick={() => handlePushToKitchen(order.id)}
-                        className="p-2 hover:bg-green-100 text-green-600 rounded-lg"
-                        title="Push to kitchen"
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setShowOrderDialog(true);
+                        }}
+                        className="p-2 hover:bg-surface-200 rounded-lg transition-colors border border-surface-200"
+                        title="View details"
                       >
-                        <ChefHat className="w-4 h-4" />
+                        <Eye className="w-4 h-4" />
                       </button>
-                    )}
-                    {order.status !== 'completed' && order.status !== 'cancelled' && (
-                      <button
-                        onClick={() => handleCancelOrder(order.id)}
-                        className="p-2 hover:bg-red-100 text-red-600 rounded-lg"
-                        title="Cancel order"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                      {order.status !== 'completed' && order.status !== 'cancelled' && (
+                        <button
+                          onClick={() => handleCancelOrder(order.id)}
+                          className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors border border-red-200"
+                          title="Cancel order"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -344,21 +320,6 @@ const OrderStatusManagement: React.FC = () => {
           setOrderToCancel(null);
         }}
         type="danger"
-      />
-
-      {/* Push to Kitchen Confirmation Dialog */}
-      <ConfirmationDialog
-        isOpen={showPushToKitchenConfirmation}
-        title="Push to Kitchen"
-        message="Are you sure you want to push this pending order to the kitchen? This will change the order status to confirmed."
-        confirmText="Yes, Push to Kitchen"
-        cancelText="No, Keep as Pending"
-        onConfirm={confirmPushToKitchen}
-        onCancel={() => {
-          setShowPushToKitchenConfirmation(false);
-          setOrderToPush(null);
-        }}
-        type="info"
       />
     </div>
   );

@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import OrderManagement from '../staff/OrderManagement';
 import OrderStatusManagement from '../staff/OrderStatusManagement';
 import BillingPayments from '../staff/BillingPayments';
-import { ShoppingCart, Eye, Receipt, Menu, X, User } from 'lucide-react';
+import { ShoppingCart, Eye, Receipt, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 
 const WaiterDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'status' | 'billing'>('orders');
   const [selectedTable, setSelectedTable] = useState<string>('1');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const { orders, getActiveOrders } = useApp();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -34,30 +33,30 @@ const WaiterDashboard: React.FC = () => {
   return (
     // Full-viewport container similar to kitchen dashboard
     <div className="fixed inset-0 flex bg-gray-100">
-      {/* Desktop sidebar (hidden on small screens) */}
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex-col">
-        <div className="p-6 text-lg text-gray-800 border-b">
-          <p className="font-bold">Hotel Management</p>
-          <p className="text-base">Waiter Dashboard</p>
+      {/* Desktop sidebar (hidden on tablet and smaller screens) */}
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex-col z-40">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <h1 className="text-lg font-bold text-gray-900">Hotel Management</h1>
+          <p className="text-sm text-gray-600 mt-1">Waiter Dashboard</p>
         </div>
         <nav className="flex-1 px-4 py-4 space-y-2">
           {tabs.map(tab => (
-            <a
+            <button
               key={tab.id}
-              href="#"
               onClick={(e) => {
                 e.preventDefault();
                 setActiveTab(tab.id);
               }}
-              className={`flex items-center px-4 py-2 rounded-lg ${
+              className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${
                 activeTab === tab.id
-                  ? 'text-gray-700 bg-blue-100'
-                  : 'text-gray-700 hover:bg-gray-200'
+                  ? 'text-purple-700 bg-purple-100 border border-purple-200'
+                  : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
               <tab.icon className="w-5 h-5 mr-3" />
-              {tab.label}
-            </a>
+              <span className="font-medium">{tab.label}</span>
+            </button>
           ))}
         </nav>
         <div className="p-4 border-t">
@@ -82,109 +81,56 @@ const WaiterDashboard: React.FC = () => {
         </div>
       </aside>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-50 md:hidden"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setSidebarOpen(false)}
-        >
-          <div className="absolute inset-0 bg-black opacity-40" />
-          <div
-            className="relative w-64 h-full bg-white shadow-lg p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-4 text-lg text-gray-800 border-b">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-bold">Hotel Management</p>
-                  <p className="text-base">Waiter Dashboard</p>
-                </div>
-                <button
-                  aria-label="Close menu"
-                  className="p-2 rounded-md text-gray-600 hover:bg-gray-100"
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            <nav className="flex-1 px-4 py-4 space-y-2">
-              {tabs.map(tab => (
-                <a
-                  key={tab.id}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveTab(tab.id);
-                    setSidebarOpen(false);
-                  }}
-                  className={`flex items-center px-4 py-2 rounded-lg ${
-                    activeTab === tab.id
-                      ? 'text-gray-700 bg-blue-100'
-                      : 'text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <tab.icon className="w-5 h-5 mr-3" />
-                  {tab.label}
-                </a>
-              ))}
-            </nav>
-            <div className="p-4 border-t">
-              <div className="mb-4 flex items-center">
-                <User className="w-6 h-6 mr-3 text-gray-500" />
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">
-                    {user?.name || 'Waiter'}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Waiter'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setSidebarOpen(false);
-                  logout();
-                }}
-                className="w-full flex items-center justify-center px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white"
-              >
-                <span className="material-icons mr-2">logout</span>
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Mobile and tablet bottom navigation (visible only on non-desktop screens) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+        <nav className="flex">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex flex-col items-center py-2 px-1 transition-colors ${
+                activeTab === tab.id
+                  ? "text-purple-600 bg-purple-50"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <tab.icon className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
 
       {/* Main content area */}
-      <main className="flex-1 p-4 md:p-6 min-h-screen ml-0 md:ml-64 overflow-auto">
+      <main className="flex-1 p-4 md:p-6 h-full ml-0 lg:ml-64 mb-16 lg:mb-0 overflow-auto">
         <div className="w-full flex justify-center">
           <div className="w-full" style={{ maxWidth: 1200 }}>
             <header className="bg-white p-6 rounded-2xl shadow-md mb-8">
               <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
-                <div className="flex items-center w-full md:w-auto">
+                <div className="flex items-center w-full md:w-auto justify-between md:justify-start">
+                  <div className="flex items-center min-w-0">
+                    <div className="bg-purple-100 w-12 h-12 rounded-xl mr-3 flex-shrink-0 flex items-center justify-center">
+                      <ShoppingCart className="w-6 h-6 text-purple-600" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <h1 className="text-lg md:text-2xl font-bold text-gray-800 truncate">
+                        {tabs.find(tab => tab.id === activeTab)?.label || 'Waiter Dashboard'}
+                      </h1>
+                      <p className="text-gray-500 text-sm">
+                        {currentTime.toLocaleTimeString()} | {activeOrders.length} Active Orders
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Logout Button - Show on mobile and tablet, hide on desktop (desktop uses sidebar) */}
                   <button
-                    className="md:hidden mr-3 p-2 rounded-md text-gray-600 hover:bg-gray-100"
-                    aria-label="Open menu"
-                    onClick={() => setSidebarOpen(true)}
+                    className="lg:hidden ml-4 p-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors flex-shrink-0"
+                    aria-label="Logout"
+                    onClick={logout}
                   >
-                    <Menu className="w-5 h-5" />
+                    <LogOut className="w-5 h-5" />
                   </button>
-
-                  <div className="bg-blue-100 w-12 h-12 rounded-xl mr-3 flex-shrink-0 flex items-center justify-center">
-                    <ShoppingCart className="w-6 h-6 text-blue-500" />
-                  </div>
-
-                  <div className="min-w-0">
-                    <h1 className="text-lg md:text-2xl font-bold text-gray-800 truncate">
-                      {tabs.find(tab => tab.id === activeTab)?.label || 'Waiter Dashboard'}
-                    </h1>
-                    <p className="text-gray-500 text-sm">
-                      {currentTime.toLocaleTimeString()} | {activeOrders.length} Active Orders
-                    </p>
-                  </div>
                 </div>
 
                 <div className="w-full md:w-96">
@@ -202,7 +148,7 @@ const WaiterDashboard: React.FC = () => {
                       <p className="text-gray-500 text-[11px] sm:text-xs">Paused</p>
                     </div>
                     <div className="flex flex-col items-center">
-                      <p className="text-base sm:text-lg font-bold text-blue-500 w-8 text-center">
+                      <p className="text-base sm:text-lg font-bold text-purple-600 w-8 text-center">
                         {inProgressOrders.length}
                       </p>
                       <p className="text-gray-500 text-[11px] sm:text-xs">In Progress</p>
@@ -224,7 +170,7 @@ const WaiterDashboard: React.FC = () => {
                       <p className="text-gray-500 text-sm">Paused</p>
                     </div>
                     <div className="flex flex-col items-center">
-                      <p className="text-3xl font-bold text-blue-500 w-12 text-center tabular-nums">
+                      <p className="text-3xl font-bold text-purple-600 w-12 text-center tabular-nums">
                         {inProgressOrders.length}
                       </p>
                       <p className="text-gray-500 text-sm">In Progress</p>
