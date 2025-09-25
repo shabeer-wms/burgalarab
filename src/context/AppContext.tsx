@@ -6,8 +6,7 @@ import {
   Category,
   Bill,
   KitchenDisplayItem,
-  Staff,
-  Notification
+  Staff
 } from "../types";
 import { db, auth } from "../firebase";
 import {
@@ -22,7 +21,7 @@ import {
   setDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { seedMenuItems } from "../utils/seedMenuItems";
 
 interface AppContextType {
@@ -490,9 +489,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteStaff = async (id: string): Promise<void> => {
     try {
-      // Find the staff member to get their UID
-      const staffMember = staff.find(s => s.id === id);
-      
       // Delete from Firestore
       await deleteDoc(doc(db, "staff", id));
       

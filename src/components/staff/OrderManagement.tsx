@@ -37,7 +37,6 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
 
   // Payment dialog states
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [selectedPaymentOption, setSelectedPaymentOption] = useState<'now' | 'later' | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showPaymentMethodDialog, setShowPaymentMethodDialog] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'upi' | 'online'>('cash');
@@ -455,8 +454,6 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
       console.log('Payment already being processed, ignoring duplicate click');
       return;
     }
-    
-    setSelectedPaymentOption(paymentOption);
     
     if (paymentOption === 'now') {
       // Just show payment method dialog without creating order yet
