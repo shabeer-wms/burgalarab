@@ -27,8 +27,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   return (
     <>
-      {/* Desktop sidebar (hidden on small screens) */}
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex-col z-40">
+      {/* Desktop sidebar (hidden on tablet and smaller screens) */}
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex-col z-40">
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <h1 className="text-lg font-bold text-gray-900">Hotel Management</h1>
@@ -83,8 +83,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </div>
       </aside>
 
-      {/* Mobile bottom navigation (visible only on small screens) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+      {/* Mobile and tablet bottom navigation (visible only on non-desktop screens) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
         <nav className="flex">
           {menuItems.map((item) => {
             const Icon = item.icon;
