@@ -6,6 +6,13 @@ export interface User {
   tableNumber?: string;
 }
 
+export interface Notification {
+  id: string;
+  message: string;
+  type: "success" | "error";
+  timestamp: Date;
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -51,6 +58,8 @@ export interface Order {
   waiterId?: string;
   kitchenNotes?: string;
   estimatedTime?: number; // in minutes
+  draft?: boolean; // indicates if the order is a draft
+  paused?: boolean; // Track if the order was paused from kitchen
 }
 
 export interface Category {

@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Order } from '../../types';
-import { Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, Filter, ChefHat, Trash2, X } from 'lucide-react';
+import { 
+  Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, Filter, ChefHat, 
+  Trash2, X, Receipt, CreditCard, Banknote, Smartphone, Globe 
+} from 'lucide-react';
+import ConfirmationDialog from '../../components/ConfirmationDialog';
 
 const OrderStatusManagement: React.FC = () => {
-  const { orders, getActiveOrders, updateOrder } = useApp();
+  const { orders, getActiveOrders, updateOrder, showNotification } = useApp();
   const [selectedStatus, setSelectedStatus] = useState<'all' | Order['status']>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
+  const [showPushToKitchenConfirmation, setShowPushToKitchenConfirmation] = useState(false);
+  const [orderToPush, setOrderToPush] = useState<string | null>(null);
 
   const activeOrders = getActiveOrders();
   
@@ -59,17 +67,48 @@ const OrderStatusManagement: React.FC = () => {
     }
   };
 
-  const handleCancelOrder = async (orderId: string) => {
-    if (window.confirm('Are you sure you want to cancel this order?')) {
+  const handleCancelOrder = (orderId: string) => {
+    setOrderToCancel(orderId);
+    setShowCancelConfirmation(true);
+  };
+  
+  const confirmCancelOrder = async () => {
+    if (orderToCancel) {
       try {
-        await updateOrder(orderId, { 
+        await updateOrder(orderToCancel, { 
           status: 'cancelled',
           completedTime: new Date()
         });
-        alert('Order cancelled successfully');
+        showNotification('Order cancelled successfully', 'success');
       } catch (error) {
         console.error('Error cancelling order:', error);
-        alert('Failed to cancel order. Please try again.');
+        showNotification('Failed to cancel order. Please try again.', 'error');
+      } finally {
+        // Clear the state
+        setShowCancelConfirmation(false);
+        setOrderToCancel(null);
+      }
+    }
+  };
+
+  const handlePushToKitchen = (orderId: string) => {
+    setOrderToPush(orderId);
+    setShowPushToKitchenConfirmation(true);
+  };
+
+  const confirmPushToKitchen = async () => {
+    if (orderToPush) {
+      try {
+        await updateOrder(orderToPush, { 
+          status: 'confirmed'
+        });
+        showNotification('Order pushed to kitchen successfully', 'success');
+      } catch (error) {
+        console.error('Error pushing order to kitchen:', error);
+        showNotification('Failed to push order to kitchen. Please try again.', 'error');
+      } finally {
+        setShowPushToKitchenConfirmation(false);
+        setOrderToPush(null);
       }
     }
   };
@@ -85,11 +124,11 @@ const OrderStatusManagement: React.FC = () => {
       {/* Header & Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card text-center">
-          <div className="text-title-large text-warning-600">{orders.filter(o => o.status === 'pending').length}</div>
-          <div className="text-body-medium text-surface-600">Pending</div>
+          <div className="text-title-large text-warning-600">{orders.filter(o => o.status === 'confirmed' && o.paused === true).length}</div>
+          <div className="text-body-medium text-surface-600">Paused Orders</div>
         </div>
         <div className="card text-center">
-          <div className="text-title-large text-primary-600">{orders.filter(o => ['confirmed', 'preparing'].includes(o.status)).length}</div>
+          <div className="text-title-large text-primary-600">{orders.filter(o => o.status === 'preparing' || (o.status === 'confirmed' && o.paused !== true)).length}</div>
           <div className="text-body-medium text-surface-600">In Progress</div>
         </div>
         <div className="card text-center">
@@ -112,12 +151,6 @@ const OrderStatusManagement: React.FC = () => {
               className={`chip ${selectedStatus === 'all' ? 'chip-primary' : 'chip-secondary'}`}
             >
               All Orders
-            </button>
-            <button
-              onClick={() => setSelectedStatus('pending')}
-              className={`chip ${selectedStatus === 'pending' ? 'chip-warning' : 'chip-secondary'}`}
-            >
-              Pending
             </button>
             <button
               onClick={() => setSelectedStatus('confirmed')}
@@ -247,6 +280,15 @@ const OrderStatusManagement: React.FC = () => {
                     >
                       <Eye className="w-4 h-4" />
                     </button>
+                    {order.status === 'pending' && (
+                      <button
+                        onClick={() => handlePushToKitchen(order.id)}
+                        className="p-2 hover:bg-green-100 text-green-600 rounded-lg"
+                        title="Push to kitchen"
+                      >
+                        <ChefHat className="w-4 h-4" />
+                      </button>
+                    )}
                     {order.status !== 'completed' && order.status !== 'cancelled' && (
                       <button
                         onClick={() => handleCancelOrder(order.id)}
@@ -288,6 +330,36 @@ const OrderStatusManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Cancel Order Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showCancelConfirmation}
+        title="Cancel Order"
+        message="Are you sure you want to cancel this order? This action cannot be undone."
+        confirmText="Yes, Cancel Order"
+        cancelText="No, Keep It"
+        onConfirm={confirmCancelOrder}
+        onCancel={() => {
+          setShowCancelConfirmation(false);
+          setOrderToCancel(null);
+        }}
+        type="danger"
+      />
+
+      {/* Push to Kitchen Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showPushToKitchenConfirmation}
+        title="Push to Kitchen"
+        message="Are you sure you want to push this pending order to the kitchen? This will change the order status to confirmed."
+        confirmText="Yes, Push to Kitchen"
+        cancelText="No, Keep as Pending"
+        onConfirm={confirmPushToKitchen}
+        onCancel={() => {
+          setShowPushToKitchenConfirmation(false);
+          setOrderToPush(null);
+        }}
+        type="info"
+      />
     </div>
   );
 };
@@ -301,7 +373,12 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
     <div className="space-y-6">
         {/* Order Info */}
         <div>
-          <h4 className="text-title-medium mb-2">Order #{order.id.slice(-6)}</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-title-medium">Order #{order.id.slice(-6)}</h4>
+            {order.draft && (
+              <span className="chip chip-secondary">DRAFT</span>
+            )}
+          </div>
           <div className="space-y-1 text-body-medium">
             <p><strong>Customer:</strong> {order.customerName}</p>
             <p><strong>Phone:</strong> {order.customerPhone}</p>
@@ -331,7 +408,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
         {/* Order Status Timeline */}
         <div>
           <h4 className="text-title-medium mb-4">Order Progress</h4>
-          <OrderStatusTimeline currentStatus={order.status} />
+          <OrderStatusTimeline currentStatus={order.status} order={order} />
         </div>
 
         {/* Order Items */}
@@ -401,12 +478,42 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
               <span className={`font-medium ${
                 order.paymentStatus === 'paid' ? 'text-success-600' :
                 order.paymentStatus === 'pending' ? 'text-warning-600' :
+                order.paymentStatus === 'partial' ? 'text-amber-600' :
                 'text-error-600'
               }`}>
                 {order.paymentStatus.toUpperCase()}
               </span>
             </div>
+            {order.paymentMethod && (
+              <div className="flex justify-between">
+                <span>Payment Method:</span>
+                <span className="font-medium">
+                  {order.paymentMethod === 'cash' && (
+                    <span className="flex items-center"><Banknote className="w-4 h-4 mr-1" /> Cash</span>
+                  )}
+                  {order.paymentMethod === 'card' && (
+                    <span className="flex items-center"><CreditCard className="w-4 h-4 mr-1" /> Card</span>
+                  )}
+                  {order.paymentMethod === 'online' && (
+                    <span className="flex items-center"><Globe className="w-4 h-4 mr-1" /> Online</span>
+                  )}
+                  {order.paymentMethod === 'upi' && (
+                    <span className="flex items-center"><Smartphone className="w-4 h-4 mr-1" /> UPI</span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
+          {(order.status === 'ready' || order.status === 'completed') && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-700 flex items-center">
+                <Receipt className="w-4 h-4 mr-2" />
+                {order.paymentStatus === 'paid' 
+                  ? "Bill has been generated and payment received" 
+                  : "This order is ready for billing"}
+              </p>
+            </div>
+          )}
         </div>
     </div>
   );
@@ -414,9 +521,10 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
 
 interface OrderStatusTimelineProps {
   currentStatus: Order['status'];
+  order?: Order;
 }
 
-const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus }) => {
+const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus, order }) => {
   const timelineSteps = [
     {
       id: 'pending',
@@ -445,6 +553,11 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus
   ];
 
   const getStepStatus = (stepId: string) => {
+    // Handle draft orders specially
+    if (currentStatus === 'pending' && order?.draft) {
+      return stepId === 'pending' ? 'draft' : 'pending';
+    }
+    
     const currentIndex = timelineSteps.findIndex(step => step.id === currentStatus);
     const stepIndex = timelineSteps.findIndex(step => step.id === stepId);
     
@@ -476,6 +589,12 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus
           container: 'text-error-600',
           icon: 'bg-error-600 text-white',
           line: 'bg-error-600'
+        };
+      case 'draft':
+        return {
+          container: 'text-surface-600',
+          icon: 'bg-surface-600 text-white',
+          line: 'bg-surface-300'
         };
       default:
         return {
@@ -514,6 +633,13 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus
                 <div className="mt-2">
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                     Current Status
+                  </span>
+                </div>
+              )}
+              {status === 'draft' && (
+                <div className="mt-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-surface-100 text-surface-800">
+                    Draft
                   </span>
                 </div>
               )}

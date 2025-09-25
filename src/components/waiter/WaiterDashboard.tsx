@@ -21,8 +21,8 @@ const WaiterDashboard: React.FC = () => {
   }, []);
 
   const activeOrders = getActiveOrders();
-  const pendingOrders = orders.filter(o => o.status === 'pending');
-  const inProgressOrders = orders.filter(o => ['confirmed', 'preparing'].includes(o.status));
+  const pausedOrders = orders.filter(o => o.status === 'confirmed' && o.paused === true);
+  const inProgressOrders = orders.filter(o => o.status === 'preparing' || (o.status === 'confirmed' && o.paused !== true));
   const readyOrders = orders.filter(o => o.status === 'ready');
 
   const tabs = [
@@ -197,9 +197,9 @@ const WaiterDashboard: React.FC = () => {
                   >
                     <div className="flex flex-col items-center">
                       <p className="text-base sm:text-lg font-bold text-yellow-500 w-8 text-center">
-                        {pendingOrders.length}
+                        {pausedOrders.length}
                       </p>
-                      <p className="text-gray-500 text-[11px] sm:text-xs">Pending</p>
+                      <p className="text-gray-500 text-[11px] sm:text-xs">Paused</p>
                     </div>
                     <div className="flex flex-col items-center">
                       <p className="text-base sm:text-lg font-bold text-blue-500 w-8 text-center">
@@ -219,9 +219,9 @@ const WaiterDashboard: React.FC = () => {
                   <div className="hidden md:flex md:items-center md:gap-6 md:justify-end">
                     <div className="flex flex-col items-center">
                       <p className="text-3xl font-bold text-yellow-500 w-12 text-center tabular-nums">
-                        {pendingOrders.length}
+                        {pausedOrders.length}
                       </p>
-                      <p className="text-gray-500 text-sm">Pending</p>
+                      <p className="text-gray-500 text-sm">Paused</p>
                     </div>
                     <div className="flex flex-col items-center">
                       <p className="text-3xl font-bold text-blue-500 w-12 text-center tabular-nums">
