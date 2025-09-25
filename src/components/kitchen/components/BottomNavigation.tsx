@@ -24,29 +24,15 @@ const navigationItems: NavigationItem[] = [
   { id: "menu", label: "Menu", icon: "menu_book" },
 ];
 
-const getButtonClasses = (
-  isSelected: boolean,
-  filterId: "all" | "pending" | "in-progress" | "ready" | "menu"
-) => {
-  const baseClasses = `flex flex-col items-center justify-center ${kitchenLayout.sizing.button.navBottom}`;
+const getButtonClasses = (isSelected: boolean) => {
+  const baseClasses = `flex flex-col items-center justify-center ${kitchenLayout.sizing.button.navBottom} transition-colors`;
 
   if (isSelected) {
-    switch (filterId) {
-      case "pending":
-        return `${baseClasses} ${kitchenColors.status.pending.navActive}`;
-      case "in-progress":
-      case "all":
-        return `${baseClasses} ${kitchenColors.status.inProgress.navActive}`;
-      case "ready":
-        return `${baseClasses} ${kitchenColors.status.ready.navActive}`;
-      case "menu":
-        return `${baseClasses} ${kitchenColors.status.inProgress.navActive}`;
-      default:
-        return `${baseClasses} ${kitchenColors.status.inProgress.navActive}`;
-    }
+    // All selected items use the same purple styling, just like admin module
+    return `${baseClasses} text-purple-600 bg-purple-50`;
   }
 
-  return `${baseClasses} ${kitchenColors.navigation.bottom.text} ${kitchenColors.navigation.bottom.hover}`;
+  return `${baseClasses} text-gray-600 hover:text-gray-900`;
 };
 
 export const BottomNavigation: React.FC<BottomNavigationProps> = ({
@@ -64,7 +50,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           <button
             key={item.id}
             onClick={(e) => onFilterClick(e, item.id)}
-            className={getButtonClasses(selectedFilter === item.id, item.id)}
+            className={getButtonClasses(selectedFilter === item.id)}
           >
             <span
               className={`material-icons ${kitchenLayout.typography.navigation.bottom}`}

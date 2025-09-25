@@ -131,28 +131,26 @@ export const AdminStaff: React.FC = () => {
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-0">
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Staff Management
-          </h2>
-          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
-            <div className="relative">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 sm:flex-1">
+            <div className="relative w-full sm:flex-1">
               <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search staff..."
                 value={staffSearchTerm}
                 onChange={(e) => setStaffSearchTerm(e.target.value)}
-                className="pl-8 sm:pl-10 pr-4 py-2 w-full sm:w-auto border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
               />
             </div>
-            <button
-              onClick={() => setShowAddStaffModal(true)}
-              className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Staff</span>
-            </button>
           </div>
+
+          <button
+            onClick={() => setShowAddStaffModal(true)}
+            className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 sm:ml-4"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Staff</span>
+          </button>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">

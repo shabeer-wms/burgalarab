@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import { Order } from "../../../types";
 import {
   Printer,
-  Edit,
   X,
   Clock,
   CheckCircle,
   AlertCircle,
   Package,
   ChefHat,
+  Download,
+  RotateCcw,
 } from "lucide-react";
 
 // Helper functions
@@ -72,10 +73,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     | "completed"
     | "cancelled"
   >("all");
-  const [orderUpdateLoading, setOrderUpdateLoading] = useState(false);
-  const [orderUpdateError, setOrderUpdateError] = useState<string | null>(null);
-  const [showEditOrderModal, setShowEditOrderModal] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<any>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showCancelOrderModal, setShowCancelOrderModal] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<any>(null);
@@ -84,36 +81,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     orderFilter === "all"
       ? orders
       : orders.filter((order) => order.status === orderFilter);
-
-  const openEditOrderModal = (order: any) => {
-    setEditingOrder({ ...order });
-    setShowEditOrderModal(true);
-  };
-
-  const handleEditOrder = async () => {
-    if (editingOrder) {
-      setOrderUpdateLoading(true);
-      setOrderUpdateError(null);
-      console.log("Updating order:", editingOrder);
-      try {
-        await updateOrder(editingOrder.id, {
-          status: editingOrder.status,
-          paymentStatus: editingOrder.paymentStatus,
-          customerName: editingOrder.customerName,
-          customerPhone: editingOrder.customerPhone,
-          tableNumber: editingOrder.tableNumber,
-          kitchenNotes: editingOrder.specialInstructions ?? "", // Never undefined
-        });
-        setShowEditOrderModal(false);
-        setEditingOrder(null);
-      } catch (err) {
-        setOrderUpdateError("Failed to update order. See console for details.");
-        console.error("Order update error:", err);
-      } finally {
-        setOrderUpdateLoading(false);
-      }
-    }
-  };
 
   const printBill = (order: Order) => {
     const billContent = generateBillHTML(order);
@@ -227,19 +194,83 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     }
   };
 
+  const handleUncancelOrder = (order: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateOrder(order.id, { status: "pending" });
+  };
+
   const cancelCancelOrder = () => {
     setOrderToCancel(null);
     setShowCancelOrderModal(false);
+  };
+
+  const handleExportOrders = () => {
+    try {
+      // Prepare data for export
+      const exportData = filteredOrders.map((order) => ({
+        "Order ID": order.id,
+        "Customer Name": order.customerName || "N/A",
+        "Table Number": order.tableNumber || "N/A",
+        Status: order.status,
+        "Order Date": formatDateTime(order.orderTime),
+        "Total Amount": `$${order.grandTotal?.toFixed(2) || "0.00"}`,
+        Items:
+          order.items
+            ?.map((item) => `${item.menuItem.name} x${item.quantity}`)
+            .join(", ") || "No items",
+        "Payment Method": order.paymentMethod || "N/A",
+        "Kitchen Notes": order.kitchenNotes || "N/A",
+      }));
+
+      // Convert to CSV
+      const headers = Object.keys(exportData[0] || {});
+      const csvContent = [
+        headers.join(","),
+        ...exportData.map((row) =>
+          headers
+            .map((header) => {
+              const value = row[header as keyof typeof row];
+              // Escape commas and quotes in values
+              return `"${String(value).replace(/"/g, '""')}"`;
+            })
+            .join(",")
+        ),
+      ].join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `orders_export_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error exporting orders:", error);
+      alert("Failed to export orders. Please try again.");
+    }
   };
 
   return (
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-0">
         <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Order Management
-          </h2>
-          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+          <div className="sm:flex-1"></div>
+
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleExportOrders}
+              className="flex items-center justify-center text-gray-700 hover:text-gray-900 p-2 transition-colors duration-150 h-10 w-10"
+              title="Export Orders"
+            >
+              <Download size={18} />
+            </button>
+
             <div
               className="relative w-full sm:w-auto"
               style={{ minWidth: "140px", maxWidth: "180px" }}
@@ -247,7 +278,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
               <select
                 value={orderFilter}
                 onChange={(e) => setOrderFilter(e.target.value as any)}
-                className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[140px] transition-colors duration-150 pr-8"
+                className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[140px] transition-colors duration-150 pr-8 h-10"
                 style={{
                   minWidth: "140px",
                   maxWidth: "180px",
@@ -397,28 +428,24 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                         >
                           <Printer className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
-                        {order.status !== "completed" && (
-                          <>
+                        {order.status === "cancelled" ? (
+                          <button
+                            onClick={(e) => handleUncancelOrder(order, e)}
+                            className="text-green-600 hover:text-green-900 p-1"
+                            title="Uncancel Order"
+                          >
+                            <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </button>
+                        ) : (
+                          order.paymentStatus !== "paid" && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditOrderModal(order);
-                              }}
-                              className="text-blue-600 hover:text-blue-900 p-1"
-                              title="Edit Order"
+                              onClick={(e) => handleCancelOrder(order, e)}
+                              className="text-red-600 hover:text-red-900 p-1"
+                              title="Cancel Order"
                             >
-                              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <X className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
-                            {order.status !== "cancelled" && (
-                              <button
-                                onClick={(e) => handleCancelOrder(order, e)}
-                                className="text-red-600 hover:text-red-900 p-1"
-                                title="Cancel Order"
-                              >
-                                <X className="w-3 h-3 sm:w-4 sm:h-4" />
-                              </button>
-                            )}
-                          </>
+                          )
                         )}
                       </div>
                     </td>
@@ -429,202 +456,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Edit Order Modal */}
-      {showEditOrderModal && editingOrder && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4"
-          style={{
-            margin: 0,
-            padding: 16,
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: "100vw",
-            height: "100vh",
-          }}
-        >
-          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-4 sm:p-6 border-b">
-              <h3 className="text-lg font-medium text-gray-900">
-                Edit Order #{editingOrder.id.slice(-4)}
-              </h3>
-              <button
-                onClick={() => setShowEditOrderModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
-              >
-                <X className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-            </div>
-
-            <div className="p-4 sm:p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Customer Name
-                </label>
-                <input
-                  type="text"
-                  value={editingOrder.customerName}
-                  onChange={(e) =>
-                    setEditingOrder({
-                      ...editingOrder,
-                      customerName: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Customer Phone
-                </label>
-                <input
-                  type="tel"
-                  value={editingOrder.customerPhone || ""}
-                  onChange={(e) =>
-                    setEditingOrder({
-                      ...editingOrder,
-                      customerPhone: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Table Number
-                </label>
-                <input
-                  type="number"
-                  value={editingOrder.tableNumber || ""}
-                  onChange={(e) =>
-                    setEditingOrder({
-                      ...editingOrder,
-                      tableNumber: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Order Status
-                </label>
-                <select
-                  value={editingOrder.status}
-                  onChange={(e) =>
-                    setEditingOrder({
-                      ...editingOrder,
-                      status: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-white appearance-none pr-10"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="preparing">Preparing</option>
-                  <option value="ready">Ready</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 mt-3">
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </span>
-              </div>
-
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Payment Status
-                </label>
-                <select
-                  value={editingOrder.paymentStatus}
-                  onChange={(e) =>
-                    setEditingOrder({
-                      ...editingOrder,
-                      paymentStatus: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-white appearance-none pr-10"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="paid">Paid</option>
-                </select>
-                <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 mt-3">
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </span>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Special Instructions
-                </label>
-                <textarea
-                  value={editingOrder.specialInstructions || ""}
-                  onChange={(e) =>
-                    setEditingOrder({
-                      ...editingOrder,
-                      specialInstructions: e.target.value,
-                    })
-                  }
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter any special instructions..."
-                />
-              </div>
-
-              {orderUpdateError && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                  <p className="text-sm text-red-600">{orderUpdateError}</p>
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  onClick={() => setShowEditOrderModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleEditOrder}
-                  disabled={orderUpdateLoading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
-                >
-                  {orderUpdateLoading ? "Updating..." : "Update Order"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Cancel Order Confirmation Modal */}
       {showCancelOrderModal && (
