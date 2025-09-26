@@ -78,27 +78,14 @@ const Login: React.FC = () => {
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type="password"
                   autoComplete="current-password"
                   required
-                  className="appearance-none block w-full pl-12 pr-12 py-4 border border-surface-300 rounded-xl placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-body-large transition-all duration-200"
+                  className="appearance-none block w-full pl-12 py-4 border border-surface-300 rounded-xl placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-body-large transition-all duration-200"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-                  <button
-                    type="button"
-                    className="text-surface-400 hover:text-surface-600 transition-colors duration-200"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
               </div>
             </div>
 
