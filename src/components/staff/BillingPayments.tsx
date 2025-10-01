@@ -259,63 +259,69 @@ const BillingPayments: React.FC = () => {
                 {filteredOrders.slice(0, displayedOrdersCount).map(order => (
                   <div 
                     key={order.id} 
-                    className="card p-4 border border-surface-200 hover:shadow-md transition-all duration-300"
+                    className="card p-0 border border-surface-200 hover:shadow-md transition-all duration-300 flex flex-col h-full"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-title-medium text-primary-900">Order #{order.id.slice(-6)}</h3>
-                        <p className="text-body-medium text-surface-700">
-                          {order.customerName}
-                          {order.tableNumber && ` • Table ${order.tableNumber}`}
-                        </p>
+                    {/* Card Content - Main body */}
+                    <div className="flex-1 p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="text-title-medium text-primary-900">Order #{order.id.slice(-6)}</h3>
+                          <p className="text-body-medium text-surface-700">
+                            {order.customerName}
+                            {order.tableNumber && ` • Table ${order.tableNumber}`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-title-medium font-bold">${order.grandTotal.toFixed(2)}</div>
+                          <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-1 ${
+                            order.status === 'ready' ? 'bg-success-100 text-success-800' : 
+                            order.status === 'completed' ? 'bg-primary-100 text-primary-800' : 
+                            'bg-surface-100 text-surface-800'
+                          }`}>
+                            {order.status.toUpperCase()}
+                          </div>
+                          <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)} flex items-center justify-end`}>
+                            <DollarSign className="w-3 h-3 mr-1" />
+                            {order.paymentStatus.toUpperCase()}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-title-medium font-bold">${order.grandTotal.toFixed(2)}</div>
-                        <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-1 ${
-                          order.status === 'ready' ? 'bg-success-100 text-success-800' : 
-                          order.status === 'completed' ? 'bg-primary-100 text-primary-800' : 
-                          'bg-surface-100 text-surface-800'
-                        }`}>
-                          {order.status.toUpperCase()}
-                        </div>
-                        <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)} flex items-center justify-end`}>
-                          <DollarSign className="w-3 h-3 mr-1" />
-                          {order.paymentStatus.toUpperCase()}
-                        </div>
+                      
+                      <div className="space-y-2 border-t border-b border-surface-100 py-2">
+                        {order.items.slice(0, 2).map(item => (
+                          <div key={item.id} className="flex justify-between text-body-small">
+                            <span>{item.quantity}x {item.menuItem.name}</span>
+                            <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                        {order.items.length > 2 && (
+                          <p className="text-body-small text-surface-600">
+                            +{order.items.length - 2} more items
+                          </p>
+                        )}
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2 mb-4 border-t border-b border-surface-100 py-2">
-                      {order.items.slice(0, 2).map(item => (
-                        <div key={item.id} className="flex justify-between text-body-small">
-                          <span>{item.quantity}x {item.menuItem.name}</span>
-                          <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                      {order.items.length > 2 && (
-                        <p className="text-body-small text-surface-600">
-                          +{order.items.length - 2} more items
-                        </p>
-                      )}
                     </div>
 
-                    {/* Generate Bill Button - Only show for unpaid orders */}
-                    {order.paymentStatus !== 'paid' ? (
-                      <button
-                        onClick={() => {
-                          setBillingOrder(order);
-                          setShowBillingDialog(true);
-                        }}
-                        className="w-full btn-primary flex items-center justify-center space-x-2 mt-2"
-                      >
-                        <Receipt className="w-4 h-4" />
-                        <span>Generate Bill</span>
-                      </button>
-                    ) : (
-                      <div className="w-full bg-success-50 text-success-700 rounded-lg text-center font-medium flex items-center justify-center space-x-2 min-h-[44px] mt-2">
-                        <CheckCircle className="w-4 h-4 mr-1" /> Payment Completed
-                      </div>
-                    )}
+                    {/* Card Footer - Sticky at bottom */}
+                    <div className="border-t border-surface-100 bg-surface-50 px-4 py-3">
+                      {order.paymentStatus !== 'paid' ? (
+                        <button
+                          onClick={() => {
+                            setBillingOrder(order);
+                            setShowBillingDialog(true);
+                          }}
+                          className="w-full btn-primary flex items-center justify-center space-x-2"
+                        >
+                          <Receipt className="w-4 h-4" />
+                          <span>Generate Bill</span>
+                        </button>
+                      ) : (
+                        <div className="w-full bg-success-100 text-success-700 rounded-lg text-center font-medium flex items-center justify-center space-x-2 min-h-[44px] border border-success-200">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Payment Completed</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -349,63 +355,70 @@ const BillingPayments: React.FC = () => {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {bills.slice(-Math.min(displayedBillsCount, bills.length)).reverse().map(bill => (
-                <div key={bill.id} className="card p-4 border border-surface-200 hover:shadow-md transition-shadow duration-300">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="text-title-medium text-primary-900">Bill #{bill.id.substring(0, 8)}</p>
-                      <p className="text-body-medium text-surface-700">
-                        {bill.customerDetails?.name || 'N/A'} • {formatDate(bill.generatedAt)}
-                      </p>
-                      <p className="text-body-small text-surface-600">
-                        {bill.customerDetails?.tableNumber ? `Table: ${bill.customerDetails.tableNumber}` : 'Takeaway'}
-                      </p>
-                    </div>
-                    <div className="bg-success-100 text-success-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
-                      <span>Payment Done</span>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-surface-100 my-2 pt-2">
-                    <div className="flex justify-between text-body-medium mb-1">
-                      <span>Subtotal:</span>
-                      <span>${bill.subtotal ? bill.subtotal.toFixed(2) : '0.00'}</span>
-                    </div>
-                    {bill.serviceCharge ? (
-                      <div className="flex justify-between text-body-small text-surface-700 mb-1">
-                        <span>Service Charge:</span>
-                        <span>${bill.serviceCharge.toFixed(2)}</span>
+                <div key={bill.id} className="card p-0 border border-surface-200 hover:shadow-md transition-shadow duration-300 flex flex-col h-full">
+                  {/* Card Content - Main body */}
+                  <div className="flex-1 p-4">
+                    <div className="flex justify-between items-start mb-3 gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-title-medium text-primary-900 truncate">Bill #{bill.id.substring(0, 8)}</p>
+                        <p className="text-body-medium text-surface-700 truncate">
+                          {bill.customerDetails?.name || 'N/A'} • {formatDate(bill.generatedAt)}
+                        </p>
+                        <p className="text-body-small text-surface-600 truncate">
+                          {bill.customerDetails?.tableNumber ? `Table: ${bill.customerDetails.tableNumber}` : 'Takeaway'}
+                        </p>
                       </div>
-                    ) : null}
-                    <div className="flex justify-between text-body-small text-surface-700 mb-1">
-                      <span>Tax:</span>
-                      <span>${bill.taxAmount ? bill.taxAmount.toFixed(2) : '0.00'}</span>
+                      <div className="bg-success-100 text-success-800 px-2 py-1 rounded-full text-xs sm:text-sm font-medium flex items-center shrink-0 whitespace-nowrap">
+                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                        <span>Payment Done</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-body-large font-medium pt-1 border-t border-surface-100">
-                      <span>Total:</span>
-                      <span>${bill.total ? bill.total.toFixed(2) : '0.00'}</span>
+                    
+                    <div className="border-t border-surface-100 my-2 pt-2">
+                      <div className="flex justify-between text-body-medium mb-1">
+                        <span>Subtotal:</span>
+                        <span>${bill.subtotal ? bill.subtotal.toFixed(2) : '0.00'}</span>
+                      </div>
+                      {bill.serviceCharge ? (
+                        <div className="flex justify-between text-body-small text-surface-700 mb-1">
+                          <span>Service Charge:</span>
+                          <span>${bill.serviceCharge.toFixed(2)}</span>
+                        </div>
+                      ) : null}
+                      <div className="flex justify-between text-body-small text-surface-700 mb-1">
+                        <span>Tax:</span>
+                        <span>${bill.taxAmount ? bill.taxAmount.toFixed(2) : '0.00'}</span>
+                      </div>
+                      <div className="flex justify-between text-body-large font-medium pt-1 border-t border-surface-100">
+                        <span>Total:</span>
+                        <span>${bill.total ? bill.total.toFixed(2) : '0.00'}</span>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="mt-3 flex justify-between items-center">
-                    <div className="flex items-center text-body-medium text-surface-600">
-                      {bill.paymentMethod && getPaymentIcon(bill.paymentMethod)}
-                      <span className="capitalize ml-1">{bill.paymentMethod || 'N/A'}</span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => downloadBillPDF(bill)}
-                        className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
-                        title="Download PDF"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => printBill(bill)}
-                        className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
-                        title="Print"
-                      >
-                        <Printer className="w-4 h-4" />
-                      </button>
+                  {/* Card Footer - Payment method and actions */}
+                  <div className="border-t border-surface-100 bg-surface-50 px-4 py-3">
+                    <div className="flex justify-between items-center gap-2">
+                      <div className="flex items-center text-body-medium text-surface-600 min-w-0 flex-1">
+                        {bill.paymentMethod && getPaymentIcon(bill.paymentMethod)}
+                        <span className="capitalize ml-1 truncate">{bill.paymentMethod || 'N/A'}</span>
+                      </div>
+                      <div className="flex space-x-2 shrink-0">
+                        <button
+                          onClick={() => downloadBillPDF(bill)}
+                          className="p-2 hover:bg-surface-200 rounded-lg transition-colors border border-surface-200"
+                          title="Download PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => printBill(bill)}
+                          className="p-2 hover:bg-surface-200 rounded-lg transition-colors border border-surface-200"
+                          title="Print"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
