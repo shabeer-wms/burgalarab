@@ -10,9 +10,21 @@ import { QRCodeCanvas } from 'qrcode.react';
 interface OrderManagementProps {
   tableNumber?: string;
   setSelectedTable?: React.Dispatch<React.SetStateAction<string>>;
+  onCartUpdate?: (items: OrderItem[]) => void;
+  onFunctionsUpdate?: (functions: {
+    sendToKitchen: () => void;
+    payNow: () => void;
+    payLater: () => void;
+    clearCart: () => void;
+  }) => void;
 }
 
-const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelectedTable }) => {
+const OrderManagement: React.FC<OrderManagementProps> = ({ 
+  tableNumber, 
+  setSelectedTable, 
+  onCartUpdate, 
+  onFunctionsUpdate 
+}) => {
   const { menuItems, categories, addOrder, showNotification, generateBill } = useApp();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -205,6 +217,34 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
     setIsOrderModified(false);
     setSavedOrderSnapshot('');
   };
+
+  // Update cart in waiter dashboard
+  useEffect(() => {
+    if (onCartUpdate) {
+      onCartUpdate(orderItems);
+    }
+  }, [orderItems, onCartUpdate]);
+
+  // Update cart functions in waiter dashboard
+  useEffect(() => {
+    if (onFunctionsUpdate) {
+      onFunctionsUpdate({
+        sendToKitchen: pushToKitchen,
+        payNow: async () => {
+          // Handle payment now - create order and process payment
+          await handlePaymentOptionSelected('now');
+        },
+        payLater: async () => {
+          // Handle payment later - create order and save for later payment
+          await handlePaymentOptionSelected('later');
+        },
+        clearCart: () => {
+          setOrderItems([]);
+          resetOrderState();
+        }
+      });
+    }
+  }, [onFunctionsUpdate]);
 
   const filteredMenuItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
@@ -497,6 +537,69 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
       {/* Menu Items */}
       <div className="lg:col-span-2 space-y-6">
+        {/* Customer Details - Mobile/Tablet Only */}
+        <div className="card lg:hidden">
+          <h3 className="text-title-large mb-4">Customer Details</h3>
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Customer Name *"
+              value={customerDetails.name}
+              onChange={(e) => updateCustomerDetails('name', e.target.value)}
+              className="input-field"
+            />
+            <input
+              type="tel"
+              placeholder="Phone Number *"
+              value={customerDetails.phone}
+              onChange={(e) => updateCustomerDetails('phone', e.target.value)}
+              className="input-field"
+            />
+            <div className="flex space-x-2">
+              <button
+                onClick={() => updateOrderType('dine-in')}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  orderType === 'dine-in' 
+                    ? 'bg-primary-600 text-white' 
+                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                }`}
+              >
+                Dine-in
+              </button>
+              <button
+                onClick={() => updateOrderType('delivery')}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                  orderType === 'delivery' 
+                    ? 'bg-primary-600 text-white' 
+                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                }`}
+              >
+                Delivery
+              </button>
+            </div>
+            {orderType === 'delivery' && (
+              <input
+                type="text"
+                placeholder="Vehicle Number"
+                value={customerDetails.vehicleNumber}
+                onChange={(e) => updateCustomerDetails('vehicleNumber', e.target.value)}
+                className="input-field"
+              />
+            )}
+            {orderType === 'dine-in' && tableNumber && (
+              <>
+                <button
+                  type="button"
+                  className="chip chip-primary px-4 py-2 focus:outline-none"
+                  onClick={() => setShowTablePicker(true)}
+                >
+                  Table: {selectedTable}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* Search Bar */}
         <div className="card">
           <h3 className="text-title-large mb-4">Search Menu Items</h3>
@@ -511,6 +614,36 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
             />
           </div>
         </div>
+
+        {/* Table Picker Dialog - Mobile/Tablet */}
+        {showTablePicker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 lg:hidden">
+            <div className="bg-white rounded-lg shadow-lg p-4 w-[260px] h-[320px] max-w-full flex flex-col mx-4">
+              <h3 className="text-title-medium mb-2 text-center">Select Table Number</h3>
+              <div className="grid grid-cols-5 gap-2 mb-2 overflow-y-auto flex-1" style={{maxHeight: '200px'}}>
+                {[...Array(100)].map((_, i) => (
+                  <button
+                    key={i+1}
+                    className={`rounded-lg px-2 py-2 text-xs font-medium border ${selectedTable === String(i+1) ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'}`}
+                    onClick={() => updateSelectedTable(String(i+1))}
+                  >
+                    {i+1}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-end space-x-2 mt-2">
+                <button
+                  className="btn-outlined px-3 py-1 text-xs"
+                  onClick={() => setShowTablePicker(false)}
+                >Cancel</button>
+                <button
+                  className="btn-primary px-3 py-1 text-xs"
+                  onClick={() => setShowTablePicker(false)}
+                >Select</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Category Filter */}
         <div className="card">
@@ -535,7 +668,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
         </div>
 
         {/* Menu Items Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4">
           {filteredMenuItems.map(item => (
             <div key={item.id} className="card hover:shadow-elevation-4 transition-all duration-200">
               <img 
@@ -600,8 +733,8 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
 
       {/* Order Summary */}
       <div className="space-y-6 w-full">
-        {/* Customer Details */}
-        <div className="card">
+        {/* Customer Details - Desktop Only */}
+        <div className="card hidden lg:block">
           <h3 className="text-title-large mb-4">Customer Details</h3>
           <div className="space-y-4">
             <input
@@ -618,15 +751,6 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
               onChange={(e) => updateCustomerDetails('phone', e.target.value)}
               className="input-field"
             />
-            {orderType === 'delivery' && (
-              <input
-                type="text"
-                placeholder="Vehicle Number"
-                value={customerDetails.vehicleNumber}
-                onChange={(e) => updateCustomerDetails('vehicleNumber', e.target.value)}
-                className="input-field"
-              />
-            )}
             <div className="flex space-x-2">
               <button
                 onClick={() => updateOrderType('dine-in')}
@@ -649,6 +773,15 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
                 Delivery
               </button>
             </div>
+            {orderType === 'delivery' && (
+              <input
+                type="text"
+                placeholder="Vehicle Number"
+                value={customerDetails.vehicleNumber}
+                onChange={(e) => updateCustomerDetails('vehicleNumber', e.target.value)}
+                className="input-field"
+              />
+            )}
             {orderType === 'dine-in' && tableNumber && (
               <>
                 <button
@@ -659,7 +792,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ tableNumber, setSelec
                   Table: {selectedTable}
                 </button>
                 {showTablePicker && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden lg:flex">
                     <div className="bg-white rounded-lg shadow-lg p-4 w-[260px] h-[320px] max-w-full flex flex-col">
                       <h3 className="text-title-medium mb-2 text-center">Select Table Number</h3>
                       <div className="grid grid-cols-5 gap-2 mb-2 overflow-y-auto flex-1" style={{maxHeight: '200px'}}>

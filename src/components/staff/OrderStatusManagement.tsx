@@ -97,8 +97,8 @@ const OrderStatusManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header & Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Header & Stats - Hidden on mobile and tablet (lg:hidden hides on screens smaller than 1024px) */}
+      <div className="hidden lg:grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card text-center">
           <div className="text-title-large text-warning-600">{orders.filter(o => o.status === 'confirmed' && o.paused === true).length}</div>
           <div className="text-body-medium text-surface-600">Paused Orders</div>

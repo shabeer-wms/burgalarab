@@ -380,15 +380,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const billRef = await addDoc(collection(db, 'bills'), billData);
       console.log('Bill saved with ID:', billRef.id);
 
-      // Update order status
-      await updateOrder(orderId, { paymentStatus: 'paid', status: 'completed' });
-      console.log('Order status updated successfully');
+      // Update order status to confirmed so it goes to kitchen
+      await updateOrder(orderId, { paymentStatus: 'paid', status: 'confirmed' });
+      console.log('Order status updated to confirmed - sent to kitchen');
 
-      // Also update kitchen order status to completed
+      // Also update kitchen order status to confirmed for kitchen display
       try {
         const kitchenRef = doc(db, "kitchenOrders", orderId);
-        await updateDoc(kitchenRef, { status: 'completed' });
-        console.log('Kitchen order status updated to completed');
+        await updateDoc(kitchenRef, { status: 'confirmed' });
+        console.log('Kitchen order status updated to confirmed');
       } catch (kitchenError) {
         console.log('Kitchen order may not exist or already updated:', kitchenError);
       }
