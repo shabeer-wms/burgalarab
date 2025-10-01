@@ -172,23 +172,23 @@ const WaiterDashboard: React.FC = () => {
                     >
                       {activeTab === 'billing' ? (
                         <>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-blue-500 w-8 text-center">
+                          <div className="flex flex-col items-center min-w-[60px]">
+                            <p className="text-sm sm:text-base font-bold text-blue-500 w-8 text-center">
                               {totalOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Total</p>
+                            <p className="text-gray-500 text-[10px] sm:text-[11px] whitespace-nowrap">Total</p>
                           </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-orange-500 w-8 text-center">
+                          <div className="flex flex-col items-center min-w-[60px]">
+                            <p className="text-sm sm:text-base font-bold text-orange-500 w-8 text-center">
                               {readyForBillingCount}
                             </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Ready Billing</p>
+                            <p className="text-gray-500 text-[10px] sm:text-[11px] whitespace-nowrap">Ready</p>
                           </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
+                          <div className="flex flex-col items-center min-w-[60px]">
+                            <p className="text-sm sm:text-base font-bold text-green-500 w-8 text-center">
                               {generatedBillsCount}
                             </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Generated</p>
+                            <p className="text-gray-500 text-[10px] sm:text-[11px] whitespace-nowrap">Bills</p>
                           </div>
                         </>
                       ) : (
@@ -219,23 +219,23 @@ const WaiterDashboard: React.FC = () => {
                     <div className="hidden md:flex md:items-center md:gap-6 md:justify-end">
                       {activeTab === 'billing' ? (
                         <>
-                          <div className="flex flex-col items-center">
-                            <p className="text-3xl font-bold text-blue-500 w-12 text-center tabular-nums">
+                          <div className="flex flex-col items-center min-w-[80px]">
+                            <p className="text-2xl font-bold text-blue-500 w-12 text-center tabular-nums">
                               {totalOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-sm">Total Orders</p>
+                            <p className="text-gray-500 text-xs whitespace-nowrap">Total</p>
                           </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-3xl font-bold text-orange-500 w-12 text-center tabular-nums">
+                          <div className="flex flex-col items-center min-w-[80px]">
+                            <p className="text-2xl font-bold text-orange-500 w-12 text-center tabular-nums">
                               {readyForBillingCount}
                             </p>
-                            <p className="text-gray-500 text-sm">Ready for Billing</p>
+                            <p className="text-gray-500 text-xs whitespace-nowrap">Ready</p>
                           </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-3xl font-bold text-green-500 w-12 text-center tabular-nums">
+                          <div className="flex flex-col items-center min-w-[80px]">
+                            <p className="text-2xl font-bold text-green-500 w-12 text-center tabular-nums">
                               {generatedBillsCount}
                             </p>
-                            <p className="text-gray-500 text-sm">Generated Bills</p>
+                            <p className="text-gray-500 text-xs whitespace-nowrap">Bills</p>
                           </div>
                         </>
                       ) : (

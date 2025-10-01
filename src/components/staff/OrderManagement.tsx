@@ -249,8 +249,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
   const filteredMenuItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
     const matchesSearch = searchTerm === '' || 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      item.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -669,65 +668,96 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
         {/* Menu Items Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4">
-          {filteredMenuItems.map(item => (
-            <div key={item.id} className="card hover:shadow-elevation-4 transition-all duration-200">
-              <img 
-                src={item.image} 
-                alt={item.name}
-                className="w-full h-32 object-cover rounded-xl mb-4"
-              />
-              <div className="space-y-2">
-                <h4 className="text-title-medium">{item.name}</h4>
-                <p className="text-body-small text-surface-600">{item.description}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-title-medium text-primary-600">${item.price.toFixed(2)}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-body-small text-surface-600">{item.prepTime}min</span>
-                    {/* Quick quantity controls */}
-                    {(() => {
-                      const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
-                      const quantity = existingItem?.quantity || 0;
-                      
-                      if (quantity > 0) {
-                        return (
-                          <div className="flex items-center space-x-1 bg-primary-50 rounded-lg p-1">
-                            <button
-                              onClick={() => updateQuantity(existingItem!.id, -1)}
-                              className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+          {filteredMenuItems.map(item => {
+            const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
+            const isSelected = existingItem && existingItem.quantity > 0;
+            const isOutOfStock = !item.available;
+            
+            return (
+              <button 
+                key={item.id} 
+                className={`card transition-all duration-200 text-left p-0 ${
+                  isOutOfStock 
+                    ? 'bg-red-100 border-red-300 cursor-not-allowed opacity-70' 
+                    : isSelected 
+                      ? 'bg-green-100 border-green-300 hover:bg-green-150 hover:shadow-elevation-4' 
+                      : 'hover:shadow-elevation-4'
+                }`}
+                onClick={() => item.available && addToOrder(item)}
+                disabled={!item.available}
+              >
+              <div className="p-4">
+                <img 
+                  src={item.image} 
+                  alt={item.name}
+                  className="w-full h-32 object-cover rounded-xl mb-4"
+                />
+                <div className="space-y-2">
+                  <h4 className="text-title-medium">{item.name}</h4>
+                  <p className="text-body-small text-surface-600">{item.description}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-title-medium text-primary-600">${item.price.toFixed(2)}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-body-small text-surface-600">{item.prepTime}min</span>
+                      {/* Quick quantity controls */}
+                      {(() => {
+                        const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
+                        const quantity = existingItem?.quantity || 0;
+                        
+                        if (quantity > 0) {
+                          return (
+                            <div 
+                              className="flex items-center space-x-1 bg-primary-50 rounded-lg p-1"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="text-sm font-medium text-primary-700 min-w-[20px] text-center">
-                              {quantity}
-                            </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateQuantity(existingItem!.id, -1);
+                                }}
+                                className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="text-sm font-medium text-primary-700 min-w-[20px] text-center">
+                                {quantity}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToOrder(item);
+                                }}
+                                className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          );
+                        } else {
+                          return (
                             <button
-                              onClick={() => addToOrder(item)}
-                              className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToOrder(item);
+                              }}
+                              disabled={!item.available}
+                              className="btn-primary p-2 min-w-0"
                             >
-                              <Plus className="w-3 h-3" />
+                              <Plus className="w-4 h-4" />
                             </button>
-                          </div>
-                        );
-                      } else {
-                        return (
-                          <button
-                            onClick={() => addToOrder(item)}
-                            disabled={!item.available}
-                            className="btn-primary p-2 min-w-0"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        );
+                          );
                       }
                     })()}
+                    </div>
                   </div>
+                  {!item.available && (
+                    <span className="chip chip-error text-xs">Out of Stock</span>
+                  )}
                 </div>
-                {!item.available && (
-                  <span className="chip chip-error text-xs">Out of Stock</span>
-                )}
               </div>
-            </div>
-          ))}
+            </button>
+            );
+          })}
         </div>
       </div>
 
