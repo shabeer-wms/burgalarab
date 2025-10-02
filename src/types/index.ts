@@ -110,7 +110,7 @@ export interface Staff {
   email: string;
   phoneNumber: string;
   role: "waiter" | "kitchen" | "admin" | "manager";
-  attendance: boolean;
+  isFrozen: boolean;
   dateJoined: string;
   password?: string; // Only used during creation, not stored in Firestore
   uid?: string; // Firebase Auth UID
