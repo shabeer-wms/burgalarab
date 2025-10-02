@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Search, Plus, Clock, Edit, Trash2, X } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
+import { ImageUpload } from "./ImageUpload";
 
 interface AdminMenuProps {
   categories: string[];
@@ -86,6 +87,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
         name: selectedMenuItem.name,
         description: selectedMenuItem.description,
         category: selectedMenuItem.category,
+        image: selectedMenuItem.image,
         price: parseFloat(selectedMenuItem.price),
         prepTime: parseInt(selectedMenuItem.prepTime),
         available: selectedMenuItem.available,
@@ -207,7 +209,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
         </div>
 
         {/* Menu Items Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
           {filteredMenuItems.map((item) => (
             <div
               key={item.id}
@@ -217,11 +219,11 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                 <img
                   src={item.image}
                   alt={item.name}
-                  className="w-full h-40 sm:h-48 object-cover"
+                  className="w-full h-24 sm:h-28 md:h-32 object-cover"
                 />
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-1 right-1">
                   <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${
                       item.available
                         ? "bg-green-100 text-green-800"
                         : "bg-red-100 text-red-800"
@@ -230,72 +232,71 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                     {item.available ? "Available" : "Unavailable"}
                   </span>
                 </div>
-                <div className="absolute top-2 left-2">
-                  <span className="bg-purple-100 text-purple-800 px-2 py-1 text-xs font-medium rounded-full">
+                <div className="absolute top-1 left-1">
+                  <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 text-xs font-medium rounded-full">
                     {item.category}
                   </span>
                 </div>
               </div>
 
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate flex-1 pr-2">
+              <div className="p-2 md:p-3">
+                <div className="flex justify-between items-start mb-1">
+                  <h3 className="text-xs sm:text-sm font-semibold text-gray-900 truncate flex-1 pr-1">
                     {item.name}
                   </h3>
-                  <span className="text-base sm:text-lg font-bold text-purple-600 flex-shrink-0">
+                  <span className="text-xs sm:text-sm font-bold text-purple-600 flex-shrink-0">
                     ${item.price}
                   </span>
                 </div>
 
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                <p className="text-gray-600 text-xs mb-2 line-clamp-2 leading-tight">
                   {item.description}
                 </p>
 
-                <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
+                <div className="flex justify-start items-center text-xs text-gray-500 mb-2">
                   <span className="flex items-center">
-                    <Clock className="w-4 h-4 mr-1" />
+                    <Clock className="w-3 h-3 mr-1" />
                     {item.prepTime} min
                   </span>
-                  <span className="text-xs">ID: #{item.id}</span>
                 </div>
 
                 <div className="flex justify-between items-center">
-                  {/* Available/Unavailable Checkbox */}
-                  <label className="flex items-center select-none">
-                    <input
-                      type="checkbox"
-                      checked={item.available}
-                      onChange={async () => {
-                        try {
-                          await updateMenuItem(item.id, { available: !item.available });
-                        } catch (error) {
-                          console.error("Error updating availability:", error);
-                        }
-                      }}
-                      className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                    />
+                  {/* Available/Unavailable Toggle Button */}
+                  <button
+                    onClick={async () => {
+                      try {
+                        await updateMenuItem(item.id, { available: !item.available });
+                      } catch (error) {
+                        console.error("Error updating availability:", error);
+                      }
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                      item.available 
+                        ? 'bg-green-500 hover:bg-green-600' 
+                        : 'bg-red-500 hover:bg-red-600'
+                    }`}
+                    title={item.available ? 'Available - Click to disable' : 'Unavailable - Click to enable'}
+                  >
                     <span
-                      className={`ml-2 text-xs sm:text-sm ${
-                        item.available ? "text-green-600" : "text-red-600"
+                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                        item.available ? 'translate-x-5' : 'translate-x-1'
                       }`}
-                    >
-                      {item.available ? "Available" : "Unavailable"}
-                    </span>
-                  </label>
-                  <div className="flex space-x-2">
+                    />
+                  </button>
+                  <div className="flex space-x-1">
                     <button
                       onClick={() => openEditMenuModal(item)}
-                      className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded"
+                      className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
                       title="Edit Item"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => handleDeleteMenuItem(item.id)}
-                      className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded"
+                      className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
                       title="Delete Item"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -439,31 +440,12 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                 </svg>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Image URL
-                </label>
-                <input
-                  type="url"
-                  value={newMenuItem.image}
-                  onChange={(e) =>
-                    setNewMenuItem({ ...newMenuItem, image: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 border-[1px] rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="https://example.com/image.jpg"
-                />
-                {newMenuItem.image && (
-                  <img
-                    src={newMenuItem.image}
-                    alt="Preview"
-                    className="mt-2 w-32 h-32 object-cover rounded"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
-                  />
-                )}
-              </div>
+              <ImageUpload
+                currentImage={newMenuItem.image}
+                onImageChange={(imageUrl) =>
+                  setNewMenuItem({ ...newMenuItem, image: imageUrl })
+                }
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -643,34 +625,15 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                 </svg>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Image URL
-                </label>
-                <input
-                  type="url"
-                  value={selectedMenuItem.image}
-                  onChange={(e) =>
-                    setSelectedMenuItem({
-                      ...selectedMenuItem,
-                      image: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 border-[1px] rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="https://example.com/image.jpg"
-                />
-                {selectedMenuItem.image && (
-                  <img
-                    src={selectedMenuItem.image}
-                    alt="Preview"
-                    className="mt-2 w-32 h-32 object-cover rounded"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
-                  />
-                )}
-              </div>
+              <ImageUpload
+                currentImage={selectedMenuItem.image}
+                onImageChange={(imageUrl) =>
+                  setSelectedMenuItem({
+                    ...selectedMenuItem,
+                    image: imageUrl,
+                  })
+                }
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
