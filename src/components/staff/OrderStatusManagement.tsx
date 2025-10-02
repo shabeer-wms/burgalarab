@@ -8,14 +8,12 @@ import {
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 
 const OrderStatusManagement: React.FC = () => {
-  const { orders, getActiveOrders, updateOrder, showNotification } = useApp();
+  const { orders, updateOrder, showNotification } = useApp();
   const [selectedStatus, setSelectedStatus] = useState<'all' | Order['status']>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
-
-  const activeOrders = getActiveOrders();
   
   const filteredOrders = (selectedStatus === 'all' 
     ? orders 
@@ -97,26 +95,6 @@ const OrderStatusManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header & Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card text-center">
-          <div className="text-title-large text-warning-600">{orders.filter(o => o.status === 'confirmed' && o.paused === true).length}</div>
-          <div className="text-body-medium text-surface-600">Paused Orders</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-title-large text-primary-600">{orders.filter(o => o.status === 'preparing' || (o.status === 'confirmed' && o.paused !== true)).length}</div>
-          <div className="text-body-medium text-surface-600">In Progress</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-title-large text-success-600">{orders.filter(o => o.status === 'ready').length}</div>
-          <div className="text-body-medium text-surface-600">Ready</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-title-large text-surface-900">{activeOrders.length}</div>
-          <div className="text-body-medium text-surface-600">Active Orders</div>
-        </div>
-      </div>
-
       {/* Filters */}
       <div className="card">
         <div className="flex items-center space-x-4">
@@ -285,8 +263,8 @@ const OrderStatusManagement: React.FC = () => {
 
       {/* Order Details Dialog Modal */}
       {showOrderDialog && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4">
             <div className="flex items-center justify-between p-6 border-b border-surface-200">
               <h3 className="text-title-large">Order Details</h3>
               <button

@@ -6,8 +6,7 @@ import {
   Category,
   Bill,
   KitchenDisplayItem,
-  Staff,
-  Notification
+  Staff
 } from "../types";
 import { db, auth } from "../firebase";
 import {
@@ -22,7 +21,7 @@ import {
   setDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { seedMenuItems } from "../utils/seedMenuItems";
 
 interface AppContextType {
@@ -381,15 +380,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const billRef = await addDoc(collection(db, 'bills'), billData);
       console.log('Bill saved with ID:', billRef.id);
 
-      // Update order status
-      await updateOrder(orderId, { paymentStatus: 'paid', status: 'completed' });
-      console.log('Order status updated successfully');
+      // Update order status to confirmed so it goes to kitchen
+      await updateOrder(orderId, { paymentStatus: 'paid', status: 'confirmed' });
+      console.log('Order status updated to confirmed - sent to kitchen');
 
-      // Also update kitchen order status to completed
+      // Also update kitchen order status to confirmed for kitchen display
       try {
         const kitchenRef = doc(db, "kitchenOrders", orderId);
-        await updateDoc(kitchenRef, { status: 'completed' });
-        console.log('Kitchen order status updated to completed');
+        await updateDoc(kitchenRef, { status: 'confirmed' });
+        console.log('Kitchen order status updated to confirmed');
       } catch (kitchenError) {
         console.log('Kitchen order may not exist or already updated:', kitchenError);
       }
@@ -490,9 +489,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteStaff = async (id: string): Promise<void> => {
     try {
-      // Find the staff member to get their UID
-      const staffMember = staff.find(s => s.id === id);
-      
       // Delete from Firestore
       await deleteDoc(doc(db, "staff", id));
       

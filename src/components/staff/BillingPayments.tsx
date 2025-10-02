@@ -190,22 +190,6 @@ const BillingPayments: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Revenue Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card text-center p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="text-title-large text-success-600 font-bold">${todaysRevenue.toFixed(2)}</div>
-          <div className="text-body-medium text-surface-600">Today's Revenue</div>
-        </div>
-        <div className="card text-center p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="text-title-large text-primary-600 font-bold">{readyOrders.length}</div>
-          <div className="text-body-medium text-surface-600">Ready for Billing</div>
-        </div>
-        <div className="card text-center p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="text-title-large text-surface-900 font-bold">{bills.length}</div>
-          <div className="text-body-medium text-surface-600">Bills Generated</div>
-        </div>
-      </div>
-
       <div className="space-y-6">
         {/* Orders Section */}
         <div className="space-y-4">
@@ -555,7 +539,7 @@ const BillingPayments: React.FC = () => {
                         setIsGeneratingBill(true);
                         console.log('Generating bill for order:', billingOrder.id);
                         await generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
-                        showNotification('Bill generated successfully!', 'success');
+                        showNotification('✅ Payment processed successfully! Order sent to kitchen.', 'success');
                         setShowBillingDialog(false);
                         setBillingOrder(null);
                       } catch (error) {
