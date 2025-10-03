@@ -145,27 +145,24 @@ export const AdminStaff: React.FC = () => {
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-6 pb-20 md:pb-0">
-        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 sm:flex-1">
-            <div className="relative w-full sm:flex-1">
-              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search staff..."
-                value={staffSearchTerm}
-                onChange={(e) => setStaffSearchTerm(e.target.value)}
-                className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
-              />
-            </div>
+      <div className="space-y-4 sm:space-y-6 pb-20 md:pb-12">
+        <div className="flex justify-between items-center gap-4">
+          <div className="relative flex-1 max-w-xs sm:max-w-none">
+            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search staff..."
+              value={staffSearchTerm}
+              onChange={(e) => setStaffSearchTerm(e.target.value)}
+              className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
+            />
           </div>
-
           <button
             onClick={() => setShowAddStaffModal(true)}
-            className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 sm:ml-4"
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Staff</span>
+            <span className="text-sm">Add Staff</span>
           </button>
         </div>
 

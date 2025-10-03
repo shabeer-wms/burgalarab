@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, Clock, Edit, Trash2, X } from "lucide-react";
+import { Search, Plus, Clock, Edit, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 import { ImageUpload } from "./ImageUpload";
 
@@ -19,6 +19,47 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
   const [showDeleteMenuModal, setShowDeleteMenuModal] = useState(false);
   const [menuItemToDelete, setMenuItemToDelete] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Responsive items per page based on grid layout
+  const getItemsPerPage = () => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      
+      // xl: grid-cols-5 (5 items per row) -> 10 items per page
+      if (width >= 1280) {
+        return 10;
+      }
+      // lg: grid-cols-4 (4 items per row) -> 12 items per page
+      else if (width >= 1024) {
+        return 12;
+      }
+      // md: grid-cols-3 (3 items per row) -> 9 items per page
+      else if (width >= 768) {
+        return 9;
+      }
+      // grid-cols-2 (2 items per row) -> 4 items per page
+      else {
+        return 4;
+      }
+    }
+    return 10; // Default fallback
+  };
+  
+  const [itemsPerPage, setItemsPerPage] = useState(getItemsPerPage());
+  
+  // Update items per page on window resize
+  React.useEffect(() => {
+    const handleResize = () => {
+      setItemsPerPage(getItemsPerPage());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   const [newMenuItem, setNewMenuItem] = useState<{
     name: string;
     description: string;
@@ -46,6 +87,17 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
       selectedCategory === "all" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredMenuItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedMenuItems = filteredMenuItems.slice(startIndex, endIndex);
+
+  // Reset to first page when search, category, or items per page changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [menuSearchTerm, selectedCategory, itemsPerPage]);
 
   const handleAddMenuItem = async () => {
     try {
@@ -142,10 +194,11 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-6 pb-20 md:pb-0">
-        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 sm:flex-1">
-            <div className="relative w-full sm:flex-1">
+      <div className="space-y-4 sm:space-y-6 pb-32 md:pb-12">
+        <div className="flex flex-col space-y-4">
+          {/* Search Bar */}
+          <div className="flex justify-between items-center gap-4">
+            <div className="relative flex-1 max-w-xs sm:max-w-none">
               <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
@@ -155,62 +208,66 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                 className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
               />
             </div>
-            <div
-              className="relative w-full sm:w-auto"
-              style={{ minWidth: "120px", maxWidth: "170px" }}
+            <button
+              onClick={() => setShowAddMenuModal(true)}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 flex-shrink-0"
             >
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none  focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[120px] transition-colors duration-150 pr-8 h-10"
-                style={{
-                  minWidth: "120px",
-                  maxWidth: "170px",
-                  height: "40px",
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                  MozAppearance: "none",
-                }}
-              >
-                <option value="all">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+              <Plus className="w-4 h-4" />
+              <span className="text-sm">Add Menu</span>
+            </button>
+          </div>
+          
+          {/* Category Filter Chips */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Menu Categories</h3>
+            <div 
+              className="overflow-x-auto pb-2" 
+              style={{ 
+                scrollbarWidth: 'none', 
+                msOverflowStyle: 'none'
+              }}
+            >
+              <style dangerouslySetInnerHTML={{
+                __html: `
+                  .overflow-x-auto::-webkit-scrollbar {
+                    display: none;
+                  }
+                `
+              }} />
+              <div className="flex space-x-2 min-w-max">
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    selectedCategory === 'all'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
                 >
-                  <path
-                    d="M6 8L10 12L14 8"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
+                  All Categories
+                </button>
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                      selectedCategory === category
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-
-          <button
-            onClick={() => setShowAddMenuModal(true)}
-            className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 sm:ml-4"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Item</span>
-          </button>
         </div>
+
+
 
         {/* Menu Items Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-          {filteredMenuItems.map((item) => (
+          {paginatedMenuItems.map((item) => (
             <div
               key={item.id}
               className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
@@ -304,6 +361,67 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
             </div>
           ))}
         </div>
+
+        {/* Pagination Controls - Visible on all screen sizes when there are multiple pages */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Previous page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              <div className="flex items-center space-x-0.5">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page, and pages around current page
+                  const shouldShow = 
+                    page === 1 || 
+                    page === totalPages || 
+                    (page >= currentPage - 1 && page <= currentPage + 1);
+                  
+                  if (!shouldShow) {
+                    // Show ellipsis for gaps
+                    if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <span key={page} className="px-1 py-1 text-xs text-gray-400">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-7 h-7 text-xs font-medium rounded transition-colors ${
+                        page === currentPage
+                          ? 'bg-purple-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Next page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {filteredMenuItems.length === 0 && (
           <div className="text-center py-12">
