@@ -134,96 +134,91 @@ const KitchenDisplaySystem: React.FC = () => {
         ref={mainScrollRef}
         className={`flex-1 ${kitchenLayout.responsive.main.padding} min-h-screen ${kitchenLayout.responsive.main.margin} overflow-y-scroll kitchen-main ${kitchenLayout.responsive.main.paddingBottom}`}
       >
-        <div className="w-full flex justify-center">
-          <div className="w-full max-w-[1200px]">
-            {/* Sticky Kitchen Header */}
-            <div className="sticky top-0 z-40 bg-transparent">
-              <KitchenHeader
-                currentTime={currentTime}
-                totalOrders={kitchenOrders.length}
-                pendingCount={pendingOrders.length}
-                inProgressCount={inProgressOrders.length}
-                readyCount={readyOrders.length}
-                onLogout={logout}
-              />
-            </div>
-
-            {/* Content based on selected filter */}
-            {selectedFilter === "menu" ? (
-              <KitchenMenu
-                menuItems={menuItems}
-                onUpdateMenuItem={handleUpdateMenuItem}
-              />
-            ) : (
-              <>
-                {/* Order Sections */}
-                <div
-                  className={
-                    selectedFilter === "all"
-                      ? kitchenLayout.grid.main
-                      : "w-full"
-                  }
-                >
-                  {/* Pending Orders Section */}
-                  {(selectedFilter === "all" ||
-                    selectedFilter === "pending") && (
-                    <OrderSection
-                      title="Pending"
-                      icon="hourglass_top"
-                      iconColorClass={kitchenColors.status.pending.icon}
-                      orders={pendingOrders}
-                      currentTime={currentTime}
-                      onStatusChange={handleStatusChange}
-                      onItemStatusChange={handleItemStatusChange}
-                      selectedFilter={selectedFilter}
-                      onViewAllClick={() => setSelectedFilter("pending")}
-                      viewAllButtonColor={kitchenColors.status.pending.button}
-                      viewAllButtonHover={kitchenColors.status.pending.hover}
-                    />
-                  )}
-
-                  {/* In Progress Orders Section */}
-                  {(selectedFilter === "all" ||
-                    selectedFilter === "in-progress") && (
-                    <OrderSection
-                      title="In Progress"
-                      icon="autorenew"
-                      iconColorClass={kitchenColors.status.inProgress.icon}
-                      orders={inProgressOrders}
-                      currentTime={currentTime}
-                      onStatusChange={handleStatusChange}
-                      onItemStatusChange={handleItemStatusChange}
-                      selectedFilter={selectedFilter}
-                      onViewAllClick={() => setSelectedFilter("in-progress")}
-                      inProgress={true}
-                      viewAllButtonColor={
-                        kitchenColors.status.inProgress.button
-                      }
-                      viewAllButtonHover={kitchenColors.status.inProgress.hover}
-                    />
-                  )}
-
-                  {/* Ready Orders Section */}
-                  {(selectedFilter === "all" || selectedFilter === "ready") && (
-                    <OrderSection
-                      title="Ready"
-                      icon="check_circle"
-                      iconColorClass={kitchenColors.status.ready.icon}
-                      orders={readyOrders}
-                      currentTime={currentTime}
-                      onStatusChange={handleStatusChange}
-                      onItemStatusChange={handleItemStatusChange}
-                      selectedFilter={selectedFilter}
-                      onViewAllClick={() => setSelectedFilter("ready")}
-                      ready={true}
-                      viewAllButtonColor={kitchenColors.status.ready.button}
-                      viewAllButtonHover={kitchenColors.status.ready.hover}
-                    />
-                  )}
-                </div>
-              </>
-            )}
+        <div className="w-full">
+          {/* Sticky Kitchen Header */}
+          <div className="sticky top-0 z-40 bg-transparent">
+            <KitchenHeader
+              currentTime={currentTime}
+              totalOrders={kitchenOrders.length}
+              pendingCount={pendingOrders.length}
+              inProgressCount={inProgressOrders.length}
+              readyCount={readyOrders.length}
+              onLogout={logout}
+              title={selectedFilter === "menu" ? "Menu Management" : "Kitchen Display System"}
+            />
           </div>
+
+          {/* Content based on selected filter */}
+          {selectedFilter === "menu" ? (
+            <KitchenMenu
+              menuItems={menuItems}
+              onUpdateMenuItem={handleUpdateMenuItem}
+            />
+          ) : (
+            <>
+              {/* Order Sections */}
+              <div
+                className={
+                  selectedFilter === "all"
+                    ? kitchenLayout.grid.main
+                    : "w-full"
+                }
+              >
+                {/* Pending Orders Section */}
+                {(selectedFilter === "all" ||
+                  selectedFilter === "pending") && (
+                  <OrderSection
+                    title="Pending"
+                    icon="hourglass_top"
+                    iconColorClass={kitchenColors.status.pending.icon}
+                    orders={pendingOrders}
+                    currentTime={currentTime}
+                    onStatusChange={handleStatusChange}
+                    onItemStatusChange={handleItemStatusChange}
+                    selectedFilter={selectedFilter}
+                    onViewAllClick={() => setSelectedFilter("pending")}
+                    viewAllButtonColor={kitchenColors.status.pending.button}
+                  />
+                )}
+                {(selectedFilter === "all" || selectedFilter === "in-progress") && (
+                  <OrderSection
+                    title="In Progress"
+                    icon="autorenew"
+                    iconColorClass={kitchenColors.status.inProgress.icon}
+                    orders={inProgressOrders}
+                    currentTime={currentTime}
+                    onStatusChange={handleStatusChange}
+                    onItemStatusChange={handleItemStatusChange}
+                    selectedFilter={selectedFilter}
+                    onViewAllClick={() => setSelectedFilter("in-progress")}
+                    inProgress={true}
+                    viewAllButtonColor={
+                      kitchenColors.status.inProgress.button
+                    }
+                    viewAllButtonHover={kitchenColors.status.inProgress.hover}
+                  />
+                )}
+
+                {/* Ready Orders Section */}
+                {(selectedFilter === "all" || selectedFilter === "ready") && (
+                  <OrderSection
+                    title="Ready"
+                    icon="check_circle"
+                    iconColorClass={kitchenColors.status.ready.icon}
+                    orders={readyOrders}
+                    currentTime={currentTime}
+                    onStatusChange={handleStatusChange}
+                    onItemStatusChange={handleItemStatusChange}
+                    selectedFilter={selectedFilter}
+                    onViewAllClick={() => setSelectedFilter("ready")}
+                    ready={true}
+                    viewAllButtonColor={kitchenColors.status.ready.button}
+                    viewAllButtonHover={kitchenColors.status.ready.hover}
+                  />
+                )}
+              </div>
+            </>
+          )}
         </div>
       </main>
 

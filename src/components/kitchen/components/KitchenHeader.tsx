@@ -11,6 +11,7 @@ interface KitchenHeaderProps {
   inProgressCount: number;
   readyCount: number;
   onLogout: () => void;
+  title?: string;
 }
 
 export const KitchenHeader: React.FC<KitchenHeaderProps> = ({
@@ -20,6 +21,7 @@ export const KitchenHeader: React.FC<KitchenHeaderProps> = ({
   inProgressCount,
   readyCount,
   onLogout,
+  title,
 }) => {
   return (
     <header
@@ -45,7 +47,7 @@ export const KitchenHeader: React.FC<KitchenHeaderProps> = ({
               <h1
                 className={`${kitchenLayout.typography.header.title} ${kitchenColors.ui.primary.text} truncate`}
               >
-                Kitchen Display System
+                {title || "Kitchen Display System"}
               </h1>
               <p
                 className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.header.subtitle} tabular-nums truncate`}
@@ -55,14 +57,7 @@ export const KitchenHeader: React.FC<KitchenHeaderProps> = ({
             </div>
           </div>
 
-          {/* Logout button for mobile only - hidden on tablet and desktop */}
-          <button
-            onClick={onLogout}
-            className="md:hidden ml-3 p-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors flex-shrink-0"
-            aria-label="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          {/* Logout button for mobile only removed; use bottom navigation instead */}
         </div>
 
         <div className="flex items-center gap-4 w-full md:w-auto md:justify-end">
