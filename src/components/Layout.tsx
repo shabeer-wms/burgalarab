@@ -76,7 +76,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
+      <main className={`max-w-7xl mx-auto ${user?.role === 'customer' ? 'px-6 lg:px-8 py-8' : ''}`}>
         {children}
       </main>
     </div>

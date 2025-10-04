@@ -167,12 +167,12 @@ const CustomerDashboard: React.FC = () => {
       </div>
 
       {/* Category Filters */}
-      <div className="bg-white rounded-3xl shadow-elevation-2 p-6">
+      <div className="mb-6">
         <h2 className="text-title-large text-surface-900 mb-4">Categories</h2>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex lg:flex-wrap gap-3 overflow-x-auto lg:overflow-x-visible scrollbar-hide pb-2">
           <button
             onClick={() => setSelectedCategory('All')}
-            className={`px-5 py-3 rounded-full text-label-large font-medium transition-all duration-200 ${
+            className={`px-5 py-3 rounded-full text-label-large font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
               selectedCategory === 'All'
                 ? 'bg-primary-600 text-white shadow-elevation-2'
                 : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
@@ -184,7 +184,7 @@ const CustomerDashboard: React.FC = () => {
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.name)}
-              className={`px-5 py-3 rounded-full text-label-large font-medium transition-all duration-200 ${
+              className={`px-5 py-3 rounded-full text-label-large font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                 selectedCategory === category.name
                   ? 'bg-primary-600 text-white shadow-elevation-2'
                   : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
@@ -248,7 +248,7 @@ const CustomerDashboard: React.FC = () => {
   );
 
   const renderOrdersTab = () => (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4">
       <div className="bg-white rounded-3xl shadow-elevation-2 p-6">
         <h2 className="text-title-large text-surface-900 mb-6">My Orders</h2>
         {userOrders.length === 0 ? (
@@ -342,7 +342,7 @@ const CustomerDashboard: React.FC = () => {
   );
 
   const renderSettingsTab = () => (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4">
       <div className="bg-white rounded-3xl shadow-elevation-2 p-6">
         <h2 className="text-title-large text-surface-900 mb-6">Settings</h2>
         

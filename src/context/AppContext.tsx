@@ -252,10 +252,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         kitchenItem.tableNumber = orderData.tableNumber;
       }
       
-      if (orderData.kitchenNotes) {
-        kitchenItem.kitchenNotes = orderData.kitchenNotes;
-      }
-      
       await setDoc(doc(db, "kitchenOrders", docRef.id), kitchenItem);
     }
     return docRef.id;
