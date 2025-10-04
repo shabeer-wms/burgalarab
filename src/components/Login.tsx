@@ -157,7 +157,7 @@ import { Utensils } from 'lucide-react';
 
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [phoneOrEmail, setPhoneOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login, isLoading } = useAuth();
@@ -166,16 +166,28 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = await login(email, password, staff);
+    
+    // Check if staff member exists and is frozen before attempting login
+    const isPhoneNumber = /^[\d\s\-\(\)\+]+$/.test(phoneOrEmail.trim());
+    let emailToCheck = phoneOrEmail;
+    if (isPhoneNumber) {
+      const cleanPhone = phoneOrEmail.replace(/[\s\-\(\)\+]/g, '');
+      emailToCheck = `${cleanPhone}@gmail.com`;
+    }
+    
+    const staffMember = staff.find(s => s.email === emailToCheck || s.email === phoneOrEmail);
+    if (staffMember && staffMember.isFrozen) {
+      setError('Your account has been frozen. Please contact the administrator.');
+      return;
+    }
+    
+    const success = await login(phoneOrEmail, password, staff);
     if (!success) {
-      setError('Invalid email or password');
+      setError('Invalid phone number or password');
     }
   };
 
-  const demoAccounts = [
-    { role: 'Customer', email: 'customer@demo.com', color: 'bg-blue-100 text-blue-800' },
-    { role: 'Admin', email: 'admin@pro.com', color: 'bg-purple-100 text-purple-800' },
-  ];
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#7C3AED] via-[#F3E8FF] to-[#F06292] px-4 py-8">
@@ -189,17 +201,17 @@ const Login: React.FC = () => {
         <p className="text-lg text-[#6B7280] mb-8 text-center font-medium">Sign in to manage your orders, staff, and kitchen with ease.</p>
         <form className="space-y-6 w-full" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="email" className="block text-base font-semibold text-[#7C3AED] mb-2">Email address</label>
+            <label htmlFor="phoneOrEmail" className="block text-base font-semibold text-[#7C3AED] mb-2">Phone Number</label>
             <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
+              id="phoneOrEmail"
+              name="phoneOrEmail"
+              type="tel"
+              autoComplete="tel"
               required
               className="block w-full px-5 py-3 rounded-xl border-2 border-[#E0E2EA] bg-white bg-opacity-80 placeholder-[#BFC2D9] focus:outline-none focus:border-[#7C3AED] text-lg transition-all shadow-sm"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your phone number"
+              value={phoneOrEmail}
+              onChange={(e) => setPhoneOrEmail(e.target.value)}
             />
           </div>
           <div>
@@ -221,8 +233,8 @@ const Login: React.FC = () => {
           )}
           <button
             type="submit"
-            disabled={isLoading || !email || !password}
-            className={`w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#F06292] transition-all shadow-lg ${isLoading || !email || !password ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-2xl'}`}
+            disabled={isLoading || !phoneOrEmail || !password}
+            className={`w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#F06292] transition-all shadow-lg ${isLoading || !phoneOrEmail || !password ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-2xl'}`}
           >
             {isLoading ? 'Logging in...' : 'Login'}
           </button>

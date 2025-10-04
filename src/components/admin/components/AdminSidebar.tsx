@@ -1,9 +1,9 @@
 import React from "react";
-import { TrendingUp, Users, Plus, UserCheck, LogOut } from "lucide-react";
+import { TrendingUp, Users, Plus, UserCheck, LogOut, Settings } from "lucide-react";
 
 interface AdminSidebarProps {
-  activeTab: "overview" | "orders" | "menu" | "staff";
-  onTabChange: (tab: "overview" | "orders" | "menu" | "staff") => void;
+  activeTab: "overview" | "orders" | "menu" | "staff" | "settings";
+  onTabChange: (tab: "overview" | "orders" | "menu" | "staff" | "settings") => void;
   user: any;
   onLogout: () => void;
 }
@@ -19,6 +19,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     { id: "orders", name: "Orders", icon: Users },
     { id: "menu", name: "Menu", icon: Plus },
     { id: "staff", name: "Staff", icon: UserCheck },
+    { id: "settings", name: "Settings", icon: Settings },
   ] as const;
 
   const handleMenuClick = (tabId: typeof activeTab) => {
