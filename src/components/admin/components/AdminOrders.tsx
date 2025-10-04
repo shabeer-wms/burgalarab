@@ -219,7 +219,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             ?.map((item) => `${item.menuItem.name} x${item.quantity}`)
             .join(", ") || "No items",
         "Payment Method": order.paymentMethod || "N/A",
-        "Kitchen Notes": order.kitchenNotes || "N/A",
       }));
 
       // Convert to CSV
@@ -272,21 +271,8 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
           </div>
           
           {/* Filter chips with horizontal scroll on mobile */}
-          <div 
-            className="overflow-x-auto pb-2" 
-            style={{ 
-              scrollbarWidth: 'none', 
-              msOverflowStyle: 'none'
-            }}
-          >
-            <style dangerouslySetInnerHTML={{
-              __html: `
-                .overflow-x-auto::-webkit-scrollbar {
-                  display: none;
-                }
-              `
-            }} />
-            <div className="flex space-x-2 min-w-max">
+          <div className="overflow-x-auto lg:overflow-x-visible scrollbar-hide pb-2">
+            <div className="flex lg:flex-wrap space-x-2 min-w-max lg:min-w-0">
               <button
                 onClick={() => setOrderFilter('all')}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
@@ -644,16 +630,6 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
           ))}
         </div>
       </div>
-
-      {/* Kitchen Notes */}
-      {order.kitchenNotes && (
-        <div>
-          <h4 className="text-title-medium mb-2">Kitchen Notes</h4>
-          <p className="text-body-medium p-3 bg-warning-50 border border-warning-200 rounded-lg">
-            {order.kitchenNotes}
-          </p>
-        </div>
-      )}
 
       {/* Billing */}
       <div>

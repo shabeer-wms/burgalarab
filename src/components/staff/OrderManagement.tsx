@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { MenuItem, OrderItem, Order } from '../../types';
 
-import { Plus, Minus, ShoppingCart, Save, Send, FileText, Eye, X, User, Car, Search, CreditCard, Banknote, Smartphone, Globe, Receipt, Loader2, Printer } from 'lucide-react';
+import { Plus, Minus, X, Search, CreditCard, Banknote, Smartphone, Globe, Receipt, Loader2, Printer } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 
 
@@ -16,6 +16,11 @@ interface OrderManagementProps {
     payNow: () => void;
     payLater: () => void;
     clearCart: () => void;
+    updateQuantity: (itemId: string, change: number) => void;
+    updateSpecialInstructions: (itemId: string, instructions: string) => void;
+    updateSugarPreference: (itemId: string, preference: "sugar" | "sugarless") => void;
+    updateSpicyPreference: (itemId: string, preference: "spicy" | "non-spicy") => void;
+    validateCustomerDetails: () => boolean;
   }) => void;
 }
 
@@ -25,7 +30,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
   onCartUpdate, 
   onFunctionsUpdate 
 }) => {
-  const { menuItems, categories, addOrder, showNotification, generateBill } = useApp();
+  const { menuItems, categories, addOrder, generateBill } = useApp();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -36,16 +41,15 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
     vehicleNumber: '',
   });
   const [orderType, setOrderType] = useState<'dine-in' | 'delivery'>('dine-in');
-  const [kitchenNotes, setKitchenNotes] = useState('');
-  const [savedOrders, setSavedOrders] = useState<Order[]>([]);
 
-  // Order state tracking
-  const [isOrderSaved, setIsOrderSaved] = useState(false);
-  const [isOrderModified, setIsOrderModified] = useState(false);
-  const [savedOrderSnapshot, setSavedOrderSnapshot] = useState<string>('');
 
-  const [selectedSavedOrder, setSelectedSavedOrder] = useState<Order | null>(null);
+
+
   const [qrForOrderId, setQrForOrderId] = useState<string | null>(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Default for mobile
 
   // Payment dialog states
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -173,50 +177,14 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
     }
   };
 
-  const [selectedTableState, setSelectedTableState] = useState<string>(tableNumber || '1');
+  const [selectedTableState, setSelectedTableState] = useState<string>(tableNumber || '');
   const selectedTable = tableNumber || selectedTableState;
   const updateSelectedTable = setSelectedTable || setSelectedTableState;
   const [showTablePicker, setShowTablePicker] = useState(false);
 
-  const createOrderSnapshot = () => {
-    return JSON.stringify({
-      orderItems: orderItems.map(item => ({ id: item.id, quantity: item.quantity, specialInstructions: item.specialInstructions })),
-      customerDetails,
-      orderType,
-      selectedTable,
-      kitchenNotes
-    });
-  };
 
-  // Function to mark order as modified
-  const markOrderAsModified = () => {
-    if (isOrderSaved) {
-      // Use setTimeout to ensure state updates have been processed
-      setTimeout(() => {
-        const currentSnapshot = createOrderSnapshot();
-        if (currentSnapshot !== savedOrderSnapshot) {
-          setIsOrderModified(true);
-        }
-      }, 0);
-    }
-  };
 
-  // Effect to detect changes to orderItems after order is saved
-  useEffect(() => {
-    if (isOrderSaved && savedOrderSnapshot) {
-      const currentSnapshot = createOrderSnapshot();
-      if (currentSnapshot !== savedOrderSnapshot && !isOrderModified) {
-        setIsOrderModified(true);
-      }
-    }
-  }, [orderItems, customerDetails, orderType, selectedTable, kitchenNotes, isOrderSaved, savedOrderSnapshot, isOrderModified]);
 
-  // Function to reset order state
-  const resetOrderState = () => {
-    setIsOrderSaved(false);
-    setIsOrderModified(false);
-    setSavedOrderSnapshot('');
-  };
 
   // Update cart in waiter dashboard
   useEffect(() => {
@@ -224,6 +192,29 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       onCartUpdate(orderItems);
     }
   }, [orderItems, onCartUpdate]);
+
+  // Responsive items per page based on screen size
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      const width = window.innerWidth;
+      if (width < 768) { // Mobile
+        setItemsPerPage(10);
+      } else if (width < 1280) { // Tablet
+        setItemsPerPage(9);
+      } else { // Desktop
+        setItemsPerPage(9);
+      }
+    };
+
+    updateItemsPerPage();
+    window.addEventListener('resize', updateItemsPerPage);
+    return () => window.removeEventListener('resize', updateItemsPerPage);
+  }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchTerm]);
 
   // Update cart functions in waiter dashboard
   useEffect(() => {
@@ -240,7 +231,18 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
         },
         clearCart: () => {
           setOrderItems([]);
-          resetOrderState();
+        },
+        updateQuantity,
+        updateSpecialInstructions,
+        updateSugarPreference,
+        updateSpicyPreference,
+        validateCustomerDetails: () => {
+          // Only validate for delivery orders - require customer name and phone
+          if (orderType === 'delivery') {
+            return customerDetails.name.trim() !== '' && customerDetails.phone.trim() !== '';
+          }
+          // For dine-in, no validation required
+          return true;
         }
       });
     }
@@ -250,8 +252,21 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
     const matchesSearch = searchTerm === '' || 
       item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    const isAvailable = item.available;
+    return matchesCategory && matchesSearch && isAvailable;
   });
+
+  // Pagination calculations
+  const totalItems = filteredMenuItems.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedMenuItems = filteredMenuItems.slice(startIndex, endIndex);
+
+  // Handle page navigation
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
 
   const addToOrder = (menuItem: MenuItem) => {
     const existingItem = orderItems.find(item => item.menuItem.id === menuItem.id);
@@ -268,10 +283,13 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
         menuItem,
         quantity: 1,
         status: 'pending',
+        // Set default sugar preference for beverages
+        ...(menuItem.category.toLowerCase() === 'beverages' && { sugarPreference: 'sugar' as const }),
+        // Set default spicy preference for main courses
+        ...(menuItem.category.toLowerCase() === 'main courses' && { spicyPreference: 'non-spicy' as const })
       };
       setOrderItems(prev => [...prev, newOrderItem]);
     }
-    markOrderAsModified();
   };
 
   const updateQuantity = (itemId: string, change: number) => {
@@ -284,7 +302,6 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       }
       return item;
     }).filter(Boolean) as OrderItem[]);
-    markOrderAsModified();
   };
 
   const updateSpecialInstructions = (itemId: string, instructions: string) => {
@@ -293,24 +310,47 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
         ? { ...item, specialInstructions: instructions }
         : item
     ));
-    markOrderAsModified();
+  };
+
+  const updateSugarPreference = (itemId: string, preference: "sugar" | "sugarless") => {
+    setOrderItems(prev => prev.map(item => 
+      item.id === itemId 
+        ? { ...item, sugarPreference: preference }
+        : item
+    ));
+  };
+
+  const updateSpicyPreference = (itemId: string, preference: "spicy" | "non-spicy") => {
+    setOrderItems(prev => prev.map(item => 
+      item.id === itemId 
+        ? { ...item, spicyPreference: preference }
+        : item
+    ));
   };
 
   // Wrapper functions to track modifications
   const updateCustomerDetails = (field: string, value: string) => {
     setCustomerDetails(prev => ({ ...prev, [field]: value }));
-    markOrderAsModified();
+  };
+
+  const clearCustomerDetails = () => {
+    setCustomerDetails({
+      name: '',
+      phone: '',
+      vehicleNumber: '',
+    });
+    // Also clear the selected table - ensure both local and parent state are cleared
+    setSelectedTableState('');
+    if (setSelectedTable) {
+      setSelectedTable('');
+    }
   };
 
   const updateOrderType = (type: 'dine-in' | 'delivery') => {
     setOrderType(type);
-    markOrderAsModified();
   };
 
-  const updateKitchenNotes = (notes: string) => {
-    setKitchenNotes(notes);
-    markOrderAsModified();
-  };
+
 
   const calculateTotal = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
@@ -318,60 +358,10 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
     return { subtotal, tax, total: subtotal + tax };
   };
 
-  const saveOrder = () => {
-    if (orderItems.length === 0 || !customerDetails.name || !customerDetails.phone) {
-      showNotification('Please add items and fill customer details', 'error');
-      return;
-    }
 
-    if (isOrderSaved && !isOrderModified) {
-      showNotification('Order is already saved. Make changes to save again.', 'error');
-      return;
-    }
-
-    const { subtotal, tax, total } = calculateTotal();
-    
-    const order: Omit<Order, 'id' | 'orderTime'> = {
-      customerId: `CUST-${Date.now()}`,
-      customerName: customerDetails.name,
-      customerPhone: customerDetails.phone,
-      customerAddress: orderType === 'delivery' ? customerDetails.vehicleNumber : undefined,
-      type: orderType,
-      tableNumber: orderType === 'dine-in' ? selectedTable : undefined,
-      items: orderItems,
-      status: 'pending',
-      total: subtotal,
-      tax,
-      grandTotal: total,
-      paymentStatus: 'pending',
-      waiterId: user?.id,
-      kitchenNotes,
-      estimatedTime: Math.max(...orderItems.map(item => item.menuItem.prepTime)) + 10,
-    };
-
-    // Save as draft
-    setSavedOrders(prev => [...prev, { ...order, id: `DRAFT-${Date.now()}`, orderTime: new Date() }]);
-    
-    // Update order state tracking
-    setIsOrderSaved(true);
-    setIsOrderModified(false);
-    setSavedOrderSnapshot(createOrderSnapshot());
-    
-    showNotification('Order saved as draft', 'success');
-  };
 
   const pushToKitchen = async () => {
-    console.log('Push to Kitchen clicked');
-    console.log('Order items:', orderItems);
-    console.log('Customer details:', customerDetails);
-
-    if (orderItems.length === 0 || !customerDetails.name || !customerDetails.phone) {
-      showNotification('Please add items and fill customer details', 'error');
-      return;
-    }
-
-    if (isOrderModified) {
-      showNotification('Order has been modified. Please save the order again before sending to kitchen', 'error');
+    if (orderItems.length === 0) {
       return;
     }
 
@@ -383,15 +373,14 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
   const createOrder = async (paymentStatus: 'pending' | 'paid', paymentMethod?: 'cash' | 'card' | 'upi' | 'online') => {
     try {
       setIsProcessingPayment(true);
-      console.log('Creating order with payment status:', paymentStatus, 'and method:', paymentMethod || 'N/A');
       
       const { subtotal, tax, total } = calculateTotal();
       
       // Build order object without undefined fields
       const order: Omit<Order, 'id' | 'orderTime'> = {
         customerId: `CUST-${Date.now()}`,
-        customerName: customerDetails.name,
-        customerPhone: customerDetails.phone,
+        customerName: customerDetails.name || 'Walk-in Customer',
+        customerPhone: customerDetails.phone || '',
         type: orderType,
         items: orderItems,
         status: 'confirmed',
@@ -420,31 +409,17 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
         order.waiterId = user.id;
       }
       
-      if (kitchenNotes) {
-        order.kitchenNotes = kitchenNotes;
-      }
-      
-      console.log('Order validation:');
-      console.log('- Customer Name:', customerDetails.name);
-      console.log('- Customer Phone:', customerDetails.phone);
-      console.log('- Order Items Length:', orderItems.length);
-      console.log('- User ID:', user?.id);
-      console.log('- Total Calculation:', { subtotal, tax, total });
-      
       // Add the order to the system
       const newOrderId = await addOrder(order);
-      console.log('Order added successfully with ID:', newOrderId);
       
       // Generate bill for paid orders
       if (paymentStatus === 'paid' && paymentMethod) {
         await generateBill(newOrderId, user?.name || 'Unknown Staff', paymentMethod);
-        console.log('Bill generated successfully');
       }
       
       // Return the new order ID for tracking
       return newOrderId;
     } catch (error) {
-      console.log('Order processing completed despite error:', error);
       // Return a mock ID to prevent further errors
       return `ORDER-${Date.now()}`;
     } finally {
@@ -455,42 +430,32 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
   // Function to process payment with selected payment method
   const processPayment = async (paymentMethod: 'cash' | 'card' | 'upi' | 'online') => {
     try {
-      console.log('Processing payment with method:', paymentMethod);
-      
       // Create order with paid status and payment method
       const newOrderId = await createOrder('paid', paymentMethod);
       
-      // Close dialog and show success message
+      // Close dialog
       setShowPaymentMethodDialog(false);
-      showNotification('Order sent to kitchen successfully!', 'success');
       
       // Clear all fields for new customer
       setOrderItems([]);
       setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
-      setKitchenNotes('');
-      resetOrderState();
       
       // Show QR for tracking (optional)
       setQrForOrderId(newOrderId);
       
     } catch (error) {
-      // Silently handle errors and still show success message
-      console.log('Order processing completed');
+      // Silently handle errors
       setShowPaymentMethodDialog(false);
-      showNotification('Order sent to kitchen successfully!', 'success');
       
       // Clear all fields for new customer
       setOrderItems([]);
       setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
-      setKitchenNotes('');
-      resetOrderState();
     }
   };
 
   const handlePaymentOptionSelected = async (paymentOption: 'now' | 'later') => {
     // Prevent multiple submissions
     if (isProcessingPayment) {
-      console.log('Payment already being processed, ignoring duplicate click');
       return;
     }
     
@@ -505,59 +470,38 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       // Create order with pending payment status
       const newOrderId = await createOrder('pending');
       
-      // Hide payment dialog and show success message
+      // Hide payment dialog
       setShowPaymentDialog(false);
-      showNotification('Order sent to kitchen successfully!', 'success');
       
       // Clear all fields for new customer
       setOrderItems([]);
       setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
-      setKitchenNotes('');
-      resetOrderState();
       
       // Show QR modal for tracking (optional)
       setQrForOrderId(newOrderId);
       
     } catch (error) {
-      // Silently handle errors and still show success message
-      console.log('Order processing completed');
+      // Silently handle errors
       setShowPaymentDialog(false);
-      showNotification('Order sent to kitchen successfully!', 'success');
       
       // Clear all fields for new customer
       setOrderItems([]);
       setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
-      setKitchenNotes('');
-      resetOrderState();
     }
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
-      {/* Menu Items */}
-      <div className="lg:col-span-2 space-y-6">
-        {/* Customer Details - Mobile/Tablet Only */}
-        <div className="card lg:hidden">
-          <h3 className="text-title-large mb-4">Customer Details</h3>
-          <div className="space-y-4">
-            <input
-              type="text"
-              placeholder="Customer Name *"
-              value={customerDetails.name}
-              onChange={(e) => updateCustomerDetails('name', e.target.value)}
-              className="input-field"
-            />
-            <input
-              type="tel"
-              placeholder="Phone Number *"
-              value={customerDetails.phone}
-              onChange={(e) => updateCustomerDetails('phone', e.target.value)}
-              className="input-field"
-            />
-            <div className="flex space-x-2">
+    <div className="space-y-6">
+      {/* Customer Details - Desktop First */}
+      <div className="card">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center space-x-4">
+            <h3 className="text-title-large lg:text-title-medium">Customer Details</h3>
+            {/* Order Type Toggle - Desktop Only */}
+            <div className="hidden lg:flex space-x-2">
               <button
                 onClick={() => updateOrderType('dine-in')}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                className={`py-1.5 px-3 rounded-lg text-xs font-medium transition-colors ${
                   orderType === 'dine-in' 
                     ? 'bg-primary-600 text-white' 
                     : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
@@ -567,7 +511,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               </button>
               <button
                 onClick={() => updateOrderType('delivery')}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                className={`py-1.5 px-3 rounded-lg text-xs font-medium transition-colors ${
                   orderType === 'delivery' 
                     ? 'bg-primary-600 text-white' 
                     : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
@@ -576,54 +520,134 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                 Delivery
               </button>
             </div>
-            {orderType === 'delivery' && (
-              <input
-                type="text"
-                placeholder="Vehicle Number"
-                value={customerDetails.vehicleNumber}
-                onChange={(e) => updateCustomerDetails('vehicleNumber', e.target.value)}
-                className="input-field"
-              />
-            )}
-            {orderType === 'dine-in' && tableNumber && (
-              <>
-                <button
-                  type="button"
-                  className="chip chip-primary px-4 py-2 focus:outline-none"
-                  onClick={() => setShowTablePicker(true)}
-                >
-                  Table: {selectedTable}
-                </button>
-              </>
-            )}
           </div>
+          <button
+            onClick={clearCustomerDetails}
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Clear customer details"
+          >
+            <X className="w-5 h-5 lg:w-4 lg:h-4" />
+          </button>
+        </div>
+        
+        {/* Mobile Order Type Toggle */}
+        <div className="flex space-x-2 lg:hidden mb-4">
+          <button
+            onClick={() => updateOrderType('dine-in')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              orderType === 'dine-in' 
+                ? 'bg-primary-600 text-white' 
+                : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+            }`}
+          >
+            Dine-in
+          </button>
+          <button
+            onClick={() => updateOrderType('delivery')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              orderType === 'delivery' 
+                ? 'bg-primary-600 text-white' 
+                : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+            }`}
+          >
+            Delivery
+          </button>
         </div>
 
-        {/* Search Bar */}
-        <div className="card">
-          <h3 className="text-title-large mb-4">Search Menu Items</h3>
-          <div className="relative">
-            <Search className="w-5 h-5 text-surface-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+        {/* Desktop: All inputs in one row */}
+        <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4">
+          <input
+            type="text"
+            placeholder="Customer Name *"
+            value={customerDetails.name}
+            onChange={(e) => updateCustomerDetails('name', e.target.value)}
+            className="input-field text-sm py-2"
+          />
+          <input
+            type="tel"
+            placeholder={orderType === 'delivery' ? "Phone Number *" : "Phone Number"}
+            value={customerDetails.phone}
+            onChange={(e) => updateCustomerDetails('phone', e.target.value)}
+            className="input-field text-sm py-2"
+          />
+          {orderType === 'delivery' ? (
             <input
               type="text"
-              placeholder="Search by name or description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-body-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200"
+              placeholder="Vehicle Number *"
+              value={customerDetails.vehicleNumber}
+              onChange={(e) => updateCustomerDetails('vehicleNumber', e.target.value)}
+              className="input-field text-sm py-2"
             />
-          </div>
+          ) : (
+            <button
+              type="button"
+              className="w-full px-4 py-2 border border-primary-200 rounded-xl bg-primary-50 text-primary-700 font-medium hover:bg-primary-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm text-left"
+              onClick={() => setShowTablePicker(true)}
+            >
+              {selectedTable ? `Table: ${selectedTable}` : 'Select Table'}
+            </button>
+          )}
         </div>
 
-        {/* Table Picker Dialog - Mobile/Tablet */}
+        {/* Mobile: Stacked inputs */}
+        <div className="grid grid-cols-1 gap-4 lg:hidden">
+          <input
+            type="text"
+            placeholder="Customer Name *"
+            value={customerDetails.name}
+            onChange={(e) => updateCustomerDetails('name', e.target.value)}
+            className="input-field"
+          />
+          <input
+            type="tel"
+            placeholder={orderType === 'delivery' ? "Phone Number *" : "Phone Number"}
+            value={customerDetails.phone}
+            onChange={(e) => updateCustomerDetails('phone', e.target.value)}
+            className="input-field"
+          />
+        </div>
+        
+        {/* Mobile-specific delivery/dine-in options */}
+        {orderType === 'delivery' && (
+          <div className="mt-4 lg:hidden">
+            <input
+              type="text"
+              placeholder="Vehicle Number"
+              value={customerDetails.vehicleNumber}
+              onChange={(e) => updateCustomerDetails('vehicleNumber', e.target.value)}
+              className="input-field"
+            />
+          </div>
+        )}
+        {orderType === 'dine-in' && (
+          <div className="mt-4 lg:hidden">
+            <button
+              type="button"
+              className="w-full px-4 py-4 border border-primary-200 rounded-xl bg-primary-50 text-primary-700 font-medium hover:bg-primary-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 text-left"
+              onClick={() => setShowTablePicker(true)}
+            >
+              {selectedTable ? `Selected Table: ${selectedTable}` : 'Select Table'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-8 2xl:gap-10 h-full items-start">
+        {/* Menu Items */}
+        <div className="lg:col-span-2 space-y-6">
+
+
+
+        {/* Table Picker Dialog */}
         {showTablePicker && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 lg:hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
             <div className="bg-white rounded-lg shadow-lg p-4 w-[260px] h-[320px] max-w-full flex flex-col mx-4">
-              <h3 className="text-title-medium mb-2 text-center">Select Table Number</h3>
+              <h3 className="text-title-medium lg:text-sm mb-2 text-center">Select Table Number</h3>
               <div className="grid grid-cols-5 gap-2 mb-2 overflow-y-auto flex-1" style={{maxHeight: '200px'}}>
                 {[...Array(100)].map((_, i) => (
                   <button
                     key={i+1}
-                    className={`rounded-lg px-2 py-2 text-xs font-medium border ${selectedTable === String(i+1) ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'}`}
+                    className={`rounded-lg px-2 py-2 text-xs font-medium border lg:text-[10px] lg:px-1.5 lg:py-1.5 ${selectedTable === String(i+1) ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'}`}
                     onClick={() => updateSelectedTable(String(i+1))}
                   >
                     {i+1}
@@ -632,11 +656,11 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               </div>
               <div className="flex justify-end space-x-2 mt-2">
                 <button
-                  className="btn-outlined px-3 py-1 text-xs"
+                  className="btn-outlined px-3 py-1 text-xs lg:px-2 lg:py-1 lg:text-[10px]"
                   onClick={() => setShowTablePicker(false)}
                 >Cancel</button>
                 <button
-                  className="btn-primary px-3 py-1 text-xs"
+                  className="btn-primary px-3 py-1 text-xs lg:px-2 lg:py-1 lg:text-[10px]"
                   onClick={() => setShowTablePicker(false)}
                 >Select</button>
               </div>
@@ -644,62 +668,99 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
           </div>
         )}
 
-        {/* Category Filter */}
-        <div className="card">
-          <h3 className="text-title-large mb-4">Menu Categories</h3>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedCategory('all')}
-              className={`chip ${selectedCategory === 'all' ? 'chip-primary' : 'chip-secondary'}`}
-            >
-              All Items
-            </button>
-            {categories.map(category => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.name)}
-                className={`chip ${selectedCategory === category.name ? 'chip-primary' : 'chip-secondary'}`}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Menu Items Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4">
-          {filteredMenuItems.map(item => {
-            const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
-            const isSelected = existingItem && existingItem.quantity > 0;
-            const isOutOfStock = !item.available;
+          {/* Menu Section */}
+          <div className="mb-6">
+            {/* Centered Menu Header with Lines */}
+            <div className="flex items-center justify-center mb-4 lg:mb-3">
+              <div className="flex-1 h-px bg-surface-300"></div>
+              <h3 className="text-title-large lg:text-title-medium font-bold text-surface-900 px-6 lg:px-4">MENU</h3>
+              <div className="flex-1 h-px bg-surface-300"></div>
+            </div>
             
-            return (
-              <button 
-                key={item.id} 
-                className={`card transition-all duration-200 text-left p-0 ${
-                  isOutOfStock 
-                    ? 'bg-red-100 border-red-300 cursor-not-allowed opacity-70' 
-                    : isSelected 
-                      ? 'bg-green-100 border-green-300 hover:bg-green-150 hover:shadow-elevation-4' 
-                      : 'hover:shadow-elevation-4'
-                }`}
-                onClick={() => item.available && addToOrder(item)}
-                disabled={!item.available}
-              >
-              <div className="p-4">
-                <img 
-                  src={item.image} 
-                  alt={item.name}
-                  className="w-full h-32 object-cover rounded-xl mb-4"
+            {/* Search Bar - Responsive Width */}
+            <div className="mb-4 lg:mb-3">
+              <div className="relative w-full lg:max-w-xs lg:mx-auto">
+                <Search className="w-5 h-5 lg:w-4 lg:h-4 text-surface-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search menu..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-surface-200 rounded-xl text-body-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 lg:py-2 lg:text-sm lg:pl-8"
                 />
-                <div className="space-y-2">
-                  <h4 className="text-title-medium">{item.name}</h4>
-                  <p className="text-body-small text-surface-600">{item.description}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-title-medium text-primary-600">${item.price.toFixed(2)}</span>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-body-small text-surface-600">{item.prepTime}min</span>
-                      {/* Quick quantity controls */}
+              </div>
+            </div>
+            
+            {/* Category Filter Chips */}
+            <div className="flex lg:flex-wrap gap-2 overflow-x-auto lg:overflow-x-visible scrollbar-hide pb-2">
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`chip lg:text-xs lg:px-2 lg:py-1 whitespace-nowrap flex-shrink-0 ${selectedCategory === 'all' ? 'chip-primary' : 'chip-secondary'}`}
+              >
+                All Items
+              </button>
+              {categories.map(category => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.name)}
+                  className={`chip lg:text-xs lg:px-2 lg:py-1 whitespace-nowrap flex-shrink-0 ${selectedCategory === category.name ? 'chip-primary' : 'chip-secondary'}`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Menu Items Grid with Pagination */}
+          <div className="relative">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6 xl:gap-8">
+              {paginatedMenuItems.map(item => {
+              const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
+              const isSelected = existingItem && existingItem.quantity > 0;
+              const isOutOfStock = !item.available;
+              
+              return (
+                <button 
+                  key={item.id} 
+                  className={`card transition-all duration-200 text-left p-0 flex flex-col h-full ${
+                    isOutOfStock 
+                      ? 'bg-red-100 border-red-300 cursor-not-allowed opacity-70' 
+                      : isSelected 
+                        ? 'bg-green-100 border-green-300 hover:bg-green-150 hover:shadow-elevation-4' 
+                        : 'hover:shadow-elevation-4'
+                  }`}
+                  onClick={() => item.available && addToOrder(item)}
+                  disabled={!item.available}
+                >
+                {/* Card Content - Main body */}
+                <div className="flex-1 p-4 lg:p-3">
+                  <div className="relative mb-4 lg:mb-3">
+                    <img 
+                      src={item.image} 
+                      alt={item.name}
+                      className="w-full h-32 lg:h-24 object-cover rounded-xl lg:rounded-lg"
+                    />
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded-full lg:text-[10px] lg:px-1.5 lg:py-0.5">
+                      {item.prepTime}min
+                    </div>
+                  </div>
+                  <div className="space-y-2 lg:space-y-1">
+                    <h4 className="text-title-medium lg:text-sm lg:font-medium">{item.name}</h4>
+                    <p className="text-body-small text-surface-600 lg:text-xs lg:line-clamp-2">{item.description}</p>
+                    {!item.available && (
+                      <span className="chip chip-error text-xs lg:text-[10px] lg:px-1.5 lg:py-0.5">Out of Stock</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Footer - Price and quantity controls */}
+                <div className="border-t border-surface-100 bg-surface-50 px-4 py-3 lg:px-3 lg:py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-title-medium font-semibold text-primary-600 lg:text-sm">
+                      ${item.price.toFixed(2)}
+                    </div>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      {/* Quantity controls */}
                       {(() => {
                         const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
                         const quantity = existingItem?.quantity || 0;
@@ -707,7 +768,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                         if (quantity > 0) {
                           return (
                             <div 
-                              className="flex items-center space-x-1 bg-primary-50 rounded-lg p-1"
+                              className="flex items-center space-x-1 bg-primary-50 rounded-lg p-1 lg:p-0.5"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
@@ -715,11 +776,11 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                                   e.stopPropagation();
                                   updateQuantity(existingItem!.id, -1);
                                 }}
-                                className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+                                className="w-6 h-6 lg:w-5 lg:h-5 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
                               >
-                                <Minus className="w-3 h-3" />
+                                <Minus className="w-3 h-3 lg:w-2.5 lg:h-2.5" />
                               </button>
-                              <span className="text-sm font-medium text-primary-700 min-w-[20px] text-center">
+                              <span className="text-sm font-medium text-primary-700 min-w-[20px] text-center lg:text-xs lg:min-w-[16px]">
                                 {quantity}
                               </span>
                               <button
@@ -727,9 +788,9 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                                   e.stopPropagation();
                                   addToOrder(item);
                                 }}
-                                className="w-6 h-6 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
+                                className="w-6 h-6 lg:w-5 lg:h-5 bg-white text-primary-600 rounded-md flex items-center justify-center hover:bg-surface-50"
                               >
-                                <Plus className="w-3 h-3" />
+                                <Plus className="w-3 h-3 lg:w-2.5 lg:h-2.5" />
                               </button>
                             </div>
                           );
@@ -741,393 +802,110 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                                 addToOrder(item);
                               }}
                               disabled={!item.available}
-                              className="btn-primary p-2 min-w-0"
+                              className="btn-primary p-2 min-w-0 lg:p-1.5"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-4 h-4 lg:w-3 lg:h-3" />
                             </button>
                           );
-                      }
-                    })()}
+                        }
+                      })()}
                     </div>
                   </div>
-                  {!item.available && (
-                    <span className="chip chip-error text-xs">Out of Stock</span>
-                  )}
                 </div>
-              </div>
-            </button>
-            );
-          })}
-        </div>
-      </div>
+              </button>
+              );
+            })}
+            </div>
 
-      {/* Order Summary */}
-      <div className="space-y-6 w-full">
-        {/* Customer Details - Desktop Only */}
-        <div className="card hidden lg:block">
-          <h3 className="text-title-large mb-4">Customer Details</h3>
-          <div className="space-y-4">
-            <input
-              type="text"
-              placeholder="Customer Name *"
-              value={customerDetails.name}
-              onChange={(e) => updateCustomerDetails('name', e.target.value)}
-              className="input-field"
-            />
-            <input
-              type="tel"
-              placeholder="Phone Number *"
-              value={customerDetails.phone}
-              onChange={(e) => updateCustomerDetails('phone', e.target.value)}
-              className="input-field"
-            />
-            <div className="flex space-x-2">
+            {/* Pagination Controls - Aligned to the right */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-end space-x-2 mt-4">
               <button
-                onClick={() => updateOrderType('dine-in')}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                  orderType === 'dine-in' 
-                    ? 'bg-primary-600 text-white' 
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
+                  currentPage === 1
+                    ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
                     : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
                 }`}
               >
-                Dine-in
+                Previous
               </button>
-              <button
-                onClick={() => updateOrderType('delivery')}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                  orderType === 'delivery' 
-                    ? 'bg-primary-600 text-white' 
-                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                }`}
-              >
-                Delivery
-              </button>
-            </div>
-            {orderType === 'delivery' && (
-              <input
-                type="text"
-                placeholder="Vehicle Number"
-                value={customerDetails.vehicleNumber}
-                onChange={(e) => updateCustomerDetails('vehicleNumber', e.target.value)}
-                className="input-field"
-              />
-            )}
-            {orderType === 'dine-in' && tableNumber && (
-              <>
-                <button
-                  type="button"
-                  className="chip chip-primary px-4 py-2 focus:outline-none"
-                  onClick={() => setShowTablePicker(true)}
-                >
-                  Table: {selectedTable}
-                </button>
-                {showTablePicker && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden lg:flex">
-                    <div className="bg-white rounded-lg shadow-lg p-4 w-[260px] h-[320px] max-w-full flex flex-col">
-                      <h3 className="text-title-medium mb-2 text-center">Select Table Number</h3>
-                      <div className="grid grid-cols-5 gap-2 mb-2 overflow-y-auto flex-1" style={{maxHeight: '200px'}}>
-                        {[...Array(100)].map((_, i) => (
-                          <button
-                            key={i+1}
-                            className={`rounded-lg px-2 py-2 text-xs font-medium border ${selectedTable === String(i+1) ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-700 hover:bg-surface-200'}`}
-                            onClick={() => updateSelectedTable(String(i+1))}
-                          >
-                            {i+1}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex justify-end space-x-2 mt-2">
-                        <button
-                          className="btn-outlined px-3 py-1 text-xs"
-                          onClick={() => setShowTablePicker(false)}
-                        >Cancel</button>
-                        <button
-                          className="btn-primary px-3 py-1 text-xs"
-                          onClick={() => setShowTablePicker(false)}
-                        >Select</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Order Items */}
-        <div className="card">
-          <div className="flex items-center space-x-2 mb-4">
-            <ShoppingCart className="w-5 h-5" />
-            <h3 className="text-title-large">Order Items ({orderItems.length})</h3>
-          </div>
-          
-          {orderItems.length === 0 ? (
-            <p className="text-surface-600 text-center py-8">No items added yet</p>
-          ) : (
-            <div className="space-y-4">
-              {orderItems.map(item => (
-                <div key={item.id} className="border border-surface-200 rounded-lg p-4 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-body-large font-medium">{item.menuItem.name}</h4>
-                      <p className="text-body-small text-surface-600">${item.menuItem.price.toFixed(2)} each</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => updateQuantity(item.id, -1)}
-                        className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center hover:bg-surface-200"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, 1)}
-                        className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center hover:bg-surface-200"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Special instructions (optional)"
-                    value={item.specialInstructions || ''}
-                    onChange={(e) => updateSpecialInstructions(item.id, e.target.value)}
-                    className="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm"
-                  />
-                  <div className="text-right text-body-medium font-medium">
-                    ${(item.menuItem.price * item.quantity).toFixed(2)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Kitchen Notes */}
-        <div className="card">
-          <h3 className="text-title-medium mb-3">Kitchen Notes</h3>
-          <textarea
-            placeholder="Special instructions for kitchen..."
-            value={kitchenNotes}
-            onChange={(e) => updateKitchenNotes(e.target.value)}
-            className="input-field"
-            rows={3}
-          />
-        </div>
-
-        {/* Order Total */}
-        {orderItems.length > 0 && (
-          <div className="card">
-            <h3 className="text-title-medium mb-3">Order Summary</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>${calculateTotal().subtotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tax (18%):</span>
-                <span>${calculateTotal().tax.toFixed(2)}</span>
-              </div>
-              <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
-                <span>Total:</span>
-                <span>${calculateTotal().total.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="space-y-3">
-          <button
-            onClick={saveOrder}
-            disabled={orderItems.length === 0 || (isOrderSaved && !isOrderModified)}
-            className={`w-full flex items-center justify-center space-x-2 ${
-              isOrderSaved && !isOrderModified 
-                ? 'btn-disabled' 
-                : 'btn-secondary'
-            }`}
-          >
-            <Save className="w-4 h-4" />
-            <span>
-              {isOrderSaved && !isOrderModified 
-                ? 'Order Saved' 
-                : isOrderSaved && isOrderModified 
-                  ? 'Save Order Again' 
-                  : 'Save Order'
-              }
-            </span>
-          </button>
-          
-          {/* Only show Send to Kitchen button after order is saved */}
-          {isOrderSaved && (
-            <button
-              onClick={pushToKitchen}
-              disabled={orderItems.length === 0 || isOrderModified}
-              className={`w-full flex items-center justify-center space-x-2 ${
-                isOrderModified 
-                  ? 'btn-disabled' 
-                  : 'btn-primary'
-              }`}
-            >
-              <Send className="w-4 h-4" />
-              <span>Send to Kitchen</span>
-            </button>
-          )}
-        </div>
-
-        {/* Saved Orders */}
-        {savedOrders.length > 0 && (
-          <div className="card">
-            <h3 className="text-title-medium mb-3">Latest Saved Order</h3>
-            <div className="space-y-2">
-              {/* Show only the most recent saved order */}
-              {(() => {
-                const latestOrder = savedOrders[savedOrders.length - 1];
-                return (
-                  <div key={latestOrder.id} className="flex items-center justify-between p-2 bg-surface-50 rounded-lg">
-                    <div>
-                      <p className="text-body-medium font-medium">{latestOrder.customerName}</p>
-                      <p className="text-body-small text-surface-600">${latestOrder.grandTotal.toFixed(2)}</p>
-                    </div>
-                    <button className="p-2 hover:bg-surface-100 rounded-lg" onClick={() => setSelectedSavedOrder(latestOrder)}>
-                      <Eye className="w-4 h-4" />
+              
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                  // Show only nearby pages to avoid overcrowding
+                  const showPage = page === 1 || page === totalPages || 
+                    (page >= currentPage - 1 && page <= currentPage + 1);
+                  
+                  if (!showPage) {
+                    if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="px-2 text-surface-400 lg:px-1 lg:text-xs">...</span>;
+                    }
+                    return null;
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`w-8 h-8 rounded-lg text-sm transition-colors lg:w-6 lg:h-6 lg:text-xs ${
+                        currentPage === page
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                      }`}
+                    >
+                      {page}
                     </button>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Saved Order Details Modal */}
-      {selectedSavedOrder && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-elevation-5 w-full max-w-3xl max-h-[90vh] overflow-hidden animate-scale-in">
-            {/* Header */}
-            <div className="p-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white flex items-start justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-headline-small">Saved Order Details</h2>
-                  <div className="mt-1 inline-flex items-center px-3 py-1 rounded-full bg-white/20 text-white/90 text-label-medium">
-                    #{selectedSavedOrder.id}
-                  </div>
-                </div>
+                  );
+                })}
               </div>
+              
               <button
-                className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-                onClick={() => setSelectedSavedOrder(null)}
-                aria-label="Close"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
+                  currentPage === totalPages
+                    ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
+                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                }`}
               >
-                <X className="w-5 h-5" />
+                Next
               </button>
-            </div>
-
-            <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-96px)]">
-              {/* Info Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="card">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center">
-                      <User className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-title-medium">Customer</h3>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-body-medium text-surface-900">{selectedSavedOrder.customerName}</p>
-                    <p className="text-body-medium text-surface-700">{selectedSavedOrder.customerPhone}</p>
-                    {selectedSavedOrder.customerAddress && (
-                      <div className="inline-flex items-center space-x-2 mt-2 px-3 py-1 rounded-full bg-surface-100 text-surface-700">
-                        <Car className="w-4 h-4" />
-                        <span className="text-label-medium">Vehicle No: {selectedSavedOrder.customerAddress}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="card">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-secondary-100 text-secondary-700 flex items-center justify-center">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-title-medium">Order Info</h3>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-surface-100 text-surface-700 capitalize">{selectedSavedOrder.type}</div>
-                    {selectedSavedOrder.tableNumber && (
-                      <p className="text-body-medium text-surface-700">Table: {selectedSavedOrder.tableNumber}</p>
-                    )}
-                    <p className="text-body-medium text-surface-700">Status: {selectedSavedOrder.status}</p>
-                  </div>
-                </div>
               </div>
-
-              {/* Items */}
-              <div className="card">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-title-medium">Items ({selectedSavedOrder.items.length})</h3>
-                  <div className="text-body-small text-surface-600">Total Qty: {selectedSavedOrder.items.reduce((n, i) => n + i.quantity, 0)}</div>
-                </div>
-                <div className="space-y-2">
-                  {selectedSavedOrder.items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-xl border border-surface-200">
-                      <div className="flex items-center space-x-3">
-                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary-100 text-primary-700 font-medium">{item.quantity}</span>
-                        <div>
-                          <p className="text-body-medium text-surface-900">{item.menuItem.name}</p>
-                          {item.specialInstructions && (
-                            <p className="text-body-small text-surface-600">Note: {item.specialInstructions}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-body-medium font-semibold text-surface-900">
-                        ${(item.menuItem.price * item.quantity).toFixed(2)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Totals */}
-              <div className="card">
-                <h3 className="text-title-medium mb-3">Totals</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>${selectedSavedOrder.total.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax (18%)</span>
-                    <span>${selectedSavedOrder.tax.toFixed(2)}</span>
-                  </div>
-                  <div className="border-t border-surface-200 pt-2 flex justify-between font-bold text-title-medium">
-                    <span>Grand Total</span>
-                    <span className="text-primary-600">${selectedSavedOrder.grandTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer actions */}
-              <div className="flex justify-end">
-                <button
-                  className="btn-primary px-6"
-                  onClick={() => setSelectedSavedOrder(null)}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
+            )}
           </div>
+
+        {/* Order Summary */}
+        <div className="space-y-6 w-full">
+          {/* Order Total */}
+          {orderItems.length > 0 && (
+            <div className="card">
+              <h3 className="text-title-medium lg:text-sm lg:font-medium mb-3 lg:mb-2">Order Summary</h3>
+              <div className="space-y-2 lg:space-y-1">
+                <div className="flex justify-between lg:text-sm">
+                  <span>Subtotal:</span>
+                  <span>${calculateTotal().subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between lg:text-sm">
+                  <span>Tax (18%):</span>
+                  <span>${calculateTotal().tax.toFixed(2)}</span>
+                </div>
+                <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium lg:text-sm lg:font-semibold">
+                  <span>Total:</span>
+                  <span>${calculateTotal().total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+    </div>
 
       {/* QR Code Modal */}
       {qrForOrderId && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-elevation-5 w-full max-w-md overflow-hidden animate-scale-in">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
             <div className="p-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white flex items-center justify-between">
               <h3 className="text-title-large">Track Your Order</h3>
               <button
