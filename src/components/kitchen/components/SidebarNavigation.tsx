@@ -4,16 +4,16 @@ import { kitchenColors } from "../theme/colors";
 import { kitchenLayout } from "../theme/layout";
 
 interface NavigationItem {
-  id: "all" | "pending" | "in-progress" | "ready" | "menu";
+  id: "all" | "pending" | "in-progress" | "ready" | "menu" | "settings";
   label: string;
   icon: string;
 }
 
 interface SidebarNavigationProps {
-  selectedFilter: "all" | "pending" | "in-progress" | "ready" | "menu";
+  selectedFilter: "all" | "pending" | "in-progress" | "ready" | "menu" | "settings";
   onFilterClick: (
     e: React.MouseEvent,
-    filter: "all" | "pending" | "in-progress" | "ready" | "menu"
+    filter: "all" | "pending" | "in-progress" | "ready" | "menu" | "settings"
   ) => void;
   userName?: string;
   userRole?: string;
@@ -26,6 +26,7 @@ const navigationItems: NavigationItem[] = [
   { id: "in-progress", label: "In Progress", icon: "autorenew" },
   { id: "ready", label: "Ready", icon: "check_circle_outline" },
   { id: "menu", label: "Menu", icon: "menu_book" },
+  { id: "settings", label: "Settings", icon: "settings" },
 ];
 
 const getNavItemClasses = (isSelected: boolean) => {

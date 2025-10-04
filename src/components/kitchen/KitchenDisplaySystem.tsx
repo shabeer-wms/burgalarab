@@ -9,6 +9,7 @@ import { SidebarNavigation } from "./components/SidebarNavigation";
 import { BottomNavigation } from "./components/BottomNavigation";
 import { OrderSection } from "./components/OrderSection";
 import { KitchenMenu } from "./components/KitchenMenu";
+import KitchenSettingsPage from "./components/KitchenSettingsPage";
 
 // Theme
 import { kitchenColors } from "./theme/colors";
@@ -92,7 +93,7 @@ const KitchenDisplaySystem: React.FC = () => {
 
   // UI filter state for navigation
   const [selectedFilter, setSelectedFilter] = useState<
-    "all" | "pending" | "in-progress" | "ready" | "menu"
+    "all" | "pending" | "in-progress" | "ready" | "menu" | "settings"
   >("all");
 
   const handleFilterClick = (
@@ -144,7 +145,8 @@ const KitchenDisplaySystem: React.FC = () => {
               inProgressCount={inProgressOrders.length}
               readyCount={readyOrders.length}
               onLogout={logout}
-              title={selectedFilter === "menu" ? "Menu Management" : "Kitchen Display System"}
+              title={selectedFilter === "menu" ? "Menu Management" : selectedFilter === "settings" ? "Settings" : "Kitchen Display System"}
+              isSettings={selectedFilter === "settings"}
             />
           </div>
 
@@ -154,6 +156,8 @@ const KitchenDisplaySystem: React.FC = () => {
               menuItems={menuItems}
               onUpdateMenuItem={handleUpdateMenuItem}
             />
+          ) : selectedFilter === "settings" ? (
+            <KitchenSettingsPage />
           ) : (
             <>
               {/* Order Sections */}
