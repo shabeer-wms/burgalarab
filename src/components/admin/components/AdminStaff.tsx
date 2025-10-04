@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Search, Edit, Trash2, X, Eye, EyeOff } from "lucide-react";
+import { Plus, Search, Edit, Trash2, X } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 
 export const AdminStaff: React.FC = () => {
@@ -10,14 +10,13 @@ export const AdminStaff: React.FC = () => {
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const [showDeleteStaffModal, setShowDeleteStaffModal] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<any>(null);
-  const [showPassword, setShowPassword] = useState(false);
+
   const [newStaff, setNewStaff] = useState({
     name: "",
-    email: "",
     phoneNumber: "",
     password: "",
     role: "waiter" as "waiter" | "kitchen" | "admin" | "manager",
-    attendance: true,
+    isFrozen: false,
     dateJoined: new Date().toISOString().split("T")[0],
   });
 
@@ -26,7 +25,7 @@ export const AdminStaff: React.FC = () => {
     .filter(
       (member) =>
         member.name.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
-        member.email.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+        member.phoneNumber.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
         member.role.toLowerCase().includes(staffSearchTerm.toLowerCase())
     )
     .sort((a, b) => {
@@ -51,15 +50,21 @@ export const AdminStaff: React.FC = () => {
 
   const handleAddStaff = async () => {
     try {
-      await addStaff(newStaff);
+      // Auto-generate email from phone number
+      const generatedEmail = `${newStaff.phoneNumber}@gmail.com`;
+      const staffWithEmail = {
+        ...newStaff,
+        email: generatedEmail,
+      };
+
+      await addStaff(staffWithEmail);
 
       setNewStaff({
         name: "",
-        email: "",
         phoneNumber: "",
         password: "",
         role: "waiter",
-        attendance: true,
+        isFrozen: false,
         dateJoined: new Date().toISOString().split("T")[0],
       });
       setShowAddStaffModal(false);
@@ -71,14 +76,25 @@ export const AdminStaff: React.FC = () => {
 
   const handleEditStaff = async () => {
     try {
-      const updates = {
+      // Find the original staff member to check if phone number changed
+      const originalStaff = staff.find(s => s.id === selectedStaff.id);
+      const phoneChanged = originalStaff && originalStaff.phoneNumber !== selectedStaff.phoneNumber;
+      
+      let updates: any = {
         name: selectedStaff.name,
-        email: selectedStaff.email,
         phoneNumber: selectedStaff.phoneNumber,
         role: selectedStaff.role,
-        attendance: selectedStaff.attendance,
+        isFrozen: selectedStaff.isFrozen,
       };
 
+      // If phone number changed, regenerate email
+      if (phoneChanged) {
+        const newEmail = `${selectedStaff.phoneNumber}@gmail.com`;
+        updates.email = newEmail;
+        updates.phoneChanged = true;
+        updates.oldEmail = originalStaff!.email;
+      }
+      
       await updateStaff(selectedStaff.id, updates);
       setShowEditStaffModal(false);
       setSelectedStaff(null);
@@ -111,14 +127,14 @@ export const AdminStaff: React.FC = () => {
     setShowDeleteStaffModal(false);
   };
 
-  const toggleAttendance = async (staffId: string) => {
+  const toggleFrozenStatus = async (staffId: string) => {
     try {
       const staffMember = staff.find((member) => member.id === staffId);
       if (staffMember) {
-        await updateStaff(staffId, { attendance: !staffMember.attendance });
+        await updateStaff(staffId, { isFrozen: !staffMember.isFrozen });
       }
     } catch (error) {
-      console.error("Error updating attendance:", error);
+      console.error("Error updating frozen status:", error);
     }
   };
 
@@ -129,27 +145,24 @@ export const AdminStaff: React.FC = () => {
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-6 pb-20 md:pb-0">
-        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 sm:flex-1">
-            <div className="relative w-full sm:flex-1">
-              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search staff..."
-                value={staffSearchTerm}
-                onChange={(e) => setStaffSearchTerm(e.target.value)}
-                className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
-              />
-            </div>
+      <div className="space-y-4 sm:space-y-6 pb-20 md:pb-12">
+        <div className="flex justify-between items-center gap-4">
+          <div className="relative flex-1 max-w-xs sm:max-w-none">
+            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search staff..."
+              value={staffSearchTerm}
+              onChange={(e) => setStaffSearchTerm(e.target.value)}
+              className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
+            />
           </div>
-
           <button
             onClick={() => setShowAddStaffModal(true)}
-            className="w-full sm:w-auto bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 sm:ml-4"
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Staff</span>
+            <span className="text-sm">Add Staff</span>
           </button>
         </div>
 
@@ -164,17 +177,14 @@ export const AdminStaff: React.FC = () => {
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Name
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                    Email
-                  </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Phone Number
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Role
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Attendance
+                    Status
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -194,49 +204,28 @@ export const AdminStaff: React.FC = () => {
                         {member.name}
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                      <div className="text-sm text-gray-900 truncate max-w-[150px]">
-                        {member.email}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {member.phoneNumber}
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          member.role === "admin"
-                            ? "bg-purple-100 text-purple-800"
-                            : member.role === "manager"
-                            ? "bg-blue-100 text-blue-800"
-                            : member.role === "waiter"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-orange-100 text-orange-800"
-                        }`}
-                      >
+                      <div className="text-sm text-gray-900 capitalize">
                         {member.role}
-                      </span>
+                      </div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={member.attendance}
-                          onChange={() => toggleAttendance(member.id)}
-                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                        />
-                        <span
-                          className={`ml-2 text-xs sm:text-sm ${
-                            member.attendance
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {member.attendance ? "Present" : "Absent"}
-                        </span>
-                      </label>
+                      <button
+                        onClick={() => toggleFrozenStatus(member.id)}
+                        className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-md active:scale-95 ${
+                          !member.isFrozen
+                            ? "bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 shadow-green-200/50"
+                            : "bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900 shadow-red-200/50"
+                        }`}
+                        title={`Click to ${!member.isFrozen ? 'freeze' : 'activate'} user`}
+                      >
+                        {!member.isFrozen ? "Active" : "Frozen"}
+                      </button>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-1 sm:space-x-2">
@@ -336,20 +325,7 @@ export const AdminStaff: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={newStaff.email}
-                  onChange={(e) =>
-                    setNewStaff({ ...newStaff, email: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter email address"
-                />
-              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -487,22 +463,7 @@ export const AdminStaff: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={selectedStaff.email}
-                  onChange={(e) =>
-                    setSelectedStaff({
-                      ...selectedStaff,
-                      email: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

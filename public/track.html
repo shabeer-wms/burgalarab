@@ -128,6 +128,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
     import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
     const params = new URLSearchParams(location.search);
     const orderId = params.get('order');
@@ -145,6 +146,24 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // Update connection status indicator
+    const updateConnectionStatus = (status, message) => {
+      const updatedElement = document.getElementById('updated');
+      if (status === 'connecting') {
+        updatedElement.textContent = '🔄 Connecting...';
+        updatedElement.style.color = '#f59e0b';
+      } else if (status === 'connected') {
+        updatedElement.style.color = '#10b981';
+      } else if (status === 'error') {
+        updatedElement.textContent = `❌ ${message}`;
+        updatedElement.style.color = '#ef4444';
+      } else if (status === 'no-data') {
+        updatedElement.textContent = '⚠️ Order not found - Please check the order ID';
+        updatedElement.style.color = '#f59e0b';
+      }
+    };
 
     function setDots(status, orderType) {
       const s = String(status || '').toLowerCase();
@@ -226,48 +245,149 @@
       badge.textContent = statusText[s] || 'UNKNOWN';
     }
 
+    // Function to start order tracking after authentication
+    const startOrderTracking = () => {
+      if (orderId) {
+        // Initialize connection status
+        let lastUpdateTime = null;
+        let connectionAttempts = 0;
+        const maxRetries = 3;
+
+        // Set initial status
+        updateConnectionStatus('connecting', 'Connecting to server...');
+        
+        console.log('📍 Setting up onSnapshot for order:', orderId);
+        console.log('🔐 Current user:', auth.currentUser);
+        console.log('🔐 User anonymous:', auth.currentUser?.isAnonymous);
+        console.log('🔐 Auth state ready:', !!auth.currentUser);
+
+        const unsubscribe = onSnapshot(
+          doc(db, 'orders', orderId), 
+          (snap) => {
+            try {
+              connectionAttempts = 0; // Reset attempts on successful connection
+              
+              if (!snap.exists()) {
+                updateConnectionStatus('no-data', 'Order not found');
+                return;
+              }
+              
+              const o = snap.data();
+              if (!o) {
+                updateConnectionStatus('no-data', 'Invalid order data');
+                return;
+              }
+
+              console.log('✅ Order data received:', o);
+              lastUpdateTime = new Date();
+              
+              document.getElementById('customer').textContent = o.customerName || '-';
+              document.getElementById('type').textContent = o.type || '-';
+              
+              // Update location display based on order type
+              const locationLabel = document.getElementById('location-label');
+              const locationValue = document.getElementById('location-value');
+              if (o.type === 'dine-in') {
+                locationLabel.textContent = 'Table No';
+                locationValue.textContent = o.tableNumber || '-';
+              } else if (o.type === 'delivery') {
+                locationLabel.textContent = 'Vehicle No';
+                locationValue.textContent = o.customerAddress || '-';
+              } else {
+                locationLabel.textContent = 'Location';
+                locationValue.textContent = '-';
+              }
+              
+              const total = (o.grandTotal || 0).toFixed(2);
+              document.getElementById('total').textContent = `$${total}`;
+              
+              // Update timeline with main order status (handle paused state)
+              const displayStatus = (o.status === 'confirmed' && o.paused) ? 'paused' : o.status;
+              setDots(displayStatus, o.type);
+              
+              // Update status message with more detail
+              let statusMessage = `Order status: ${displayStatus.toUpperCase()}`;
+              if (displayStatus === 'paused') {
+                statusMessage += ' - Kitchen will resume preparation shortly';
+              } else if (displayStatus === 'confirmed') {
+                statusMessage += ' - Sent to kitchen for preparation';
+              } else if (displayStatus === 'preparing') {
+                statusMessage += ' - Kitchen is working on your order';
+              } else if (displayStatus === 'ready') {
+                statusMessage += (o.type === 'delivery' ? ' - Order ready for delivery' : ' - Order ready at your table');
+              }
+              
+              updateConnectionStatus('connected', statusMessage);
+              document.getElementById('updated').textContent = statusMessage;
+              
+            } catch (error) {
+              console.error('❌ Error processing order data:', error);
+              updateConnectionStatus('error', 'Error processing order data');
+            }
+          },
+          (error) => {
+            console.error('🚨 Firebase listener error:', error);
+            console.error('🔍 Error code:', error.code);
+            console.error('🔍 Error message:', error.message);
+            console.error('🔐 Current user when error occurred:', auth.currentUser);
+            connectionAttempts++;
+            
+            let errorMessage = 'Connection failed';
+            if (error.code === 'permission-denied') {
+              errorMessage = 'Access denied - Firebase security rules may not allow anonymous read access';
+            } else if (error.code === 'unavailable') {
+              errorMessage = 'Firebase service temporarily unavailable';
+            } else if (error.code === 'failed-precondition') {
+              errorMessage = 'Firebase database configuration error';
+            }
+            
+            updateConnectionStatus('error', `${errorMessage} (Attempt ${connectionAttempts}/${maxRetries})`);
+            
+            // Retry mechanism
+            if (connectionAttempts < maxRetries) {
+              setTimeout(() => {
+                console.log(`🔄 Retrying connection... (${connectionAttempts + 1}/${maxRetries})`);
+                startOrderTracking();
+              }, 2000 * connectionAttempts);
+            } else {
+              updateConnectionStatus('error', 'Connection failed after multiple attempts - Please check network');
+            }
+          }
+        );
+      }
+    };
+
+    // Initialize tracking - try direct connection first, then auth if needed
+    const initializeTracking = async () => {
+      console.log('🚀 Starting order tracking initialization...');
+      
+      // Try direct connection first (in case anonymous auth isn't needed)
+      try {
+        updateConnectionStatus('connecting', 'Connecting to server...');
+        console.log('📡 Trying direct connection without authentication...');
+        startOrderTracking();
+      } catch (error) {
+        console.log('🔐 Direct connection failed, trying authentication...');
+        
+        // If direct connection fails, try with anonymous auth
+        try {
+          updateConnectionStatus('connecting', 'Authenticating...');
+          console.log('🔐 Attempting anonymous authentication...');
+          await signInAnonymously(auth);
+          console.log('✅ Anonymous authentication successful');
+          startOrderTracking();
+        } catch (authError) {
+          console.error('❌ Authentication also failed:', authError);
+          updateConnectionStatus('error', 'Unable to connect - Please check your internet connection and refresh');
+        }
+      }
+    };
+
+    // Initialize tracking when page loads
     if (orderId) {
-      // Orders basic info and status
-      onSnapshot(doc(db, 'orders', orderId), (snap) => {
-        const o = snap.data();
-        if (!o) return;
-        document.getElementById('customer').textContent = o.customerName || '-';
-        document.getElementById('type').textContent = o.type || '-';
-        
-        // Update location display based on order type
-        const locationLabel = document.getElementById('location-label');
-        const locationValue = document.getElementById('location-value');
-        if (o.type === 'dine-in') {
-          locationLabel.textContent = 'Table No';
-          locationValue.textContent = o.tableNumber || '-';
-        } else if (o.type === 'delivery') {
-          locationLabel.textContent = 'Vehicle No';
-          locationValue.textContent = o.customerAddress || '-';
-        } else {
-          locationLabel.textContent = 'Location';
-          locationValue.textContent = '-';
-        }
-        
-        const total = (o.grandTotal || 0).toFixed(2);
-        document.getElementById('total').textContent = `$${total}`;
-        
-        // Update timeline with main order status (handle paused state)
-        const displayStatus = (o.status === 'confirmed' && o.paused) ? 'paused' : o.status;
-        setDots(displayStatus, o.type);
-        
-        // Update status message with more detail
-        let statusMessage = `Order status: ${displayStatus.toUpperCase()}`;
-        if (displayStatus === 'paused') {
-          statusMessage += ' - Kitchen will resume preparation shortly';
-        } else if (displayStatus === 'confirmed') {
-          statusMessage += ' - Sent to kitchen for preparation';
-        } else if (displayStatus === 'preparing') {
-          statusMessage += ' - Kitchen is working on your order';
-        } else if (displayStatus === 'ready') {
-          statusMessage += (o.type === 'delivery' ? ' - Order ready for delivery' : ' - Order ready at your table');
-        }
-        document.getElementById('updated').textContent = statusMessage;
-      });
+      initializeTracking();
+    } else {
+      updateConnectionStatus('error', 'No order ID provided');
     }
   </script>
 </body>

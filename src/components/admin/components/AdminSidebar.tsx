@@ -1,9 +1,9 @@
 import React from "react";
-import { TrendingUp, Users, Plus, UserCheck, LogOut } from "lucide-react";
+import { TrendingUp, Users, Plus, UserCheck, LogOut, Settings } from "lucide-react";
 
 interface AdminSidebarProps {
-  activeTab: "overview" | "orders" | "menu" | "staff";
-  onTabChange: (tab: "overview" | "orders" | "menu" | "staff") => void;
+  activeTab: "overview" | "orders" | "menu" | "staff" | "settings";
+  onTabChange: (tab: "overview" | "orders" | "menu" | "staff" | "settings") => void;
   user: any;
   onLogout: () => void;
 }
@@ -19,6 +19,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
     { id: "orders", name: "Orders", icon: Users },
     { id: "menu", name: "Menu", icon: Plus },
     { id: "staff", name: "Staff", icon: UserCheck },
+    { id: "settings", name: "Settings", icon: Settings },
   ] as const;
 
   const handleMenuClick = (tabId: typeof activeTab) => {
@@ -28,7 +29,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   return (
     <>
       {/* Desktop sidebar (hidden on tablet and smaller screens) */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex-col z-40">
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 flex-col z-40">
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <h1 className="text-lg font-bold text-gray-900">Hotel Management</h1>
@@ -84,7 +85,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
       </aside>
 
       {/* Mobile and tablet bottom navigation (visible only on non-desktop screens) */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white z-50">
         <nav className="flex">
           {menuItems.map((item) => {
             const Icon = item.icon;

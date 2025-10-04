@@ -6,8 +6,7 @@ import {
   Category,
   Bill,
   KitchenDisplayItem,
-  Staff,
-  Notification
+  Staff
 } from "../types";
 import { db, auth } from "../firebase";
 import {
@@ -22,7 +21,7 @@ import {
   setDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { seedMenuItems } from "../utils/seedMenuItems";
 
 interface AppContextType {
@@ -45,9 +44,9 @@ interface AppContextType {
 
   // Staff management functions
   addStaff: (staff: Omit<Staff, "id" | "uid"> & { password: string }) => Promise<void>;
-  updateStaff: (id: string, updates: Partial<Staff>) => Promise<void>;
+  updateStaff: (id: string, updates: any) => Promise<void>;
   deleteStaff: (id: string) => Promise<void>;
-  authenticateStaff: (email: string, password: string) => Promise<Staff | null>;
+  authenticateStaff: (phoneOrEmail: string, password: string) => Promise<Staff | null>;
 
   addOrder: (order: Omit<Order, "id" | "orderTime">) => Promise<string>;
   updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
@@ -253,10 +252,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         kitchenItem.tableNumber = orderData.tableNumber;
       }
       
-      if (orderData.kitchenNotes) {
-        kitchenItem.kitchenNotes = orderData.kitchenNotes;
-      }
-      
       await setDoc(doc(db, "kitchenOrders", docRef.id), kitchenItem);
     }
     return docRef.id;
@@ -381,15 +376,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const billRef = await addDoc(collection(db, 'bills'), billData);
       console.log('Bill saved with ID:', billRef.id);
 
-      // Update order status
-      await updateOrder(orderId, { paymentStatus: 'paid', status: 'completed' });
-      console.log('Order status updated successfully');
+      // Update order status to confirmed so it goes to kitchen
+      await updateOrder(orderId, { paymentStatus: 'paid', status: 'confirmed' });
+      console.log('Order status updated to confirmed - sent to kitchen');
 
-      // Also update kitchen order status to completed
+      // Also update kitchen order status to confirmed for kitchen display
       try {
         const kitchenRef = doc(db, "kitchenOrders", orderId);
-        await updateDoc(kitchenRef, { status: 'completed' });
-        console.log('Kitchen order status updated to completed');
+        await updateDoc(kitchenRef, { status: 'confirmed' });
+        console.log('Kitchen order status updated to confirmed');
       } catch (kitchenError) {
         console.log('Kitchen order may not exist or already updated:', kitchenError);
       }
@@ -455,7 +450,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Staff management functions
   const addStaff = async (staffData: Omit<Staff, "id" | "uid"> & { password: string }): Promise<void> => {
     try {
-      // Create Firebase Auth user
+      // Create Firebase Auth user with the generated email
       const userCredential = await createUserWithEmailAndPassword(auth, staffData.email, staffData.password);
       const uid = userCredential.user.uid;
 
@@ -471,17 +466,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Save staff to Firestore
       await addDoc(collection(db, "staff"), staffDoc);
       
-      console.log("Staff member created successfully");
+      console.log("Staff member created successfully with auto-generated email:", staffData.email);
     } catch (error) {
       console.error("Error adding staff:", error);
       throw error;
     }
   };
 
-  const updateStaff = async (id: string, updates: Partial<Staff>): Promise<void> => {
+  const updateStaff = async (id: string, updates: any): Promise<void> => {
     try {
-      const updateData = { ...updates, updatedAt: new Date() };
-      await updateDoc(doc(db, "staff", id), updateData);
+      const { phoneChanged, oldEmail, ...staffUpdates } = updates;
+      
+      // If phone number changed, we need to update Firebase Auth email as well
+      if (phoneChanged && oldEmail && staffUpdates.email) {
+        // Find the staff member's Firebase Auth user and update email
+        const staffMember = staff.find(s => s.id === id);
+        if (staffMember?.uid) {
+          try {
+            // Note: In a real app, you'd need to handle this differently since
+            // updateEmail requires the user to be currently signed in.
+            // This is a simplified approach - in production, you might need
+            // to delete the old user and create a new one, or use Admin SDK
+            console.log(`Phone changed: updating email from ${oldEmail} to ${staffUpdates.email}`);
+            
+            // Update Firestore first
+            const updateData = { ...staffUpdates, updatedAt: new Date() };
+            await updateDoc(doc(db, "staff", id), updateData);
+            
+            console.log("Staff email updated in Firestore for phone change");
+          } catch (authError) {
+            console.error("Error updating Firebase Auth email:", authError);
+            // Still update Firestore even if Auth update fails
+            const updateData = { ...staffUpdates, updatedAt: new Date() };
+            await updateDoc(doc(db, "staff", id), updateData);
+          }
+        }
+      } else {
+        const updateData = { ...staffUpdates, updatedAt: new Date() };
+        await updateDoc(doc(db, "staff", id), updateData);
+      }
     } catch (error) {
       console.error("Error updating staff:", error);
       throw error;
@@ -493,12 +516,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Find the staff member to get their UID
       const staffMember = staff.find(s => s.id === id);
       
-      // Delete from Firestore
+      // Delete from Firestore first
       await deleteDoc(doc(db, "staff", id));
       
-      // Note: In a production app, you might want to disable the Firebase Auth account
-      // rather than delete it completely for audit purposes
-      console.log("Staff member deleted from database");
+      // Also delete from Firebase Auth if UID exists
+      if (staffMember?.uid) {
+        try {
+          // Note: In a real production app, you'd need Firebase Admin SDK to delete users
+          // This is a simplified approach - the user account will remain in Auth
+          // but won't be able to access the system since Firestore record is deleted
+          console.log(`Staff member deleted from Firestore. Auth UID ${staffMember.uid} should be cleaned up with Admin SDK.`);
+        } catch (authError) {
+          console.error("Error deleting from Firebase Auth:", authError);
+        }
+      }
+      
+      console.log("Staff member deleted successfully");
       
     } catch (error) {
       console.error("Error deleting staff:", error);
@@ -506,16 +539,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const authenticateStaff = async (email: string, password: string): Promise<Staff | null> => {
+  const authenticateStaff = async (phoneOrEmail: string, password: string): Promise<Staff | null> => {
     try {
-      // Sign in with Firebase Auth
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Check if input looks like a phone number (digits only or digits with common separators)
+      const isPhoneNumber = /^[\d\s\-\(\)\+]+$/.test(phoneOrEmail.trim());
+      
+      let emailToUse = phoneOrEmail;
+      if (isPhoneNumber) {
+        // Clean phone number (remove spaces, dashes, etc.) and convert to email format
+        const cleanPhone = phoneOrEmail.replace(/[\s\-\(\)\+]/g, '');
+        emailToUse = `${cleanPhone}@gmail.com`;
+      }
+
+      // Sign in with Firebase Auth using the email (generated or provided)
+      const userCredential = await signInWithEmailAndPassword(auth, emailToUse, password);
       const uid = userCredential.user.uid;
 
       // Find the staff member in Firestore
       const staffMember = staff.find(s => s.uid === uid);
       
       if (staffMember) {
+        // Check if the user is frozen
+        if (staffMember.isFrozen) {
+          throw new Error("Account is frozen. Please contact administrator.");
+        }
         return staffMember;
       } else {
         throw new Error("Staff member not found in database");

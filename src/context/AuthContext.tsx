@@ -65,12 +65,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     }
     
-    // Check staff members from Firestore - authenticate with Firebase Auth
-    const staffMember = staff.find(s => s.email === email);
+    // Check staff members - support both email and phone number login
+    // First try direct email match
+    let staffMember = staff.find(s => s.email === email);
+    let emailToUse = email;
+    
+    // If no direct email match, check if input looks like phone number
+    if (!staffMember) {
+      const isPhoneNumber = /^[\d\s\-\(\)\+]+$/.test(email.trim());
+      if (isPhoneNumber) {
+        // Clean phone number and convert to email format
+        const cleanPhone = email.replace(/[\s\-\(\)\+]/g, '');
+        emailToUse = `${cleanPhone}@gmail.com`;
+        staffMember = staff.find(s => s.email === emailToUse);
+      }
+    }
+    
     if (staffMember) {
       try {
-        // Use Firebase Authentication to verify the password
-        await signInWithEmailAndPassword(auth, email, password);
+        // Check if the user is frozen before attempting authentication
+        if (staffMember.isFrozen) {
+          console.error("Account is frozen");
+          setIsLoading(false);
+          return false;
+        }
+        
+        // Use Firebase Authentication to verify the password with the correct email
+        await signInWithEmailAndPassword(auth, emailToUse, password);
         
         const user: User = {
           id: staffMember.id,

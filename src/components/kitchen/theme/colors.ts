@@ -68,7 +68,7 @@ export const kitchenColors = {
   navigation: {
     bottom: {
       background: "bg-white",
-      border: "border-t border-gray-200",
+      border: "",
       text: "text-gray-600",
       hover: "hover:text-gray-900",
     },

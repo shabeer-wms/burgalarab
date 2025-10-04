@@ -8,15 +8,40 @@ import {
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 
 const OrderStatusManagement: React.FC = () => {
-  const { orders, getActiveOrders, updateOrder, showNotification } = useApp();
+  const { orders, updateOrder, showNotification } = useApp();
   const [selectedStatus, setSelectedStatus] = useState<'all' | Order['status']>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
-
-  const activeOrders = getActiveOrders();
   
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(9); // Default for tablet/desktop
+  
+  // Responsive items per page based on screen size
+  React.useEffect(() => {
+    const updateItemsPerPage = () => {
+      const width = window.innerWidth;
+      if (width < 768) { // Mobile
+        setItemsPerPage(6);
+      } else if (width < 1280) { // Tablet
+        setItemsPerPage(9);
+      } else { // Desktop
+        setItemsPerPage(9);
+      }
+    };
+
+    updateItemsPerPage();
+    window.addEventListener('resize', updateItemsPerPage);
+    return () => window.removeEventListener('resize', updateItemsPerPage);
+  }, []);
+
+  // Reset to first page when status filter changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStatus]);
+
   const filteredOrders = (selectedStatus === 'all' 
     ? orders 
     : orders.filter(order => order.status === selectedStatus)
@@ -30,6 +55,18 @@ const OrderStatusManagement: React.FC = () => {
                   b.orderTime?.toDate ? b.orderTime.toDate() : new Date(0);
     return timeB.getTime() - timeA.getTime();
   });
+
+  // Pagination calculations
+  const totalItems = filteredOrders.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // Handle page navigation
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
 
   const getStatusIcon = (status: Order['status']) => {
     switch (status) {
@@ -97,58 +134,38 @@ const OrderStatusManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header & Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card text-center">
-          <div className="text-title-large text-warning-600">{orders.filter(o => o.status === 'confirmed' && o.paused === true).length}</div>
-          <div className="text-body-medium text-surface-600">Paused Orders</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-title-large text-primary-600">{orders.filter(o => o.status === 'preparing' || (o.status === 'confirmed' && o.paused !== true)).length}</div>
-          <div className="text-body-medium text-surface-600">In Progress</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-title-large text-success-600">{orders.filter(o => o.status === 'ready').length}</div>
-          <div className="text-body-medium text-surface-600">Ready</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-title-large text-surface-900">{activeOrders.length}</div>
-          <div className="text-body-medium text-surface-600">Active Orders</div>
-        </div>
-      </div>
-
       {/* Filters */}
-      <div className="card">
-        <div className="flex items-center space-x-4">
-          <Filter className="w-5 h-5 text-surface-600" />
-          <div className="flex flex-wrap gap-2">
+      <div className="mb-6">
+        <div className="flex items-start lg:items-center space-x-4">
+          <Filter className="w-5 h-5 text-surface-600 flex-shrink-0 mt-1 lg:mt-0" />
+          <div className="flex lg:flex-wrap gap-2 overflow-x-auto lg:overflow-x-visible scrollbar-hide pb-2 flex-1">
             <button
               onClick={() => setSelectedStatus('all')}
-              className={`chip ${selectedStatus === 'all' ? 'chip-primary' : 'chip-secondary'}`}
+              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'all' ? 'chip-primary' : 'chip-secondary'}`}
             >
               All Orders
             </button>
             <button
               onClick={() => setSelectedStatus('confirmed')}
-              className={`chip ${selectedStatus === 'confirmed' ? 'chip-primary' : 'chip-secondary'}`}
+              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'confirmed' ? 'chip-primary' : 'chip-secondary'}`}
             >
               Confirmed
             </button>
             <button
               onClick={() => setSelectedStatus('preparing')}
-              className={`chip ${selectedStatus === 'preparing' ? 'chip-primary' : 'chip-secondary'}`}
+              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'preparing' ? 'chip-primary' : 'chip-secondary'}`}
             >
               Preparing
             </button>
             <button
               onClick={() => setSelectedStatus('ready')}
-              className={`chip ${selectedStatus === 'ready' ? 'chip-success' : 'chip-secondary'}`}
+              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'ready' ? 'chip-success' : 'chip-secondary'}`}
             >
               Ready
             </button>
             <button
               onClick={() => setSelectedStatus('completed')}
-              className={`chip ${selectedStatus === 'completed' ? 'chip-success' : 'chip-secondary'}`}
+              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'completed' ? 'chip-success' : 'chip-secondary'}`}
             >
               Completed
             </button>
@@ -169,7 +186,7 @@ const OrderStatusManagement: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredOrders.map(order => (
+              {paginatedOrders.map(order => (
               <div key={order.id} className="card p-0 border border-surface-200 hover:shadow-elevation-3 transition-all duration-200 flex flex-col h-full">
                 {/* Card Content - Main body */}
                 <div className="flex-1 p-4">
@@ -280,13 +297,71 @@ const OrderStatusManagement: React.FC = () => {
             ))}
             </div>
           )}
+          
+          {/* Pagination Controls - Aligned to the right */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-end space-x-2 mt-4">
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
+                  currentPage === 1
+                    ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
+                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                }`}
+              >
+                Previous
+              </button>
+              
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                  // Show only nearby pages to avoid overcrowding
+                  const showPage = page === 1 || page === totalPages || 
+                    (page >= currentPage - 1 && page <= currentPage + 1);
+                  
+                  if (!showPage) {
+                    if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="px-2 text-surface-400 lg:px-1 lg:text-xs">...</span>;
+                    }
+                    return null;
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`w-8 h-8 rounded-lg text-sm transition-colors lg:w-6 lg:h-6 lg:text-xs ${
+                        currentPage === page
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
+                  currentPage === totalPages
+                    ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
+                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Order Details Dialog Modal */}
       {showOrderDialog && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4">
             <div className="flex items-center justify-between p-6 border-b border-surface-200">
               <h3 className="text-title-large">Order Details</h3>
               <button
@@ -385,6 +460,11 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
                   <p className="text-body-small text-surface-600">
                     ${item.menuItem.price.toFixed(2)} each
                   </p>
+                  {item.sugarPreference && (
+                    <p className="text-body-small text-primary-700 mt-1">
+                      Sugar: {item.sugarPreference}
+                    </p>
+                  )}
                   {item.specialInstructions && (
                     <p className="text-body-small text-warning-700 mt-1">
                       Note: {item.specialInstructions}
@@ -395,28 +475,11 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
                   <p className="text-body-medium font-medium">
                     ${(item.menuItem.price * item.quantity).toFixed(2)}
                   </p>
-                  <div className={`chip text-xs ${
-                    item.status === 'pending' ? 'chip-warning' :
-                    item.status === 'preparing' ? 'chip-primary' :
-                    item.status === 'ready' ? 'chip-success' : 'chip-secondary'
-                  }`}>
-                    {item.status}
-                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Kitchen Notes */}
-        {order.kitchenNotes && (
-          <div>
-            <h4 className="text-title-medium mb-2">Kitchen Notes</h4>
-            <p className="text-body-medium p-3 bg-warning-50 border border-warning-200 rounded-lg">
-              {order.kitchenNotes}
-            </p>
-          </div>
-        )}
 
         {/* Billing */}
         <div>

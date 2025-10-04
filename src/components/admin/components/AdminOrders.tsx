@@ -219,7 +219,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             ?.map((item) => `${item.menuItem.name} x${item.quantity}`)
             .join(", ") || "No items",
         "Payment Method": order.paymentMethod || "N/A",
-        "Kitchen Notes": order.kitchenNotes || "N/A",
       }));
 
       // Convert to CSV
@@ -258,61 +257,92 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-6 pb-20 md:pb-0">
-        <div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
-          <div className="sm:flex-1"></div>
-
-          <div className="flex items-center space-x-3">
+      <div className="space-y-4 sm:space-y-6 pb-20 md:pb-12">
+        <div className="flex flex-col space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900">Order Filters</h3>
             <button
               onClick={handleExportOrders}
-              className="flex items-center justify-center text-gray-700 hover:text-gray-900 p-2 transition-colors duration-150 h-10 w-10"
+              className="flex items-center justify-center text-gray-700 hover:text-gray-900 p-2 transition-colors duration-150 h-10 w-10 hover:bg-gray-100 rounded-lg"
               title="Export Orders"
             >
               <Download size={18} />
             </button>
-
-            <div
-              className="relative w-full sm:w-auto"
-              style={{ minWidth: "140px", maxWidth: "180px" }}
-            >
-              <select
-                value={orderFilter}
-                onChange={(e) => setOrderFilter(e.target.value as any)}
-                className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm min-w-[140px] transition-colors duration-150 pr-8 h-10"
-                style={{
-                  minWidth: "140px",
-                  maxWidth: "180px",
-                  height: "40px",
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                  MozAppearance: "none",
-                }}
+          </div>
+          
+          {/* Filter chips with horizontal scroll on mobile */}
+          <div className="overflow-x-auto lg:overflow-x-visible scrollbar-hide pb-2">
+            <div className="flex lg:flex-wrap space-x-2 min-w-max lg:min-w-0">
+              <button
+                onClick={() => setOrderFilter('all')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  orderFilter === 'all'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
-                <option value="all">All Orders</option>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="preparing">Preparing</option>
-                <option value="ready">Ready</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M6 8L10 12L14 8"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
+                All Orders
+              </button>
+              <button
+                onClick={() => setOrderFilter('pending')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  orderFilter === 'pending'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Pending
+              </button>
+              <button
+                onClick={() => setOrderFilter('confirmed')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  orderFilter === 'confirmed'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Confirmed
+              </button>
+              <button
+                onClick={() => setOrderFilter('preparing')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  orderFilter === 'preparing'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Preparing
+              </button>
+              <button
+                onClick={() => setOrderFilter('ready')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  orderFilter === 'ready'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Ready
+              </button>
+              <button
+                onClick={() => setOrderFilter('completed')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  orderFilter === 'completed'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Completed
+              </button>
+              <button
+                onClick={() => setOrderFilter('cancelled')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                  orderFilter === 'cancelled'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Cancelled
+              </button>
             </div>
           </div>
         </div>
@@ -337,7 +367,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Payment
                   </th>
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -405,7 +435,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                         {order.status}
                       </span>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                           order.paymentStatus === "paid"
@@ -600,16 +630,6 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
           ))}
         </div>
       </div>
-
-      {/* Kitchen Notes */}
-      {order.kitchenNotes && (
-        <div>
-          <h4 className="text-title-medium mb-2">Kitchen Notes</h4>
-          <p className="text-body-medium p-3 bg-warning-50 border border-warning-200 rounded-lg">
-            {order.kitchenNotes}
-          </p>
-        </div>
-      )}
 
       {/* Billing */}
       <div>
