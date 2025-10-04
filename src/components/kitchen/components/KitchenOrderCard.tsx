@@ -202,6 +202,13 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
                 <div className="font-medium">
                   {item.quantity}x {item.menuItem.name}
                 </div>
+                {item.sugarPreference && (
+                  <p
+                    className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.textSecondary} mt-1`}
+                  >
+                    Sugar: {item.sugarPreference}
+                  </p>
+                )}
                 {item.specialInstructions && (
                   <p
                     className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.textSecondary} mt-1`}
@@ -217,22 +224,6 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
             </div>
           );
         })}
-
-        {/* Order-level kitchen notes (from waiter) */}
-        {order.kitchenNotes && (
-          <div className="mt-2 rounded-md bg-gray-50 p-3">
-            <h4
-              className={`${kitchenLayout.typography.card.subtitle} font-semibold mb-1 ${kitchenColors.ui.primary.text}`}
-            >
-              Kitchen Notes
-            </h4>
-            <p
-              className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.textSecondary}`}
-            >
-              {order.kitchenNotes}
-            </p>
-          </div>
-        )}
       </div>
 
       <div className="mt-3 lg:mt-4">{renderStatusButtons()}</div>

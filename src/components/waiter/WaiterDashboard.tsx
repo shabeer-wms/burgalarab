@@ -2,26 +2,74 @@ import React, { useState } from 'react';
 import OrderManagement from '../staff/OrderManagement';
 import OrderStatusManagement from '../staff/OrderStatusManagement';
 import BillingPayments from '../staff/BillingPayments';
-import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings } from 'lucide-react';
+import Snackbar from '../SnackBar';
+import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings, Plus, Minus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { OrderItem } from '../../types';
 
+
 const WaiterDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'status' | 'billing' | 'settings'>('orders');
-  const [selectedTable, setSelectedTable] = useState<string>('1');
+  const [selectedTable, setSelectedTable] = useState<string>('');
   const { user, logout } = useAuth();
   const { orders, bills, getActiveOrders } = useApp();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
   const [showCartModal, setShowCartModal] = useState(false);
   const [showPaymentOptionsModal, setShowPaymentOptionsModal] = useState(false);
+  const [showClearCartConfirmation, setShowClearCartConfirmation] = useState(false);
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
+  const [snackbar, setSnackbar] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error';
+  }>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
   const [cartFunctions, setCartFunctions] = useState<{
     sendToKitchen: () => void;
     payNow: () => void;
     payLater: () => void;
     clearCart: () => void;
+    updateQuantity: (itemId: string, change: number) => void;
+    updateSpecialInstructions: (itemId: string, instructions: string) => void;
+    updateSugarPreference: (itemId: string, preference: "sugar" | "sugarless") => void;
+    updateSpicyPreference: (itemId: string, preference: "spicy" | "non-spicy") => void;
+    validateCustomerDetails: () => boolean;
   } | null>(null);
+
+  // Hide top appbar that may be rendered by a parent Layout
+  React.useEffect(() => {
+    const selectors = [
+      "header",
+      "[data-topbar]",
+      ".topbar",
+      ".app-header",
+      "#top-appbar",
+    ];
+
+    const found: { el: Element; prev: string | null }[] = [];
+
+    selectors.forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) {
+        // skip if the element is inside our component
+        if (rootRef.current && rootRef.current.contains(el)) return;
+        found.push({ el, prev: (el as HTMLElement).style.display || null });
+        (el as HTMLElement).style.display = "none";
+      }
+    });
+
+    return () => {
+      // restore any hidden elements
+      found.forEach(({ el, prev }) => {
+        (el as HTMLElement).style.display = prev ?? "";
+      });
+    };
+  }, []);
 
   // Update time every second
   React.useEffect(() => {
@@ -48,9 +96,9 @@ const WaiterDashboard: React.FC = () => {
 
   return (
     // Full-viewport container similar to kitchen dashboard
-    <div className="fixed inset-0 flex bg-gray-100">
+    <div ref={rootRef} className="fixed inset-0 flex bg-gray-100">
       {/* Desktop sidebar (hidden on tablet and smaller screens) */}
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg flex-col z-40">
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 flex-col z-40">
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <h1 className="text-lg font-bold text-gray-900">Hotel Management</h1>
@@ -98,7 +146,7 @@ const WaiterDashboard: React.FC = () => {
       </aside>
 
       {/* Mobile and tablet bottom navigation (visible only on non-desktop screens) */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white z-50">
         <nav className="flex">
           {tabs.map((tab) => (
             <button
@@ -118,9 +166,9 @@ const WaiterDashboard: React.FC = () => {
       </div>
 
       {/* Main content area */}
-      <main className="flex-1 p-4 md:p-6 h-full ml-0 lg:ml-64 mb-16 lg:mb-0 overflow-auto">
+      <main className="flex-1 p-4 md:p-6 xl:p-8 2xl:p-10 ml-0 lg:ml-64 overflow-auto pb-20 md:pb-24 lg:pb-6">
         <div className="w-full flex justify-center">
-          <div className="w-full" style={{ maxWidth: 1200 }}>
+          <div className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-none">
             <header className="bg-white p-6 rounded-2xl shadow-md mb-8">
               <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4">
                 <div className="flex items-center w-full justify-between">
@@ -309,14 +357,6 @@ const WaiterDashboard: React.FC = () => {
                           </div>
                         </div>
                       )}
-                      
-                      <div className="flex items-center space-x-3 pt-2 border-t border-gray-200">
-                        <div className="w-5 h-5" />
-                        <div>
-                          <p className="text-sm text-gray-600">Login Time</p>
-                          <p className="text-sm font-medium text-gray-800">{currentTime.toLocaleString()}</p>
-                        </div>
-                      </div>
                     </div>
                   </div>
 
@@ -343,9 +383,13 @@ const WaiterDashboard: React.FC = () => {
       {/* Cart Modal */}
       {showCartModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-xl">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Order Items</h3>
+          <div className="bg-white rounded-2xl w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-3xl h-[90vh] flex flex-col shadow-xl">
+            {/* Fixed Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center space-x-2">
+                <ShoppingCart className="w-5 h-5 text-purple-600" />
+                <h3 className="text-xl font-semibold text-gray-900">Order Items ({cartItems.length})</h3>
+              </div>
               <button
                 onClick={() => setShowCartModal(false)}
                 className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
@@ -354,68 +398,211 @@ const WaiterDashboard: React.FC = () => {
               </button>
             </div>
 
-            <div className="overflow-y-auto max-h-[50vh] p-4">
+            {/* Scrollable Content Area */}
+            <div className="overflow-y-auto flex-1 p-6">
               {cartItems.length === 0 ? (
-                <div className="text-center py-8">
-                  <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No items in cart</p>
+                <div className="text-center py-12">
+                  <ShoppingCart className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg">No items in cart</p>
+                  <p className="text-gray-400 text-sm mt-2">Add items from the menu to get started</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{item.menuItem.name}</h4>
-                        <p className="text-sm text-gray-600">
-                          ${item.menuItem.price.toFixed(2)} × {item.quantity}
-                        </p>
-                        {item.specialInstructions && (
-                          <p className="text-xs text-gray-500 mt-1">Note: {item.specialInstructions}</p>
-                        )}
+                    <div key={item.id} className="border border-surface-200 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-body-large font-medium">{item.menuItem.name}</h4>
+                          <p className="text-body-small text-surface-600">${item.menuItem.price.toFixed(2)} each</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => cartFunctions?.updateQuantity && cartFunctions.updateQuantity(item.id, -1)}
+                            className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center hover:bg-surface-200"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="w-8 text-center">{item.quantity}</span>
+                          <button
+                            onClick={() => cartFunctions?.updateQuantity && cartFunctions.updateQuantity(item.id, 1)}
+                            className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center hover:bg-surface-200"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">
-                          ${(item.menuItem.price * item.quantity).toFixed(2)}
-                        </p>
+                      <input
+                        type="text"
+                        placeholder="Special instructions (optional)"
+                        value={item.specialInstructions || ''}
+                        onChange={(e) => cartFunctions?.updateSpecialInstructions && cartFunctions.updateSpecialInstructions(item.id, e.target.value)}
+                        className="w-full px-3 py-2 border border-surface-300 rounded-lg text-sm"
+                      />
+                      
+                      {/* Sugar preference toggle for beverage items */}
+                      {item.menuItem.category.toLowerCase() === 'beverages' && (
+                        <div className="flex items-center space-x-3">
+                          <span className="text-body-small text-surface-600">Sugar preference:</span>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => cartFunctions?.updateSugarPreference && cartFunctions.updateSugarPreference(item.id, 'sugar')}
+                              className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                                item.sugarPreference === 'sugar' || !item.sugarPreference
+                                  ? 'bg-primary-600 text-white'
+                                  : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                              }`}
+                            >
+                              Sugar
+                            </button>
+                            <button
+                              onClick={() => cartFunctions?.updateSugarPreference && cartFunctions.updateSugarPreference(item.id, 'sugarless')}
+                              className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                                item.sugarPreference === 'sugarless'
+                                  ? 'bg-primary-600 text-white'
+                                  : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                              }`}
+                            >
+                              Sugarless
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Spicy preference toggle for main course items */}
+                      {item.menuItem.category.toLowerCase() === 'main courses' && (
+                        <div className="flex items-center space-x-3">
+                          <span className="text-body-small text-surface-600">Spice preference:</span>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => cartFunctions?.updateSpicyPreference && cartFunctions.updateSpicyPreference(item.id, 'non-spicy')}
+                              className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                                item.spicyPreference === 'non-spicy' || !item.spicyPreference
+                                  ? 'bg-primary-600 text-white'
+                                  : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                              }`}
+                            >
+                              Non-Spicy
+                            </button>
+                            <button
+                              onClick={() => cartFunctions?.updateSpicyPreference && cartFunctions.updateSpicyPreference(item.id, 'spicy')}
+                              className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                                item.spicyPreference === 'spicy'
+                                  ? 'bg-primary-600 text-white'
+                                  : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
+                              }`}
+                            >
+                              Spicy
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="text-right text-body-medium font-medium">
+                        ${(item.menuItem.price * item.quantity).toFixed(2)}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
+
             </div>
 
-            {cartItems.length > 0 && (
-              <div className="p-4 border-t border-gray-200 space-y-3">
-                <div className="flex justify-between items-center text-lg font-semibold">
-                  <span>Total:</span>
-                  <span className="text-purple-600">
-                    ${cartItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0).toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3">
-                  <button
-                    onClick={() => {
-                      setShowCartModal(false);
-                      setShowPaymentOptionsModal(true);
-                    }}
-                    className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
-                  >
-                    Send to Kitchen
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      cartFunctions?.clearCart();
-                      setShowCartModal(false);
-                    }}
-                    className="w-full border border-red-300 text-red-600 py-3 rounded-lg font-medium hover:bg-red-50 transition-colors"
-                  >
-                    Clear Cart
-                  </button>
-                </div>
+            {/* Fixed Footer - Always visible */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+              {/* Total */}
+              <div className="flex justify-between items-center text-lg font-semibold mb-4">
+                <span>Total:</span>
+                <span className="text-purple-600">
+                  ${cartItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0).toFixed(2)}
+                </span>
               </div>
-            )}
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    if (cartItems.length === 0) {
+                      setSnackbar({
+                        show: true,
+                        message: 'Order sent to kitchen successfully!',
+                        type: 'success'
+                      });
+                      return;
+                    }
+                    if (!cartFunctions?.validateCustomerDetails()) {
+                      setSnackbar({
+                        show: true,
+                        message: 'Please fill in customer name and phone number for delivery',
+                        type: 'error'
+                      });
+                      return;
+                    }
+                    setShowCartModal(false);
+                    setShowPaymentOptionsModal(true);
+                  }}
+                  className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  disabled={cartItems.length === 0}
+                >
+                  Send to Kitchen
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (cartItems.length === 0) {
+                      setSnackbar({
+                        show: true,
+                        message: 'Cart is already empty',
+                        type: 'error'
+                      });
+                      return;
+                    }
+                    setShowClearCartConfirmation(true);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 border border-red-300 text-red-600 py-3 rounded-lg font-medium hover:bg-red-50 transition-colors disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  disabled={cartItems.length === 0}
+                >
+                  <Trash2 size={18} />
+                  Clear Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Cart Confirmation Dialog */}
+      {showClearCartConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
+                <Trash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                Clear Cart?
+              </h3>
+              <p className="text-gray-600 text-center mb-6">
+                Are you sure you want to clear all items from the cart? This will remove all selected items and empty your cart.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowClearCartConfirmation(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    cartFunctions?.clearCart();
+                    setShowClearCartConfirmation(false);
+                    setShowCartModal(false);
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Clear Cart
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -475,6 +662,14 @@ const WaiterDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Snackbar */}
+      <Snackbar
+        message={snackbar.message}
+        type={snackbar.type}
+        show={snackbar.show}
+        onClose={() => setSnackbar(prev => ({ ...prev, show: false }))}
+      />
     </div>
   );
 };

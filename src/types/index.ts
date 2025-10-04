@@ -29,6 +29,8 @@ export interface OrderItem {
   menuItem: MenuItem;
   quantity: number;
   specialInstructions?: string;
+  sugarPreference?: "sugar" | "sugarless"; // For beverage items
+  spicyPreference?: "spicy" | "non-spicy"; // For main course items
   status: "pending" | "preparing" | "ready" | "served";
 }
 
@@ -56,7 +58,6 @@ export interface Order {
   orderTime: Date | string | { toDate: () => Date };
   completedTime?: Date;
   waiterId?: string;
-  kitchenNotes?: string;
   estimatedTime?: number; // in minutes
   draft?: boolean; // indicates if the order is a draft
   paused?: boolean; // Track if the order was paused from kitchen
@@ -100,7 +101,6 @@ export interface KitchenDisplayItem {
   estimatedTime: number;
   priority: "low" | "medium" | "high";
   status: "pending" | "in-progress" | "ready";
-  kitchenNotes?: string;
   paused?: boolean; // Track if the order was paused and moved back to pending
 }
 
