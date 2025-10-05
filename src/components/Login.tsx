@@ -162,10 +162,12 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const { login, isLoading } = useAuth();
   const { staff } = useApp();
+    const [buttonLoading, setButtonLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+      setButtonLoading(true);
     
     // Check if staff member exists and is frozen before attempting login
     const isPhoneNumber = /^[\d\s\-\(\)\+]+$/.test(phoneOrEmail.trim());
@@ -178,6 +180,7 @@ const Login: React.FC = () => {
     const staffMember = staff.find(s => s.email === emailToCheck || s.email === phoneOrEmail);
     if (staffMember && staffMember.isFrozen) {
       setError('Your account has been frozen. Please contact the administrator.');
+        setButtonLoading(false);
       return;
     }
     
@@ -185,13 +188,14 @@ const Login: React.FC = () => {
     if (!success) {
       setError('Invalid phone number or password');
     }
+      setButtonLoading(false);
   };
 
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#7C3AED] via-[#F3E8FF] to-[#F06292] px-4 py-8">
-      <div className="w-full max-w-md bg-white bg-opacity-70 backdrop-blur-lg shadow-2xl rounded-3xl p-10 flex flex-col items-center">
+    <div className="min-h-screen flex items-center justify-center bg-white px-4 py-8">
+  <div className="w-full max-w-md bg-white bg-opacity-50 backdrop-blur-lg shadow-2xl rounded-3xl p-10 flex flex-col items-center border-2 border-black">
         <div className="mb-6">
           <div className="bg-[#7C3AED] p-3 rounded-full shadow-lg flex items-center justify-center">
             <Utensils className="w-10 h-10 text-white" />
@@ -233,10 +237,18 @@ const Login: React.FC = () => {
           )}
           <button
             type="submit"
-            disabled={isLoading || !phoneOrEmail || !password}
-            className={`w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#F06292] transition-all shadow-lg ${isLoading || !phoneOrEmail || !password ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-2xl'}`}
+          disabled={buttonLoading || !phoneOrEmail || !password}
+          className={`w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#F06292] transition-all shadow-lg flex items-center justify-center gap-2 ${buttonLoading || !phoneOrEmail || !password ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-2xl'}`}
           >
-            {isLoading ? 'Logging in...' : 'Login'}
+          {buttonLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                Logging in...
+              </>
+          ) : 'Login'}
           </button>
         </form>
       </div>
