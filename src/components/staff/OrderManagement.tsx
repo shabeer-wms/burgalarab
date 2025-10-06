@@ -684,7 +684,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
             
             {/* Search Bar - Responsive Width */}
             <div className="mb-4 lg:mb-3">
-              <div className="relative w-full lg:max-w-xs lg:mx-auto">
+              <div className="relative w-full">
                 <Search className="w-5 h-5 lg:w-4 lg:h-4 text-surface-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 <input
                   type="text"
