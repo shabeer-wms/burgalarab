@@ -244,38 +244,41 @@ const BillingPayments: React.FC = () => {
         <div className="space-y-4">
           {/* Header and Filters */}
           <div className="flex items-center justify-between">
-            <h2 className="text-title-large">Orders</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPaymentFilter('all')}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  paymentFilter === 'all' 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'bg-surface-100 text-surface-600'
-                }`}
-              >
-                All ({filteredOrders.length})
-              </button>
-              <button
-                onClick={() => setPaymentFilter('pending')}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  paymentFilter === 'pending' 
-                    ? 'bg-warning-100 text-warning-700' 
-                    : 'bg-surface-100 text-surface-600'
-                }`}
-              >
-                Pending ({orders.filter(o => ['ready', 'completed'].includes(o.status) && o.paymentStatus === 'pending').length})
-              </button>
-              <button
-                onClick={() => setPaymentFilter('paid')}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  paymentFilter === 'paid' 
-                    ? 'bg-success-100 text-success-700' 
-                    : 'bg-surface-100 text-surface-600'
-                }`}
-              >
-                Paid ({orders.filter(o => ['ready', 'completed'].includes(o.status) && o.paymentStatus === 'paid').length})
-              </button>
+            <h2 className="text-title-large">Orders ({filteredOrders.length})</h2>
+            <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
+              <div className="flex space-x-2 min-w-max">
+                <button
+                  onClick={() => setPaymentFilter('all')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    paymentFilter === 'all' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All Orders
+                </button>
+                <button
+                  onClick={() => setPaymentFilter('pending')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    paymentFilter === 'pending' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Pending
+                </button>
+                <button
+                  onClick={() => setPaymentFilter('paid')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    paymentFilter === 'paid' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Paid
+                </button>
+              </div>
             </div>
           </div>
           
@@ -359,61 +362,34 @@ const BillingPayments: React.FC = () => {
                 ))}
               </div>
               
-              {/* Pagination Controls - Aligned to the right */}
+              {/* Simple Pagination Controls (Previous / Next) */}
               {totalOrderPages > 1 && (
-                <div className="flex items-center justify-end space-x-2 mt-4">
-                  <button
-                    onClick={() => goToOrderPage(currentOrderPage - 1)}
-                    disabled={currentOrderPage === 1}
-                    className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
-                      currentOrderPage === 1
-                        ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
-                        : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                    }`}
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center space-x-1">
-                    {Array.from({ length: totalOrderPages }, (_, i) => i + 1).map(page => {
-                      // Show only nearby pages to avoid overcrowding
-                      const showPage = page === 1 || page === totalOrderPages || 
-                        (page >= currentOrderPage - 1 && page <= currentOrderPage + 1);
-                      
-                      if (!showPage) {
-                        if (page === currentOrderPage - 2 || page === currentOrderPage + 2) {
-                          return <span key={page} className="px-2 text-surface-400 lg:px-1 lg:text-xs">...</span>;
-                        }
-                        return null;
-                      }
-                      
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => goToOrderPage(page)}
-                          className={`w-8 h-8 rounded-lg text-sm transition-colors lg:w-6 lg:h-6 lg:text-xs ${
-                            currentOrderPage === page
-                              ? 'bg-primary-600 text-white'
-                              : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
+                <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => goToOrderPage(currentOrderPage - 1)}
+                      disabled={currentOrderPage === 1}
+                      className="p-2 mr-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Previous page"
+                      title="Previous page"
+                    >
+                      <span className="material-icons">chevron_left</span>
+                    </button>
+
+                    <div className="text-sm text-gray-600 mr-3">
+                      Page {currentOrderPage} of {totalOrderPages}
+                    </div>
+
+                    <button
+                      onClick={() => goToOrderPage(currentOrderPage + 1)}
+                      disabled={currentOrderPage === totalOrderPages}
+                      className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Next page"
+                      title="Next page"
+                    >
+                      <span className="material-icons">chevron_right</span>
+                    </button>
                   </div>
-                  
-                  <button
-                    onClick={() => goToOrderPage(currentOrderPage + 1)}
-                    disabled={currentOrderPage === totalOrderPages}
-                    className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
-                      currentOrderPage === totalOrderPages
-                        ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
-                        : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                    }`}
-                  >
-                    Next
-                  </button>
                 </div>
               )}
             </>
@@ -504,61 +480,34 @@ const BillingPayments: React.FC = () => {
               ))}
             </div>
             
-            {/* Pagination Controls - Aligned to the right */}
+            {/* Simple Pagination Controls (Previous / Next) */}
             {totalBillPages > 1 && (
-              <div className="flex items-center justify-end space-x-2 mt-4">
-                <button
-                  onClick={() => goToBillPage(currentBillPage - 1)}
-                  disabled={currentBillPage === 1}
-                  className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
-                    currentBillPage === 1
-                      ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
-                      : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                  }`}
-                >
-                  Previous
-                </button>
-                
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: totalBillPages }, (_, i) => i + 1).map(page => {
-                    // Show only nearby pages to avoid overcrowding
-                    const showPage = page === 1 || page === totalBillPages || 
-                      (page >= currentBillPage - 1 && page <= currentBillPage + 1);
-                    
-                    if (!showPage) {
-                      if (page === currentBillPage - 2 || page === currentBillPage + 2) {
-                        return <span key={page} className="px-2 text-surface-400 lg:px-1 lg:text-xs">...</span>;
-                      }
-                      return null;
-                    }
-                    
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => goToBillPage(page)}
-                        className={`w-8 h-8 rounded-lg text-sm transition-colors lg:w-6 lg:h-6 lg:text-xs ${
-                          currentBillPage === page
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
+              <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
+                <div className="flex items-center">
+                  <button
+                    onClick={() => goToBillPage(currentBillPage - 1)}
+                    disabled={currentBillPage === 1}
+                    className="p-2 mr-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Previous page"
+                    title="Previous page"
+                  >
+                    <span className="material-icons">chevron_left</span>
+                  </button>
+
+                  <div className="text-sm text-gray-600 mr-3">
+                    Page {currentBillPage} of {totalBillPages}
+                  </div>
+
+                  <button
+                    onClick={() => goToBillPage(currentBillPage + 1)}
+                    disabled={currentBillPage === totalBillPages}
+                    className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Next page"
+                    title="Next page"
+                  >
+                    <span className="material-icons">chevron_right</span>
+                  </button>
                 </div>
-                
-                <button
-                  onClick={() => goToBillPage(currentBillPage + 1)}
-                  disabled={currentBillPage === totalBillPages}
-                  className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
-                    currentBillPage === totalBillPages
-                      ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
-                      : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                  }`}
-                >
-                  Next
-                </button>
               </div>
             )}
           </>

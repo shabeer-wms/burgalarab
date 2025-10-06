@@ -49,7 +49,19 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10); // Default for mobile
+  const getItemsPerPage = () => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      // Tablet devices and iPad Pro: 768px to 1279px (md to lg breakpoints)
+      if (width >= 768 && width < 1280) {
+        return 9;
+      }
+      // Desktop and larger: 1280px and above
+      return 10;
+    }
+    return 10;
+  };
+  const [itemsPerPage, setItemsPerPage] = useState(getItemsPerPage());
 
   // Payment dialog states
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -193,22 +205,11 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
     }
   }, [orderItems, onCartUpdate]);
 
-  // Responsive items per page based on screen size
+  // Responsive items per page - 9 for tablets/iPad Pro, 10 for desktop
   useEffect(() => {
-    const updateItemsPerPage = () => {
-      const width = window.innerWidth;
-      if (width < 768) { // Mobile
-        setItemsPerPage(10);
-      } else if (width < 1280) { // Tablet
-        setItemsPerPage(9);
-      } else { // Desktop
-        setItemsPerPage(9);
-      }
-    };
-
-    updateItemsPerPage();
-    window.addEventListener('resize', updateItemsPerPage);
-    return () => window.removeEventListener('resize', updateItemsPerPage);
+    const handleResize = () => setItemsPerPage(getItemsPerPage());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Reset to first page when filters change
@@ -632,9 +633,9 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-8 2xl:gap-10 h-full items-start">
+      <div className="w-full h-full">
         {/* Menu Items */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="w-full space-y-6">
 
 
 
@@ -692,28 +693,31 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
             </div>
             
             {/* Category Filter Chips */}
-            <div className="flex lg:flex-wrap gap-2 overflow-x-auto lg:overflow-x-visible scrollbar-hide pb-2">
-              <button
-                onClick={() => setSelectedCategory('all')}
-                className={`chip lg:text-xs lg:px-2 lg:py-1 whitespace-nowrap flex-shrink-0 ${selectedCategory === 'all' ? 'chip-primary' : 'chip-secondary'}`}
-              >
-                All Items
-              </button>
-              {categories.map(category => (
+            <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
+              <div className="flex space-x-2 min-w-max">
                 <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.name)}
-                  className={`chip lg:text-xs lg:px-2 lg:py-1 whitespace-nowrap flex-shrink-0 ${selectedCategory === category.name ? 'chip-primary' : 'chip-secondary'}`}
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedCategory === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                 >
-                  {category.name}
+                  All Categories
                 </button>
-              ))}
+                {categories.map(category => (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.name)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedCategory === category.name ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Menu Items Grid with Pagination */}
           <div className="relative">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6 xl:gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
               {paginatedMenuItems.map(item => {
               const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
               const isSelected = existingItem && existingItem.quantity > 0;
@@ -817,88 +821,39 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
             })}
             </div>
 
-            {/* Pagination Controls - Aligned to the right */}
+            {/* Simple Pagination Controls (Previous / Next) */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-end space-x-2 mt-4">
-              <button
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
-                  currentPage === 1
-                    ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
-                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                }`}
-              >
-                Previous
-              </button>
-              
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                  // Show only nearby pages to avoid overcrowding
-                  const showPage = page === 1 || page === totalPages || 
-                    (page >= currentPage - 1 && page <= currentPage + 1);
-                  
-                  if (!showPage) {
-                    if (page === currentPage - 2 || page === currentPage + 2) {
-                      return <span key={page} className="px-2 text-surface-400 lg:px-1 lg:text-xs">...</span>;
-                    }
-                    return null;
-                  }
-                  
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => goToPage(page)}
-                      className={`w-8 h-8 rounded-lg text-sm transition-colors lg:w-6 lg:h-6 lg:text-xs ${
-                        currentPage === page
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
-              </div>
-              
-              <button
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
-                  currentPage === totalPages
-                    ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
-                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                }`}
-              >
-                Next
-              </button>
+              <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
+                <div className="flex items-center">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 mr-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Previous page"
+                    title="Previous page"
+                  >
+                    <span className="material-icons">chevron_left</span>
+                  </button>
+
+                  <div className="text-sm text-gray-600 mr-3">
+                    Page {currentPage} of {totalPages}
+                  </div>
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Next page"
+                    title="Next page"
+                  >
+                    <span className="material-icons">chevron_right</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-        {/* Order Summary */}
-        <div className="space-y-6 w-full">
-          {/* Order Total */}
-          {orderItems.length > 0 && (
-            <div className="card">
-              <h3 className="text-title-medium lg:text-sm lg:font-medium mb-3 lg:mb-2">Order Summary</h3>
-              <div className="space-y-2 lg:space-y-1">
-                <div className="flex justify-between lg:text-sm">
-                  <span>Subtotal:</span>
-                  <span>${calculateTotal().subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between lg:text-sm">
-                  <span>Tax (18%):</span>
-                  <span>${calculateTotal().tax.toFixed(2)}</span>
-                </div>
-                <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium lg:text-sm lg:font-semibold">
-                  <span>Total:</span>
-                  <span>${calculateTotal().total.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+
       </div>
     </div>
 
