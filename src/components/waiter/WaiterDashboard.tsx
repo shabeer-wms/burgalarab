@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import OrderManagement from '../staff/OrderManagement';
 import OrderStatusManagement from '../staff/OrderStatusManagement';
 import BillingPayments from '../staff/BillingPayments';
 import Snackbar from '../SnackBar';
-import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings, Plus, Minus, Trash2 } from 'lucide-react';
+import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { OrderItem } from '../../types';
@@ -17,6 +17,12 @@ const WaiterDashboard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const [showCartModal, setShowCartModal] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [readyOrdersSnapshot, setReadyOrdersSnapshot] = useState<Order[]>([]);
+  const [seenReadyOrderIds, setSeenReadyOrderIds] = useState<string[]>([]);
+  const [prevReadyCount, setPrevReadyCount] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showPaymentOptionsModal, setShowPaymentOptionsModal] = useState(false);
   const [showClearCartConfirmation, setShowClearCartConfirmation] = useState(false);
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
@@ -81,6 +87,17 @@ const WaiterDashboard: React.FC = () => {
   const pausedOrders = orders.filter(o => o.status === 'confirmed' && o.paused === true);
   const inProgressOrders = orders.filter(o => o.status === 'preparing' || (o.status === 'confirmed' && o.paused !== true));
   const readyOrders = orders.filter(o => o.status === 'ready');
+  // Play sound and show notification when new ready order appears
+  useEffect(() => {
+    if (readyOrders.length > prevReadyCount) {
+      setShowNotification(true);
+      if (audioRef.current) {
+        audioRef.current.play();
+      }
+      setTimeout(() => setShowNotification(false), 3000);
+    }
+    setPrevReadyCount(readyOrders.length);
+  }, [readyOrders.length]);
   
   // Billing-specific counts
   const totalOrdersCount = orders.filter(order => ['ready', 'completed'].includes(order.status)).length;
@@ -191,21 +208,115 @@ const WaiterDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Cart Button for New Order tab only - No logout button in app bar for other tabs */}
+                  {/* Cart and Notification Icons for New Order tab only */}
                   {activeTab === 'orders' && (
-                    <button
-                      className="ml-4 p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex-shrink-0 relative"
-                      aria-label="Cart"
-                      onClick={() => setShowCartModal(true)}
-                    >
-                      <ShoppingCart className="w-5 h-5" />
-                      {cartItems.length > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                          {cartItems.length}
-                        </span>
-                      )}
-                    </button>
+                    <div className="flex items-center">
+                      <button
+                        className="p-2 bg-yellow-400 text-white rounded-lg hover:bg-yellow-500 transition-colors flex-shrink-0 relative"
+                        aria-label="Notifications"
+                        onClick={() => {
+                          const unseenOrders = readyOrders.filter(order => !seenReadyOrderIds.includes(order.id));
+                          setReadyOrdersSnapshot(unseenOrders);
+                          setShowNotificationModal(true);
+                          setSeenReadyOrderIds(prev => [...prev, ...unseenOrders.map(order => order.id)]);
+                        }}
+                      >
+                        <Bell className="w-5 h-5" />
+                        {readyOrders.filter(order => !seenReadyOrderIds.includes(order.id)).length > 0 && (
+                          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                            {readyOrders.filter(order => !seenReadyOrderIds.includes(order.id)).length}
+                          </span>
+                        )}
+                      </button>
+                      <span className="mx-2" />
+                      <button
+                        className="ml-0 p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex-shrink-0 relative"
+                        aria-label="Cart"
+                        onClick={() => setShowCartModal(true)}
+                      >
+                        <ShoppingCart className="w-5 h-5" />
+                        {cartItems.length > 0 && (
+                          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                            {cartItems.length}
+                          </span>
+                        )}
+                      </button>
+            {/* Notification Modal - shows all ready orders as a snapshot when opened */}
+            {showNotificationModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-4 sm:p-6 relative mx-2 sm:mx-0" style={{width: '100%', maxWidth: '400px'}}>
+                  <button
+                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowNotificationModal(false)}
+                    aria-label="Close"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                  <div className="flex items-center gap-3 mb-4">
+                    <Bell className="w-7 h-7 text-yellow-500" />
+                    <h2 className="text-xl font-bold text-gray-800">Ready Orders Notification</h2>
+                  </div>
+                  {readyOrdersSnapshot.length === 0 ? (
+                    <div className="text-gray-500 text-center py-8">No ready orders yet.</div>
+                  ) : (
+                    <div className="space-y-6 max-h-96 overflow-y-auto">
+                      {readyOrdersSnapshot.map((order) => (
+                        <div key={order.id} className="border-b pb-4 mb-4 last:border-b-0 last:mb-0 last:pb-0">
+                          <div className="font-semibold text-gray-700">Order ID: <span className="text-purple-600">{order.id}</span></div>
+                          <div className="text-gray-600">{order.type === 'dine-in' ? `Table: ${order.tableNumber || 'N/A'}` : `Delivery`}</div>
+                          <div className="text-gray-600">Customer: <span className="font-medium">{order.customerName || 'N/A'}</span></div>
+                          <div className="text-gray-600">Type: <span className="font-medium">{order.type}</span></div>
+                          <div className="text-gray-600">Items:</div>
+                          <ul className="list-disc ml-6 text-gray-700">
+                            {order.items.map((item, iidx) => (
+                              <li key={iidx}>
+                                {item.menuItem.name} x {item.quantity}
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="text-green-600 font-semibold">Status: Ready</div>
+                          <div className="text-gray-500 text-xs mt-2">Order Time: {
+                            (() => {
+                              const ot = order.orderTime;
+                              if (!ot) return '';
+                              if (typeof ot === 'string') return ot;
+                              if (ot instanceof Date) return ot.toLocaleString();
+                              if (typeof ot === 'object' && typeof ot.toDate === 'function') return ot.toDate().toLocaleString();
+                              return '';
+                            })()
+                          }</div>
+                        </div>
+                      ))}
+                    </div>
                   )}
+                </div>
+              </div>
+            )}
+                      <audio ref={audioRef} src="/notification.mp3" preload="auto" />
+                      {/* Notification dropdown */}
+                      {showNotification && readyOrders.length > 0 && (
+                        <div className="absolute right-0 mt-14 w-72 bg-white border border-yellow-400 rounded-xl shadow-lg z-50">
+                          <div className="p-4 flex items-center gap-3 border-b border-yellow-100">
+                            <Bell className="w-6 h-6 text-yellow-500" />
+                            <span className="font-semibold text-yellow-800">Latest Ready Order</span>
+                          </div>
+                          <div className="p-4">
+                            <div className="text-gray-800 font-medium">Order #{readyOrders[readyOrders.length-1]?.id || 'N/A'}</div>
+                            <div className="text-gray-600 text-sm">Table: {readyOrders[readyOrders.length-1]?.tableNumber || 'N/A'}</div>
+                            <div className="text-gray-600 text-sm">Items: {readyOrders[readyOrders.length-1]?.items?.map(i => i.menuItem.name).join(', ') || 'N/A'}</div>
+                            <div className="text-green-600 text-xs mt-2">Status: Ready</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+            {/* Notification popup */}
+            {showNotification && (
+              <div className="fixed top-6 right-6 z-50 bg-yellow-100 border border-yellow-400 text-yellow-800 px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-bounce">
+                <Bell className="w-6 h-6 text-yellow-500" />
+                <span>{readyOrders.length} order{readyOrders.length > 1 ? 's' : ''} ready!</span>
+              </div>
+            )}
                 </div>
 
                 {/* Only show counters on status and billing tabs */}
