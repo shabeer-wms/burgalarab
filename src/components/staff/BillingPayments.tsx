@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order, Bill } from '../../types';
-import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2, CheckCircle } from 'lucide-react';
+import { Receipt, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2, CheckCircle } from 'lucide-react'; // Reduced icons; printing removed
 
 const BillingPayments: React.FC = () => {
-  const { orders, bills, generateBill, showNotification } = useApp();
+  const { orders, generateBill, showNotification } = useApp();
   const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<Bill['paymentMethod']>('cash');
   const [paymentFilter, setPaymentFilter] = useState<'all' | Order['paymentStatus']>('all');
@@ -17,9 +17,7 @@ const BillingPayments: React.FC = () => {
   const [currentOrderPage, setCurrentOrderPage] = useState(1);
   const [orderItemsPerPage, setOrderItemsPerPage] = useState(9); // Default for tablet/desktop
   
-  // Pagination states for bills
-  const [currentBillPage, setCurrentBillPage] = useState(1);
-  const [billItemsPerPage, setBillItemsPerPage] = useState(9); // Default for tablet/desktop
+  // Bills listing removed; retain bills only for generating when payment occurs
 
   // Responsive items per page based on screen size
   React.useEffect(() => {
@@ -27,13 +25,13 @@ const BillingPayments: React.FC = () => {
       const width = window.innerWidth;
       if (width < 768) { // Mobile
         setOrderItemsPerPage(6);
-        setBillItemsPerPage(6);
+  // bills list removed
       } else if (width < 1280) { // Tablet
         setOrderItemsPerPage(9);
-        setBillItemsPerPage(9);
+  // bills list removed
       } else { // Desktop
         setOrderItemsPerPage(9);
-        setBillItemsPerPage(9);
+  // bills list removed
       }
     };
 
@@ -47,11 +45,9 @@ const BillingPayments: React.FC = () => {
     setCurrentOrderPage(1);
   }, [paymentFilter]);
 
-  const filteredOrders = (paymentFilter === 'all' 
+  const filteredOrders = (paymentFilter === 'all'
     ? orders.filter(order => ['ready', 'completed'].includes(order.status))
-    : orders.filter(order => 
-        ['ready', 'completed'].includes(order.status) && order.paymentStatus === paymentFilter
-      )
+    : orders.filter(order => ['ready', 'completed'].includes(order.status) && order.paymentStatus === paymentFilter)
   ).sort((a, b) => {
     // Sort by order time in descending order (most recent first)
     const timeA = a.orderTime instanceof Date ? a.orderTime : 
@@ -71,127 +67,26 @@ const BillingPayments: React.FC = () => {
   const paginatedOrders = filteredOrders.slice(orderStartIndex, orderEndIndex);
 
   // Bills pagination calculations
-  const totalBillPages = Math.ceil(bills.length / billItemsPerPage);
-  const billStartIndex = (currentBillPage - 1) * billItemsPerPage;
-  const billEndIndex = billStartIndex + billItemsPerPage;
-  const paginatedBills = bills.slice(billStartIndex, billEndIndex);
+  // Removed bill pagination calculations
+  // Removed bill pagination & export helpers since All Bills view is gone
 
-  // Handle page navigation
+  // Pagination helpers
   const goToOrderPage = (page: number) => {
-    setCurrentOrderPage(Math.max(1, Math.min(page, totalOrderPages)));
-  };
-
-  const goToBillPage = (page: number) => {
-    setCurrentBillPage(Math.max(1, Math.min(page, totalBillPages)));
-  };
-
-  const downloadBillPDF = (bill: Bill) => {
-    // In a real app, this would generate and download a PDF
-    const billContent = generateBillHTML(bill);
-    const blob = new Blob([billContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bill-${bill.id}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const printBill = (bill: Bill) => {
-    const billContent = generateBillHTML(bill);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(billContent);
-      printWindow.document.close();
-      printWindow.print();
+    if (page < 1) {
+      setCurrentOrderPage(1);
+    } else if (page > totalOrderPages) {
+      setCurrentOrderPage(totalOrderPages || 1);
+    } else {
+      setCurrentOrderPage(page);
     }
   };
 
-  const generateBillHTML = (bill: Bill) => {
-    if (!bill || !bill.items) {
-      return `
-        <!DOCTYPE html>
-        <html>
-        <head><title>Bill Error</title></head>
-        <body><p>Error: Could not generate bill - missing data</p></body>
-        </html>
-      `;
+  // Keep current page in bounds if data size shrinks
+  React.useEffect(() => {
+    if (currentOrderPage > totalOrderPages && totalOrderPages > 0) {
+      setCurrentOrderPage(totalOrderPages);
     }
-    
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Bill - ${bill.id}</title>
-        <style>
-          body { font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; }
-          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-          .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
-          .total { border-top: 1px solid #000; padding-top: 10px; margin-top: 10px; font-weight: bold; }
-          .footer { text-align: center; margin-top: 20px; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h2>Hotel Management</h2>
-          <p>Bill No: ${bill.id}</p>
-          <p>Date: ${formatDate(bill.generatedAt)}</p>
-          <p>Time: ${formatTime(bill.generatedAt)}</p>
-        </div>
-        
-        <div>
-          <p><strong>Customer:</strong> ${bill.customerDetails?.name || 'N/A'}</p>
-          <p><strong>Phone:</strong> ${bill.customerDetails?.phone || 'N/A'}</p>
-          ${bill.customerDetails?.tableNumber ? `<p><strong>Table:</strong> ${bill.customerDetails.tableNumber}</p>` : ''}
-          ${bill.customerDetails?.address ? `<p><strong>Vehicle No:</strong> ${bill.customerDetails.address}</p>` : ''}
-        </div>
-        
-        <div style="margin: 20px 0;">
-          ${bill.items.map(item => `
-            <div class="item">
-              <div>
-                <span>${item.quantity}x ${item.menuItem?.name || 'Unknown Item'}</span>
-                ${item.sugarPreference ? `<br><small style="color: #666;">Sugar: ${item.sugarPreference}</small>` : ''}
-                ${item.specialInstructions ? `<br><small style="color: #666;">Note: ${item.specialInstructions}</small>` : ''}
-              </div>
-              <span>$${((item.menuItem?.price || 0) * (item.quantity || 0)).toFixed(2)}</span>
-            </div>
-          `).join('')}
-        </div>
-        
-        <div class="total">
-          <div class="item">
-            <span>Subtotal:</span>
-            <span>$${bill.subtotal ? bill.subtotal.toFixed(2) : '0.00'}</span>
-          </div>
-          ${bill.serviceCharge ? `
-            <div class="item">
-              <span>Service Charge (10%):</span>
-              <span>$${bill.serviceCharge.toFixed(2)}</span>
-            </div>
-          ` : ''}
-          <div class="item">
-            <span>Tax (${bill.taxRate ? (bill.taxRate * 100).toFixed(0) : '0'}%):</span>
-            <span>$${bill.taxAmount ? bill.taxAmount.toFixed(2) : '0.00'}</span>
-          </div>
-          <div class="item" style="font-size: 18px;">
-            <span>Total:</span>
-            <span>$${bill.total ? bill.total.toFixed(2) : '0.00'}</span>
-          </div>
-          <div class="item">
-            <span>Payment Method:</span>
-            <span>${bill.paymentMethod.toUpperCase()}</span>
-          </div>
-        </div>
-        
-        <div class="footer">
-          <p>Thank you for your visit!</p>
-          <p>Generated by: ${bill.generatedBy}</p>
-        </div>
-      </body>
-      </html>
-    `;
-  };
+  }, [currentOrderPage, totalOrderPages]);
 
   const getPaymentIcon = (method: Bill['paymentMethod']) => {
     switch (method) {
@@ -210,30 +105,6 @@ const BillingPayments: React.FC = () => {
       case 'partial': return 'text-warning-600';
       case 'refunded': return 'text-error-600';
       default: return 'text-surface-600';
-    }
-  };
-
-  const formatDate = (date: any) => {
-    try {
-      if (!date) return 'N/A';
-      if (date instanceof Date) return date.toLocaleDateString();
-      if (date.toDate && typeof date.toDate === 'function') return date.toDate().toLocaleDateString();
-      return new Date(date).toLocaleDateString();
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'N/A';
-    }
-  };
-
-  const formatTime = (date: any) => {
-    try {
-      if (!date) return 'N/A';
-      if (date instanceof Date) return date.toLocaleTimeString();
-      if (date.toDate && typeof date.toDate === 'function') return date.toDate().toLocaleTimeString();
-      return new Date(date).toLocaleTimeString();
-    } catch (error) {
-      console.error('Error formatting time:', error);
-      return 'N/A';
     }
   };
 
@@ -397,122 +268,7 @@ const BillingPayments: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Bills */}
-      <div>
-        <h2 className="text-title-large">All Bills ({bills.length})</h2>
-        {bills.length === 0 ? (
-          <div className="card text-center py-12 border border-dashed border-surface-300">
-            <Receipt className="w-16 h-16 text-surface-300 mx-auto mb-4" />
-            <p className="text-headline-small text-surface-600">No bills generated yet</p>
-            <p className="text-body-medium text-surface-500 mt-2">Bills will appear here once they are generated</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paginatedBills.map(bill => (
-                <div key={bill.id} className="card p-0 border border-surface-200 hover:shadow-md transition-shadow duration-300 flex flex-col h-full">
-                  {/* Card Content - Main body */}
-                  <div className="flex-1 p-4">
-                    <div className="flex justify-between items-start mb-3 gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-title-medium text-primary-900 truncate">Bill #{bill.id.substring(0, 8)}</p>
-                        <p className="text-body-medium text-surface-700 truncate">
-                          {bill.customerDetails?.name || 'N/A'} • {formatDate(bill.generatedAt)}
-                        </p>
-                        <p className="text-body-small text-surface-600 truncate">
-                          {bill.customerDetails?.tableNumber ? `Table: ${bill.customerDetails.tableNumber}` : 'Takeaway'}
-                        </p>
-                      </div>
-                      <div className="bg-success-100 text-success-800 px-2 py-1 rounded-full text-xs sm:text-sm font-medium flex items-center shrink-0 whitespace-nowrap">
-                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                        <span>Payment Done</span>
-                      </div>
-                    </div>
-                    
-                    <div className="border-t border-surface-100 my-2 pt-2">
-                      <div className="flex justify-between text-body-medium mb-1">
-                        <span>Subtotal:</span>
-                        <span>${bill.subtotal ? bill.subtotal.toFixed(2) : '0.00'}</span>
-                      </div>
-                      {bill.serviceCharge ? (
-                        <div className="flex justify-between text-body-small text-surface-700 mb-1">
-                          <span>Service Charge:</span>
-                          <span>${bill.serviceCharge.toFixed(2)}</span>
-                        </div>
-                      ) : null}
-                      <div className="flex justify-between text-body-small text-surface-700 mb-1">
-                        <span>Tax:</span>
-                        <span>${bill.taxAmount ? bill.taxAmount.toFixed(2) : '0.00'}</span>
-                      </div>
-                      <div className="flex justify-between text-body-large font-medium pt-1 border-t border-surface-100">
-                        <span>Total:</span>
-                        <span>${bill.total ? bill.total.toFixed(2) : '0.00'}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Card Footer - Payment method and actions */}
-                  <div className="border-t border-surface-100 bg-surface-50 px-4 py-3">
-                    <div className="flex justify-between items-center gap-2">
-                      <div className="flex items-center text-body-medium text-surface-600 min-w-0 flex-1">
-                        {bill.paymentMethod && getPaymentIcon(bill.paymentMethod)}
-                        <span className="capitalize ml-1 truncate">{bill.paymentMethod || 'N/A'}</span>
-                      </div>
-                      <div className="flex space-x-2 shrink-0">
-                        <button
-                          onClick={() => downloadBillPDF(bill)}
-                          className="p-2 hover:bg-surface-200 rounded-lg transition-colors border border-surface-200"
-                          title="Download PDF"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => printBill(bill)}
-                          className="p-2 hover:bg-surface-200 rounded-lg transition-colors border border-surface-200"
-                          title="Print"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* Simple Pagination Controls (Previous / Next) */}
-            {totalBillPages > 1 && (
-              <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
-                <div className="flex items-center">
-                  <button
-                    onClick={() => goToBillPage(currentBillPage - 1)}
-                    disabled={currentBillPage === 1}
-                    className="p-2 mr-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Previous page"
-                    title="Previous page"
-                  >
-                    <span className="material-icons">chevron_left</span>
-                  </button>
-
-                  <div className="text-sm text-gray-600 mr-3">
-                    Page {currentBillPage} of {totalBillPages}
-                  </div>
-
-                  <button
-                    onClick={() => goToBillPage(currentBillPage + 1)}
-                    disabled={currentBillPage === totalBillPages}
-                    className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Next page"
-                    title="Next page"
-                  >
-                    <span className="material-icons">chevron_right</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+  {/* All Bills section removed per requirement: only show orders (billing queue) */}
 
       {/* Billing Dialog Modal */}
       {showBillingDialog && billingOrder && (
@@ -636,7 +392,7 @@ const BillingPayments: React.FC = () => {
                       try {
                         setIsGeneratingBill(true);
                         await generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
-                        showNotification('✅ Payment processed successfully! Order sent to kitchen.', 'success');
+                        showNotification('✅ Payment processed successfully! Marked as payment completed.', 'success');
                         setShowBillingDialog(false);
                         setBillingOrder(null);
                       } catch (error) {
@@ -663,36 +419,7 @@ const BillingPayments: React.FC = () => {
                   <span>{isGeneratingBill ? 'Generating Bill...' : 'Generate Bill & Process Payment'}</span>
                 </button>
                 
-                <button
-                  onClick={() => {
-                    if (billingOrder) {
-                      const bill = {
-                        id: `BILL-${Date.now()}`,
-                        orderId: billingOrder.id,
-                        items: billingOrder.items,
-                        subtotal: billingOrder.total,
-                        taxRate: 0.18,
-                        taxAmount: billingOrder.tax,
-                        serviceCharge: billingOrder.total * 0.1,
-                        total: billingOrder.grandTotal,
-                        generatedAt: new Date(),
-                        generatedBy: user?.name || 'Unknown',
-                        paymentMethod,
-                        customerDetails: {
-                          name: billingOrder.customerName,
-                          phone: billingOrder.customerPhone,
-                          address: billingOrder.customerAddress,
-                          tableNumber: billingOrder.tableNumber,
-                        },
-                      };
-                      printBill(bill);
-                    }
-                  }}
-                  className="w-full btn-secondary flex items-center justify-center space-x-2"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>Print Invoice</span>
-                </button>
+                {/* Print Invoice button removed along with All Bills section */}
               </div>
             </div>
           </div>

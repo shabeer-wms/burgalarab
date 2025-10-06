@@ -219,15 +219,14 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
   // Update cart functions in waiter dashboard
   useEffect(() => {
+    // Expose up-to-date cart/order helper functions to parent (WaiterDashboard)
     if (onFunctionsUpdate) {
       onFunctionsUpdate({
         sendToKitchen: pushToKitchen,
         payNow: async () => {
-          // Handle payment now - create order and process payment
           await handlePaymentOptionSelected('now');
         },
         payLater: async () => {
-          // Handle payment later - create order and save for later payment
           await handlePaymentOptionSelected('later');
         },
         clearCart: () => {
@@ -238,16 +237,18 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
         updateSugarPreference,
         updateSpicyPreference,
         validateCustomerDetails: () => {
-          // Only validate for delivery orders - require customer name and phone
           if (orderType === 'delivery') {
-            return customerDetails.name.trim() !== '' && customerDetails.phone.trim() !== '';
+            return (
+              customerDetails.name.trim() !== '' &&
+              customerDetails.phone.trim() !== ''
+            );
           }
-          // For dine-in, no validation required
           return true;
         }
       });
     }
-  }, [onFunctionsUpdate]);
+  // Include all state & fns referenced so closures are fresh (prevents stale cart for Pay Later)
+  }, [onFunctionsUpdate, orderItems, orderType, customerDetails.name, customerDetails.phone, customerDetails.vehicleNumber, selectedTable]);
 
   const filteredMenuItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
@@ -378,13 +379,16 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       const { subtotal, tax, total } = calculateTotal();
       
       // Build order object without undefined fields
+  // All new orders (pay now or pay later) start as 'confirmed' so they appear immediately
+  // in the Confirmed column for both waiter and kitchen dashboards.
+  const initialStatus: Order['status'] = 'confirmed';
       const order: Omit<Order, 'id' | 'orderTime'> = {
         customerId: `CUST-${Date.now()}`,
         customerName: customerDetails.name || 'Walk-in Customer',
         customerPhone: customerDetails.phone || '',
         type: orderType,
         items: orderItems,
-        status: 'confirmed',
+        status: initialStatus,
         total: subtotal,
         tax,
         grandTotal: total,

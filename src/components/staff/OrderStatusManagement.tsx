@@ -10,7 +10,7 @@ import ConfirmationDialog from '../../components/ConfirmationDialog';
 const OrderStatusManagement: React.FC = () => {
   const { orders, updateOrder, showNotification } = useApp();
   const [selectedStatus, setSelectedStatus] = useState<'all' | Order['status']>('all');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
@@ -282,7 +282,7 @@ const OrderStatusManagement: React.FC = () => {
                     <div className="flex space-x-2 shrink-0">
                       <button
                         onClick={() => {
-                          setSelectedOrder(order);
+                          setSelectedOrderId(order.id);
                           setShowOrderDialog(true);
                         }}
                         className="p-2 hover:bg-surface-200 rounded-lg transition-colors border border-surface-200"
@@ -341,15 +341,15 @@ const OrderStatusManagement: React.FC = () => {
       </div>
 
       {/* Order Details Dialog Modal */}
-      {showOrderDialog && selectedOrder && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4">
+  {showOrderDialog && selectedOrderId && (
+        <div className="fixed top-0 left-0 w-screen h-screen bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] m-0 p-0">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4 my-8">
             <div className="flex items-center justify-between p-6 border-b border-surface-200">
               <h3 className="text-title-large">Order Details</h3>
               <button
                 onClick={() => {
                   setShowOrderDialog(false);
-                  setSelectedOrder(null);
+                  setSelectedOrderId(null);
                 }}
                 className="p-2 hover:bg-surface-100 rounded-lg"
               >
@@ -358,7 +358,7 @@ const OrderStatusManagement: React.FC = () => {
             </div>
             
             <div className="p-6">
-              <OrderDetailsPanel order={selectedOrder} />
+              <OrderDetailsPanel orderId={selectedOrderId} />
             </div>
           </div>
         </div>
@@ -383,10 +383,19 @@ const OrderStatusManagement: React.FC = () => {
 };
 
 interface OrderDetailsPanelProps {
-  order: Order;
+  orderId: string;
 }
 
-const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
+const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
+  const { orders } = useApp();
+  const order = React.useMemo(() => orders.find(o => o.id === orderId), [orders, orderId]);
+  if (!order) {
+    return (
+      <div className="p-4 text-center text-surface-500">
+        <p>Order no longer available or was removed.</p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
         {/* Order Info */}
