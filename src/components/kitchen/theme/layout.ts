@@ -1,3 +1,5 @@
+import { getFixedLayoutPadding } from "../../../utils/navigationStyles";
+
 // Layout configuration for Kitchen Display System
 export const kitchenLayout = {
   // Responsive breakpoints and sizing
@@ -10,7 +12,7 @@ export const kitchenLayout = {
     main: {
       padding: "p-4 md:p-6",
       margin: "ml-0 lg:ml-64",
-      paddingBottom: "pb-24 lg:pb-6",
+      paddingBottom: getFixedLayoutPadding(),
     },
     header: {
       padding: "p-4 md:p-5 lg:p-6",
