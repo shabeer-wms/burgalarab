@@ -160,9 +160,9 @@ const Login: React.FC = () => {
   const [phoneOrEmail, setPhoneOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
   const { staff } = useApp();
-    const [buttonLoading, setButtonLoading] = useState(false);
+  const [buttonLoading, setButtonLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,10 +170,10 @@ const Login: React.FC = () => {
       setButtonLoading(true);
     
     // Check if staff member exists and is frozen before attempting login
-    const isPhoneNumber = /^[\d\s\-\(\)\+]+$/.test(phoneOrEmail.trim());
+  const isPhoneNumber = /^[\d\s-()+]+$/.test(phoneOrEmail.trim());
     let emailToCheck = phoneOrEmail;
     if (isPhoneNumber) {
-      const cleanPhone = phoneOrEmail.replace(/[\s\-\(\)\+]/g, '');
+  const cleanPhone = phoneOrEmail.replace(/[\s-()+]/g, '');
       emailToCheck = `${cleanPhone}@gmail.com`;
     }
     
@@ -184,9 +184,9 @@ const Login: React.FC = () => {
       return;
     }
     
-    const success = await login(phoneOrEmail, password, staff);
+  const success = await login(phoneOrEmail, password, staff);
     if (!success) {
-      setError('Invalid phone number or password');
+      setError('Invalid email/phone or password');
     }
       setButtonLoading(false);
   };
@@ -194,63 +194,73 @@ const Login: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4 py-8">
-  <div className="w-full max-w-md bg-white bg-opacity-50 backdrop-blur-lg shadow-2xl rounded-3xl p-10 flex flex-col items-center border-2 border-black">
-        <div className="mb-6">
-          <div className="bg-[#7C3AED] p-3 rounded-full shadow-lg flex items-center justify-center">
-            <Utensils className="w-10 h-10 text-white" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+        <div className="flex flex-col items-center">
+          <div className="bg-gradient-to-tr from-purple-600 to-pink-500 p-3 rounded-full shadow-md">
+            <Utensils className="w-9 h-9 text-white" />
           </div>
+          <h1 className="mt-4 text-2xl font-bold text-gray-800">BURG-AL-ARAB</h1>
+          <p className="text-sm text-gray-500 mt-1 text-center">Sign in to manage orders, staff and kitchen</p>
         </div>
-        <h1 className="text-3xl font-extrabold text-[#7C3AED] mb-2 tracking-tight text-center drop-shadow-lg">Welcome to Royal Restaurant</h1>
-        <p className="text-lg text-[#6B7280] mb-8 text-center font-medium">Sign in to manage your orders, staff, and kitchen with ease.</p>
-        <form className="space-y-6 w-full" onSubmit={handleSubmit}>
+
+        <form className="mt-6 space-y-5" onSubmit={handleSubmit} aria-label="login form">
           <div>
-            <label htmlFor="phoneOrEmail" className="block text-base font-semibold text-[#7C3AED] mb-2">Phone Number</label>
+            <label htmlFor="phoneOrEmail" className="block text-sm font-medium text-gray-700">Email or phone</label>
             <input
               id="phoneOrEmail"
               name="phoneOrEmail"
-              type="tel"
-              autoComplete="tel"
+              type="text"
+              autoComplete="username"
               required
-              className="block w-full px-5 py-3 rounded-xl border-2 border-[#E0E2EA] bg-white bg-opacity-80 placeholder-[#BFC2D9] focus:outline-none focus:border-[#7C3AED] text-lg transition-all shadow-sm"
-              placeholder="Enter your phone number"
+              className="mt-1 block w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+              placeholder="you@example.com or +123456789"
               value={phoneOrEmail}
               onChange={(e) => setPhoneOrEmail(e.target.value)}
+              aria-required="true"
             />
           </div>
+
           <div>
-            <label htmlFor="password" className="block text-base font-semibold text-[#7C3AED] mb-2">Password</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="block w-full px-5 py-3 rounded-xl border-2 border-[#E0E2EA] bg-white bg-opacity-80 placeholder-[#BFC2D9] focus:outline-none focus:border-[#7C3AED] text-lg transition-all shadow-sm"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+            <div className="relative mt-1">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-required="true"
+              />
+            </div>
           </div>
+
+          {/* Remember me and Forgot password not required per request */}
+
           {error && (
-            <div className="text-[#B91C1C] text-sm text-center bg-[#FEE2E2] p-3 rounded-xl border border-[#FCA5A5] animate-shake">{error}</div>
+            <div role="alert" className="text-red-700 text-sm bg-red-50 p-3 rounded-md border border-red-100">{error}</div>
           )}
+
           <button
             type="submit"
-          disabled={buttonLoading || !phoneOrEmail || !password}
-          className={`w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#7C3AED] to-[#F06292] transition-all shadow-lg flex items-center justify-center gap-2 ${buttonLoading || !phoneOrEmail || !password ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-2xl'}`}
+            disabled={buttonLoading || !phoneOrEmail || !password}
+            className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-white font-medium bg-gradient-to-r from-purple-600 to-pink-500 shadow ${buttonLoading || !phoneOrEmail || !password ? 'opacity-60 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
           >
-          {buttonLoading ? (
-              <>
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-                Logging in...
-              </>
-          ) : 'Login'}
+            {buttonLoading ? (
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+            ) : null}
+            {buttonLoading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
+
+      
       </div>
     </div>
   );
