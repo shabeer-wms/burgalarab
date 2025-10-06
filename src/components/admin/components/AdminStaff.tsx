@@ -323,59 +323,27 @@ export const AdminStaff: React.FC = () => {
           </div>
         </div>
 
-        {/* Pagination Controls */}
+        {/* Simple Pagination Controls */}
         {totalPages > 1 && (
           <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 mr-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
                 title="Previous page"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              
-              <div className="flex items-center space-x-0.5">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                  // Show first page, last page, current page, and pages around current page
-                  const shouldShow = 
-                    page === 1 || 
-                    page === totalPages || 
-                    (page >= currentPage - 1 && page <= currentPage + 1);
-                  
-                  if (!shouldShow) {
-                    // Show ellipsis for gaps
-                    if (page === currentPage - 2 || page === currentPage + 2) {
-                      return (
-                        <span key={page} className="px-1 py-1 text-xs text-gray-400">
-                          ...
-                        </span>
-                      );
-                    }
-                    return null;
-                  }
-                  
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-7 h-7 text-xs font-medium rounded transition-colors ${
-                        page === currentPage
-                          ? 'bg-purple-600 text-white'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
-              </div>
+
+              <div className="text-sm text-gray-600 mr-3">Page {currentPage} of {totalPages}</div>
 
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
                 title="Next page"
               >
                 <ChevronRight className="w-4 h-4" />
