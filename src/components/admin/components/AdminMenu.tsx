@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Search, Plus, Clock, Edit, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 import { ImageUpload } from "./ImageUpload";
+import Snackbar, { SnackbarType } from "../../SnackBar";
 
 interface AdminMenuProps {
   categories: string[];
@@ -19,6 +20,18 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
   const [showDeleteMenuModal, setShowDeleteMenuModal] = useState(false);
   const [menuItemToDelete, setMenuItemToDelete] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState<{
+    show: boolean;
+    message: string;
+    type: SnackbarType;
+  }>({ show: false, message: "", type: "success" });
+  
+  // Loading states for menu operations
+  const [isAddingMenuItem, setIsAddingMenuItem] = useState(false);
+  const [isEditingMenuItem, setIsEditingMenuItem] = useState(false);
+  const [isDeletingMenuItem, setIsDeletingMenuItem] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,9 +53,9 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
       else if (width >= 768) {
         return 9;
       }
-      // grid-cols-2 (2 items per row) -> 4 items per page
+      // grid-cols-2 (2 items per row) -> 6 items per page for mobile
       else {
-        return 4;
+        return 6;
       }
     }
     return 10; // Default fallback
@@ -99,9 +112,18 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
     setCurrentPage(1);
   }, [menuSearchTerm, selectedCategory, itemsPerPage]);
 
+  const showSnackbar = (message: string, type: SnackbarType = "success") => {
+    setSnackbar({ show: true, message, type });
+  };
+
+  const hideSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, show: false }));
+  };
+
   const handleAddMenuItem = async () => {
     try {
       setIsLoading(true);
+      setIsAddingMenuItem(true);
       const menuItemData = {
         name: newMenuItem.name,
         description: newMenuItem.description,
@@ -124,17 +146,20 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
         available: true,
       });
       setShowAddMenuModal(false);
+      showSnackbar("Menu item added successfully!");
     } catch (error) {
       console.error("Error adding menu item:", error);
-      alert("Failed to add menu item. Please try again.");
+      showSnackbar("Failed to add menu item. Please try again.", "error");
     } finally {
       setIsLoading(false);
+      setIsAddingMenuItem(false);
     }
   };
 
   const handleEditMenuItem = async () => {
     try {
       setIsLoading(true);
+      setIsEditingMenuItem(true);
       const updates = {
         name: selectedMenuItem.name,
         description: selectedMenuItem.description,
@@ -149,11 +174,13 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
       
       setShowEditMenuModal(false);
       setSelectedMenuItem(null);
+      showSnackbar("Menu item updated successfully!");
     } catch (error) {
       console.error("Error updating menu item:", error);
-      alert("Failed to update menu item. Please try again.");
+      showSnackbar("Failed to update menu item. Please try again.", "error");
     } finally {
       setIsLoading(false);
+      setIsEditingMenuItem(false);
     }
   };
 
@@ -166,14 +193,17 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
     if (menuItemToDelete) {
       try {
         setIsLoading(true);
+        setIsDeletingMenuItem(true);
         await deleteMenuItem(menuItemToDelete);
         setMenuItemToDelete(null);
         setShowDeleteMenuModal(false);
+        showSnackbar("Menu item deleted successfully!");
       } catch (error) {
         console.error("Error deleting menu item:", error);
-        alert("Failed to delete menu item. Please try again.");
+        showSnackbar("Failed to delete menu item. Please try again.", "error");
       } finally {
         setIsLoading(false);
+        setIsDeletingMenuItem(false);
       }
     }
   };
@@ -194,7 +224,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
 
   return (
     <>
-      <div className="space-y-4 sm:space-y-6 pb-32 md:pb-12">
+      <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-24 md:pb-16 lg:pb-4">
         <div className="flex flex-col space-y-4">
           {/* Search Bar */}
           <div className="flex justify-between items-center gap-4">
@@ -362,59 +392,27 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
           ))}
         </div>
 
-        {/* Pagination Controls - Visible on all screen sizes when there are multiple pages */}
+        {/* Simple Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
-            <div className="flex items-center space-x-1">
+          <div className="flex items-center justify-end mt-6 mb-4">
+            <div className="flex items-center">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 mr-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
                 title="Previous page"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              
-              <div className="flex items-center space-x-0.5">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                  // Show first page, last page, current page, and pages around current page
-                  const shouldShow = 
-                    page === 1 || 
-                    page === totalPages || 
-                    (page >= currentPage - 1 && page <= currentPage + 1);
-                  
-                  if (!shouldShow) {
-                    // Show ellipsis for gaps
-                    if (page === currentPage - 2 || page === currentPage + 2) {
-                      return (
-                        <span key={page} className="px-1 py-1 text-xs text-gray-400">
-                          ...
-                        </span>
-                      );
-                    }
-                    return null;
-                  }
-                  
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-7 h-7 text-xs font-medium rounded transition-colors ${
-                        page === currentPage
-                          ? 'bg-purple-600 text-white'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
-              </div>
+
+              <div className="text-sm text-gray-600 mr-3">Page {currentPage} of {totalPages}</div>
 
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
                 title="Next page"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -451,9 +449,10 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
               </button>
               <button
                 onClick={confirmDeleteMenuItem}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                disabled={isDeletingMenuItem}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Delete
+                {isDeletingMenuItem ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
@@ -635,10 +634,10 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
               </button>
               <button
                 onClick={handleAddMenuItem}
-                disabled={isLoading}
+                disabled={isAddingMenuItem || isLoading}
                 className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? "Adding..." : "Add Item"}
+                {isAddingMenuItem ? "Adding..." : "Add Item"}
               </button>
             </div>
           </div>
@@ -800,14 +799,23 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
               </button>
               <button
                 onClick={handleEditMenuItem}
-                className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                disabled={isEditingMenuItem || isLoading}
+                className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Update Item
+                {isEditingMenuItem ? "Updating..." : "Update Item"}
               </button>
             </div>
           </div>
         </div>
       )}
+      
+      {/* Snackbar */}
+      <Snackbar
+        message={snackbar.message}
+        type={snackbar.type}
+        show={snackbar.show}
+        onClose={hideSnackbar}
+      />
     </>
   );
 };

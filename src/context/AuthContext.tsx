@@ -33,7 +33,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string, staff: Staff[]): Promise<boolean> => {
-    setIsLoading(true);
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));

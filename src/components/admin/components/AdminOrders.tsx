@@ -10,7 +10,10 @@ import {
   ChefHat,
   Download,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import Snackbar, { SnackbarType } from "../../SnackBar";
 
 // Helper functions
 const formatDate = (dateValue: Date | string | { toDate: () => Date }) => {
@@ -76,11 +79,67 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showCancelOrderModal, setShowCancelOrderModal] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<any>(null);
+  
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState<{
+    show: boolean;
+    message: string;
+    type: SnackbarType;
+  }>({ show: false, message: "", type: "success" });
+  
+  // Loading states
+  const [isCancellingOrder, setIsCancellingOrder] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Responsive items per page
+  const getItemsPerPage = () => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      // iPad and small desktop view (768px to 1280px)
+      if (width >= 768 && width < 1280) {
+        return 15;
+      }
+    }
+    return 10; // Default for mobile and large desktop
+  };
+  
+  const [itemsPerPage, setItemsPerPage] = useState(getItemsPerPage());
+  
+  // Update items per page on window resize
+  React.useEffect(() => {
+    const handleResize = () => {
+      setItemsPerPage(getItemsPerPage());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const filteredOrders =
     orderFilter === "all"
       ? orders
       : orders.filter((order) => order.status === orderFilter);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // Reset to first page when filter or items per page changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [orderFilter, itemsPerPage]);
+
+  const showSnackbar = (message: string, type: SnackbarType = "success") => {
+    setSnackbar({ show: true, message, type });
+  };
+
+  const hideSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, show: false }));
+  };
 
   const printBill = (order: Order) => {
     const billContent = generateBillHTML(order);
@@ -186,11 +245,20 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     setShowCancelOrderModal(true);
   };
 
-  const confirmCancelOrder = () => {
+  const confirmCancelOrder = async () => {
     if (orderToCancel) {
-      updateOrder(orderToCancel.id, { status: "cancelled" });
-      setOrderToCancel(null);
-      setShowCancelOrderModal(false);
+      try {
+        setIsCancellingOrder(true);
+        await updateOrder(orderToCancel.id, { status: "cancelled" });
+        setOrderToCancel(null);
+        setShowCancelOrderModal(false);
+        showSnackbar("Order cancelled successfully!");
+      } catch (error) {
+        console.error("Error cancelling order:", error);
+        showSnackbar("Failed to cancel order. Please try again.", "error");
+      } finally {
+        setIsCancellingOrder(false);
+      }
     }
   };
 
@@ -251,7 +319,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       document.body.removeChild(link);
     } catch (error) {
       console.error("Error exporting orders:", error);
-      alert("Failed to export orders. Please try again.");
+      showSnackbar("Failed to export orders. Please try again.", "error");
     }
   };
 
@@ -376,7 +444,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOrders.map((order) => (
+                {paginatedOrders.map((order) => (
                   <tr
                     key={order.id}
                     className="hover:bg-gray-50 cursor-pointer"
@@ -485,6 +553,43 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             </table>
           </div>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
+            <div className="flex items-center">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 mr-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
+                title="Previous page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="text-sm text-gray-600 mr-3">Page {currentPage} of {totalPages}</div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
+                title="Next page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {filteredOrders.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">
+              No orders found matching your criteria.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Cancel Order Confirmation Modal */}
@@ -506,9 +611,10 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
               </button>
               <button
                 onClick={confirmCancelOrder}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                disabled={isCancellingOrder}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Confirm
+                {isCancellingOrder ? "Cancelling..." : "Confirm"}
               </button>
             </div>
           </div>
@@ -535,6 +641,14 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
           </div>
         </div>
       )}
+      
+      {/* Snackbar */}
+      <Snackbar
+        message={snackbar.message}
+        type={snackbar.type}
+        show={snackbar.show}
+        onClose={hideSnackbar}
+      />
     </>
   );
 };

@@ -65,10 +65,10 @@ const AdminDashboard: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 md:p-6 ml-0 lg:ml-64 overflow-auto" style={{ height: 'calc(100vh - 80px)' }}>
-        <div className="w-full h-full">
+      <main className="flex-1 p-3 md:p-4 ml-0 lg:ml-64 overflow-auto">
+        <div className="w-full">
           {/* Dynamic Header */}
-          <header className="bg-white p-6 rounded-2xl shadow-md mb-6">
+          <header className="bg-white p-6 rounded-2xl shadow-md mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center flex-1 min-w-0">
                 <div className="bg-purple-100 p-3 rounded-xl mr-3 flex-shrink-0">

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Plus, Search, Edit, Trash2, X } from "lucide-react";
+import { Plus, Search, Edit, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
+import Snackbar, { SnackbarType } from "../../SnackBar";
 
 export const AdminStaff: React.FC = () => {
   const { staff, addStaff, updateStaff, deleteStaff } = useApp();
@@ -10,12 +11,51 @@ export const AdminStaff: React.FC = () => {
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const [showDeleteStaffModal, setShowDeleteStaffModal] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<any>(null);
+  
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState<{
+    show: boolean;
+    message: string;
+    type: SnackbarType;
+  }>({ show: false, message: "", type: "success" });
+  
+  // Loading states
+  const [isAddingStaff, setIsAddingStaff] = useState(false);
+  const [isEditingStaff, setIsEditingStaff] = useState(false);
+  const [isDeletingStaff, setIsDeletingStaff] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Responsive items per page
+  const getItemsPerPage = () => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth;
+      // iPad and small desktop view (768px to 1280px)
+      if (width >= 768 && width < 1280) {
+        return 15;
+      }
+    }
+    return 10; // Default for mobile and large desktop
+  };
+  
+  const [itemsPerPage, setItemsPerPage] = useState(getItemsPerPage());
+  
+  // Update items per page on window resize
+  React.useEffect(() => {
+    const handleResize = () => {
+      setItemsPerPage(getItemsPerPage());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [newStaff, setNewStaff] = useState({
     name: "",
     phoneNumber: "",
     password: "",
-    role: "waiter" as "waiter" | "kitchen" | "admin" | "manager",
+    role: "waiter" as "waiter" | "kitchen" | "admin",
     isFrozen: false,
     dateJoined: new Date().toISOString().split("T")[0],
   });
@@ -48,8 +88,28 @@ export const AdminStaff: React.FC = () => {
       return bTime - aTime;
     });
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedStaff = filteredStaff.slice(startIndex, endIndex);
+
+  // Reset to first page when search term or items per page changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [staffSearchTerm, itemsPerPage]);
+
+  const showSnackbar = (message: string, type: SnackbarType = "success") => {
+    setSnackbar({ show: true, message, type });
+  };
+
+  const hideSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, show: false }));
+  };
+
   const handleAddStaff = async () => {
     try {
+      setIsAddingStaff(true);
       // Auto-generate email from phone number
       const generatedEmail = `${newStaff.phoneNumber}@gmail.com`;
       const staffWithEmail = {
@@ -68,14 +128,18 @@ export const AdminStaff: React.FC = () => {
         dateJoined: new Date().toISOString().split("T")[0],
       });
       setShowAddStaffModal(false);
+      showSnackbar("Staff member added successfully!");
     } catch (error) {
       console.error("Error adding staff:", error);
-      alert("Failed to add staff member. Please try again.");
+      showSnackbar("Failed to add staff member. Please try again.", "error");
+    } finally {
+      setIsAddingStaff(false);
     }
   };
 
   const handleEditStaff = async () => {
     try {
+      setIsEditingStaff(true);
       // Find the original staff member to check if phone number changed
       const originalStaff = staff.find(s => s.id === selectedStaff.id);
       const phoneChanged = originalStaff && originalStaff.phoneNumber !== selectedStaff.phoneNumber;
@@ -98,9 +162,12 @@ export const AdminStaff: React.FC = () => {
       await updateStaff(selectedStaff.id, updates);
       setShowEditStaffModal(false);
       setSelectedStaff(null);
+      showSnackbar("Staff member updated successfully!");
     } catch (error) {
       console.error("Error updating staff:", error);
-      alert("Failed to update staff member. Please try again.");
+      showSnackbar("Failed to update staff member. Please try again.", "error");
+    } finally {
+      setIsEditingStaff(false);
     }
   };
 
@@ -112,12 +179,16 @@ export const AdminStaff: React.FC = () => {
   const confirmDeleteStaff = async () => {
     if (staffToDelete) {
       try {
+        setIsDeletingStaff(true);
         await deleteStaff(staffToDelete);
         setStaffToDelete(null);
         setShowDeleteStaffModal(false);
+        showSnackbar("Staff member deleted successfully!");
       } catch (error) {
         console.error("Error deleting staff:", error);
-        alert("Failed to delete staff member. Please try again.");
+        showSnackbar("Failed to delete staff member. Please try again.", "error");
+      } finally {
+        setIsDeletingStaff(false);
       }
     }
   };
@@ -192,7 +263,7 @@ export const AdminStaff: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredStaff.map((member) => (
+                {paginatedStaff.map((member) => (
                   <tr key={member.id} className="hover:bg-gray-50">
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
@@ -251,6 +322,43 @@ export const AdminStaff: React.FC = () => {
             </table>
           </div>
         </div>
+
+        {/* Simple Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
+            <div className="flex items-center">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 mr-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
+                title="Previous page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="text-sm text-gray-600 mr-3">Page {currentPage} of {totalPages}</div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
+                title="Next page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {filteredStaff.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">
+              No staff members found matching your criteria.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Delete Staff Confirmation Modal */}
@@ -272,9 +380,10 @@ export const AdminStaff: React.FC = () => {
               </button>
               <button
                 onClick={confirmDeleteStaff}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                disabled={isDeletingStaff}
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Delete
+                {isDeletingStaff ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
@@ -374,15 +483,13 @@ export const AdminStaff: React.FC = () => {
                       role: e.target.value as
                         | "waiter"
                         | "kitchen"
-                        | "admin"
-                        | "manager",
+                        | "admin",
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 border-[1px] rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-white appearance-none pr-10 transition-colors"
                 >
                   <option value="waiter">Waiter</option>
                   <option value="admin">Admin</option>
-                  <option value="manager">Manager</option>
                   <option value="kitchen">Kitchen</option>
                 </select>
                 <svg
@@ -410,9 +517,10 @@ export const AdminStaff: React.FC = () => {
               </button>
               <button
                 onClick={handleAddStaff}
-                className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                disabled={isAddingStaff}
+                className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add Staff
+                {isAddingStaff ? "Adding..." : "Add Staff"}
               </button>
             </div>
           </div>
@@ -498,7 +606,6 @@ export const AdminStaff: React.FC = () => {
                 >
                   <option value="waiter">Waiter</option>
                   <option value="admin">Admin</option>
-                  <option value="manager">Manager</option>
                   <option value="kitchen">Kitchen</option>
                 </select>
                 <svg
@@ -526,14 +633,23 @@ export const AdminStaff: React.FC = () => {
               </button>
               <button
                 onClick={handleEditStaff}
-                className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700"
+                disabled={isEditingStaff}
+                className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Update Staff
+                {isEditingStaff ? "Updating..." : "Update Staff"}
               </button>
             </div>
           </div>
         </div>
       )}
+      
+      {/* Snackbar */}
+      <Snackbar
+        message={snackbar.message}
+        type={snackbar.type}
+        show={snackbar.show}
+        onClose={hideSnackbar}
+      />
     </>
   );
 };
