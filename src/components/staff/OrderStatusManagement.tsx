@@ -28,7 +28,7 @@ const OrderStatusManagement: React.FC = () => {
       } else if (width < 1280) { // Tablet
         setItemsPerPage(9);
       } else { // Desktop
-        setItemsPerPage(9);
+        setItemsPerPage(10);
       }
     };
 
