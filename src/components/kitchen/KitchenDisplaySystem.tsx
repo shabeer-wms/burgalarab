@@ -140,7 +140,7 @@ const KitchenDisplaySystem: React.FC = () => {
           <div className="sticky top-0 z-40 bg-transparent">
             <KitchenHeader
               currentTime={currentTime}
-              totalOrders={kitchenOrders.length}
+              totalOrders={pendingOrders.length + inProgressOrders.length}
               pendingCount={pendingOrders.length}
               inProgressCount={inProgressOrders.length}
               readyCount={readyOrders.length}
