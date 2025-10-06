@@ -16,7 +16,7 @@ import { kitchenColors } from "./theme/colors";
 import { kitchenLayout } from "./theme/layout";
 
 const KitchenDisplaySystem: React.FC = () => {
-  const { kitchenOrders, updateKitchenOrderStatus, updateOrderItemStatus, menuItems, updateMenuItem } =
+  const { kitchenOrders, updateKitchenOrderStatus, updateOrderItemStatus, menuItems, updateMenuItem, showNotification } =
     useApp();
   const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -67,7 +67,36 @@ const KitchenDisplaySystem: React.FC = () => {
     newStatus: "pending" | "in-progress" | "ready",
     paused?: boolean
   ) => {
+    // Update backend
     updateKitchenOrderStatus(orderId, newStatus, paused);
+
+    // Try to find order metadata for a friendlier message
+    const order = kitchenOrders.find((o) => o.orderId === orderId);
+    const orderNum = order?.orderNumber;
+    const customer = order?.customerName;
+
+    // Compose a short, human-friendly message including customer name when available
+    let message = "";
+    if (newStatus === "in-progress") {
+      // e.g. "Order for Alice started" or "#1234 started"
+      message = customer ? `Order for ${customer} started` : orderNum ? `Order ${orderNum} started` : `${orderId} started`;
+    } else if (newStatus === "pending") {
+      // e.g. "Order for Alice paused"
+      message = paused
+        ? (customer ? `Order for ${customer} paused` : orderNum ? `Order ${orderNum} paused` : `${orderId} paused`)
+        : (customer ? `Order for ${customer} moved to pending` : orderNum ? `Order ${orderNum} moved to pending` : `${orderId} moved to pending`);
+    } else if (newStatus === "ready") {
+      // e.g. "Alice's order is ready" or "Order #1234 is ready"
+      message = customer ? `${customer}'s order is ready` : orderNum ? `Order ${orderNum} is ready` : `${orderId} is ready`;
+    }
+
+    // Show a brief success notification in the global snackbar
+    try {
+      showNotification(message, "success");
+    } catch (err) {
+      // swallow if notification is unavailable for any reason
+      console.warn("Failed to show notification:", err);
+    }
   };
 
   const handleItemStatusChange = (
