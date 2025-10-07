@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { Order } from '../../types';
 import { 
   Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, Filter, ChefHat, 
@@ -9,6 +10,7 @@ import ConfirmationDialog from '../../components/ConfirmationDialog';
 
 const OrderStatusManagement: React.FC = () => {
   const { orders, updateOrder, showNotification } = useApp();
+  const { user } = useAuth();
   const [selectedStatus, setSelectedStatus] = useState<'all' | Order['status']>('all');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
@@ -42,9 +44,12 @@ const OrderStatusManagement: React.FC = () => {
     setCurrentPage(1);
   }, [selectedStatus]);
 
-  const filteredOrders = (selectedStatus === 'all' 
-    ? orders 
-    : orders.filter(order => order.status === selectedStatus)
+  // If logged in user is a waiter, only show their orders
+  const baseOrders = user?.role === 'waiter' && user.id ? orders.filter(o => o.waiterId === user.id) : orders;
+
+  const filteredOrders = (selectedStatus === 'all'
+    ? baseOrders
+    : baseOrders.filter(order => order.status === selectedStatus)
   ).sort((a, b) => {
     // Sort by order time in descending order (most recent first)
     const timeA = a.orderTime instanceof Date ? a.orderTime : 

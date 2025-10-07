@@ -83,10 +83,14 @@ const WaiterDashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const activeOrders = getActiveOrders();
-  const pausedOrders = orders.filter(o => o.status === 'confirmed' && o.paused === true);
-  const inProgressOrders = orders.filter(o => o.status === 'preparing' || (o.status === 'confirmed' && o.paused !== true));
-  const readyOrders = orders.filter(o => o.status === 'ready');
+  // Only show orders that belong to the logged-in waiter
+  const waiterOrders = user?.id ? orders.filter(o => o.waiterId === user.id) : [];
+  const waiterOrderIds = new Set(waiterOrders.map(o => o.id));
+
+  const activeOrders = user?.id ? getActiveOrders().filter(o => o.waiterId === user.id) : [];
+  const pausedOrders = waiterOrders.filter(o => o.status === 'confirmed' && o.paused === true);
+  const inProgressOrders = waiterOrders.filter(o => o.status === 'preparing' || (o.status === 'confirmed' && o.paused !== true));
+  const readyOrders = waiterOrders.filter(o => o.status === 'ready');
   // Play sound and show notification when new ready order appears
   useEffect(() => {
     if (readyOrders.length > prevReadyCount) {
@@ -99,10 +103,12 @@ const WaiterDashboard: React.FC = () => {
     setPrevReadyCount(readyOrders.length);
   }, [readyOrders.length]);
   
-  // Billing-specific counts
-  const totalOrdersCount = orders.filter(order => ['ready', 'completed'].includes(order.status)).length;
-  const readyForBillingCount = orders.filter(order => order.status === 'ready' && order.paymentStatus === 'pending').length;
-  const generatedBillsCount = bills.length;
+  // Billing-specific counts (only for this waiter)
+  const totalOrdersCount = waiterOrders.filter(order => ['ready', 'completed'].includes(order.status)).length;
+  const readyForBillingCount = waiterOrders.filter(order => order.status === 'ready' && order.paymentStatus === 'pending').length;
+  // Only count bills that relate to this waiter's orders
+  const waiterBills = bills.filter(b => waiterOrderIds.has(b.orderId));
+  const generatedBillsCount = waiterBills.length;
 
   const tabs = [
     { id: 'orders' as const, label: 'New Order', icon: ShoppingCart },

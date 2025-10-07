@@ -45,9 +45,12 @@ const BillingPayments: React.FC = () => {
     setCurrentOrderPage(1);
   }, [paymentFilter]);
 
+  // If a waiter is logged in, only include their orders
+  const baseOrders = user?.role === 'waiter' && user.id ? orders.filter(o => o.waiterId === user.id) : orders;
+
   const filteredOrders = (paymentFilter === 'all'
-    ? orders.filter(order => ['ready', 'completed'].includes(order.status))
-    : orders.filter(order => ['ready', 'completed'].includes(order.status) && order.paymentStatus === paymentFilter)
+    ? baseOrders.filter(order => ['ready', 'completed'].includes(order.status))
+    : baseOrders.filter(order => ['ready', 'completed'].includes(order.status) && order.paymentStatus === paymentFilter)
   ).sort((a, b) => {
     // Sort by order time in descending order (most recent first)
     const timeA = a.orderTime instanceof Date ? a.orderTime : 
