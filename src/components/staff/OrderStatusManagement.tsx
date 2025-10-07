@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order } from '../../types';
 import { 
-  Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, Filter, ChefHat, 
+  Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, ChefHat, 
   Trash2, X, Receipt, CreditCard, Banknote, Smartphone, Globe 
 } from 'lucide-react';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
@@ -19,25 +19,7 @@ const OrderStatusManagement: React.FC = () => {
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(9); // Default for tablet/desktop
-  
-  // Responsive items per page based on screen size
-  React.useEffect(() => {
-    const updateItemsPerPage = () => {
-      const width = window.innerWidth;
-      if (width < 768) { // Mobile
-        setItemsPerPage(6);
-      } else if (width < 1280) { // Tablet
-        setItemsPerPage(9);
-      } else { // Desktop
-        setItemsPerPage(10);
-      }
-    };
-
-    updateItemsPerPage();
-    window.addEventListener('resize', updateItemsPerPage);
-    return () => window.removeEventListener('resize', updateItemsPerPage);
-  }, []);
+  const [itemsPerPage] = useState(9); // Fixed 9 cards per page for all screen sizes
 
   // Reset to first page when status filter changes
   React.useEffect(() => {
@@ -141,8 +123,7 @@ const OrderStatusManagement: React.FC = () => {
     <div className="space-y-6">
       {/* Filters */}
       <div className="mb-6">
-        <div className="flex items-start lg:items-center space-x-4">
-          <Filter className="w-5 h-5 text-surface-600 flex-shrink-0 mt-1 lg:mt-0" />
+        <div className="flex items-start lg:items-center">
           <div className="overflow-x-auto pb-2 flex-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
             <div className="flex space-x-2 min-w-max">
@@ -191,7 +172,7 @@ const OrderStatusManagement: React.FC = () => {
       <div className="space-y-6">
         <div className="space-y-4">
           {/* Header Section */}
-          <h2 className="text-title-large">Orders ({filteredOrders.length})</h2>
+          <h2 className="text-title-large">Orders</h2>
           
           {/* Orders Grid */}
           {filteredOrders.length === 0 ? (

@@ -30,7 +30,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
   onCartUpdate, 
   onFunctionsUpdate 
 }) => {
-  const { menuItems, categories, addOrder, generateBill } = useApp();
+  const { menuItems, categories, addOrder, generateBill, showNotification } = useApp();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -54,12 +54,12 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       const width = window.innerWidth;
       // Tablet devices and iPad Pro: 768px to 1279px (md to lg breakpoints)
       if (width >= 768 && width < 1280) {
-        return 9;
+        return 8;
       }
-      // Desktop and larger: 1280px and above
-      return 10;
+      // Desktop and larger: 1280px and above - New Order page shows 8 cards
+      return 8;
     }
-    return 10;
+    return 8;
   };
   const [itemsPerPage, setItemsPerPage] = useState(getItemsPerPage());
 
@@ -240,10 +240,12 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
           if (orderType === 'delivery') {
             return (
               customerDetails.name.trim() !== '' &&
-              customerDetails.phone.trim() !== ''
+              customerDetails.phone.trim() !== '' &&
+              customerDetails.vehicleNumber.trim() !== ''
             );
+          } else {
+            return selectedTable !== '';
           }
-          return true;
         }
       });
     }
@@ -364,7 +366,30 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
   const pushToKitchen = async () => {
     if (orderItems.length === 0) {
+      showNotification('Please add items to the order before sending to kitchen', 'error');
       return;
+    }
+
+    // Validate customer details including table/vehicle number
+    if (orderType === 'delivery') {
+      if (customerDetails.name.trim() === '') {
+        showNotification('Please enter customer name for delivery orders', 'error');
+        return;
+      }
+      if (customerDetails.phone.trim() === '') {
+        showNotification('Please enter customer phone number for delivery orders', 'error');
+        return;
+      }
+      if (customerDetails.vehicleNumber.trim() === '') {
+        showNotification('Please enter vehicle number for delivery orders', 'error');
+        return;
+      }
+    } else {
+      // For dine-in orders, check if table is selected
+      if (!selectedTable) {
+        showNotification('Please select a table number for dine-in orders', 'error');
+        return;
+      }
     }
 
     // Show payment dialog instead of directly sending order

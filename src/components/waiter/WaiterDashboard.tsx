@@ -6,22 +6,21 @@ import Snackbar from '../SnackBar';
 import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
-import { OrderItem } from '../../types';
+import { OrderItem, Order } from '../../types';
 
 
 const WaiterDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'status' | 'billing' | 'settings'>('orders');
   const [selectedTable, setSelectedTable] = useState<string>('');
   const { user, logout } = useAuth();
-  const { orders, bills, getActiveOrders } = useApp();
+  const { orders } = useApp();
   const [currentTime, setCurrentTime] = useState(new Date());
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const [showCartModal, setShowCartModal] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [readyOrdersSnapshot, setReadyOrdersSnapshot] = useState<Order[]>([]);
-  const [seenReadyOrderIds, setSeenReadyOrderIds] = useState<string[]>([]);
-  const [prevReadyCount, setPrevReadyCount] = useState(0);
+  const [previousReadyOrderIds, setPreviousReadyOrderIds] = useState<string[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showPaymentOptionsModal, setShowPaymentOptionsModal] = useState(false);
   const [showClearCartConfirmation, setShowClearCartConfirmation] = useState(false);
@@ -85,30 +84,57 @@ const WaiterDashboard: React.FC = () => {
 
   // Only show orders that belong to the logged-in waiter
   const waiterOrders = user?.id ? orders.filter(o => o.waiterId === user.id) : [];
-  const waiterOrderIds = new Set(waiterOrders.map(o => o.id));
 
-  const activeOrders = user?.id ? getActiveOrders().filter(o => o.waiterId === user.id) : [];
-  const pausedOrders = waiterOrders.filter(o => o.status === 'confirmed' && o.paused === true);
-  const inProgressOrders = waiterOrders.filter(o => o.status === 'preparing' || (o.status === 'confirmed' && o.paused !== true));
+  const confirmedOrders = waiterOrders.filter(o => o.status === 'confirmed');
+  const preparingOrders = waiterOrders.filter(o => o.status === 'preparing');
   const readyOrders = waiterOrders.filter(o => o.status === 'ready');
+  
+  // Debug logging to help troubleshoot notification issues (can be removed in production)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Waiter Dashboard Debug:', {
+        userId: user?.id,
+        totalOrders: orders.length,
+        waiterOrders: waiterOrders.length,
+        readyOrders: readyOrders.length,
+        readyOrderIds: readyOrders.map(o => ({ id: o.id, status: o.status, waiterId: o.waiterId }))
+      });
+    }
+  }, [orders, waiterOrders, readyOrders, user?.id]);
+  
   // Play sound and show notification when new ready order appears
   useEffect(() => {
-    if (readyOrders.length > prevReadyCount) {
+    const currentReadyOrderIds = readyOrders.map(o => o.id);
+    const newReadyOrders = readyOrders.filter(order => !previousReadyOrderIds.includes(order.id));
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔔 Notification Effect Debug:', {
+        currentReadyOrderIds,
+        previousReadyOrderIds,
+        newReadyOrders: newReadyOrders.map(o => ({ id: o.id, status: o.status })),
+        shouldNotify: newReadyOrders.length > 0
+      });
+    }
+    
+    if (newReadyOrders.length > 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Triggering notification for orders:', newReadyOrders.map(o => o.id));
+      }
       setShowNotification(true);
       if (audioRef.current) {
-        audioRef.current.play();
+        audioRef.current.play().catch(err => console.log('Audio play failed:', err));
       }
       setTimeout(() => setShowNotification(false), 3000);
     }
-    setPrevReadyCount(readyOrders.length);
-  }, [readyOrders.length]);
+    
+    // Update the previous ready orders list
+    setPreviousReadyOrderIds(currentReadyOrderIds);
+  }, [readyOrders, previousReadyOrderIds]);
   
-  // Billing-specific counts (only for this waiter)
-  const totalOrdersCount = waiterOrders.filter(order => ['ready', 'completed'].includes(order.status)).length;
-  const readyForBillingCount = waiterOrders.filter(order => order.status === 'ready' && order.paymentStatus === 'pending').length;
-  // Only count bills that relate to this waiter's orders
-  const waiterBills = bills.filter(b => waiterOrderIds.has(b.orderId));
-  const generatedBillsCount = waiterBills.length;
+  // Billing-specific counts (only for this waiter) - match what's shown in billing page
+  const paidOrdersCount = waiterOrders.filter(order => order.status === 'completed').length;
+  const pendingOrdersCount = waiterOrders.filter(order => order.status === 'ready' && order.paymentStatus === 'pending').length;
+  const totalBillingOrdersCount = waiterOrders.filter(order => ['ready', 'completed'].includes(order.status)).length;
 
   const tabs = [
     { id: 'orders' as const, label: 'New Order', icon: ShoppingCart },
@@ -208,8 +234,7 @@ const WaiterDashboard: React.FC = () => {
                         {tabs.find(tab => tab.id === activeTab)?.label || 'Waiter Dashboard'}
                       </h1>
                       <p className="text-gray-500 text-sm">
-                        {currentTime.toLocaleTimeString()} 
-                        {activeTab !== 'orders' && ` | ${activeOrders.length} Active Orders`}
+                        {currentTime.toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
@@ -221,16 +246,14 @@ const WaiterDashboard: React.FC = () => {
                         className="p-2 bg-yellow-400 text-white rounded-lg hover:bg-yellow-500 transition-colors flex-shrink-0 relative"
                         aria-label="Notifications"
                         onClick={() => {
-                          const unseenOrders = readyOrders.filter(order => !seenReadyOrderIds.includes(order.id));
-                          setReadyOrdersSnapshot(unseenOrders);
+                          setReadyOrdersSnapshot(readyOrders);
                           setShowNotificationModal(true);
-                          setSeenReadyOrderIds(prev => [...prev, ...unseenOrders.map(order => order.id)]);
                         }}
                       >
                         <Bell className="w-5 h-5" />
-                        {readyOrders.filter(order => !seenReadyOrderIds.includes(order.id)).length > 0 && (
+                        {readyOrders.length > 0 && (
                           <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                            {readyOrders.filter(order => !seenReadyOrderIds.includes(order.id)).length}
+                            {readyOrders.length}
                           </span>
                         )}
                       </button>
@@ -274,7 +297,7 @@ const WaiterDashboard: React.FC = () => {
                           <div className="text-gray-600">Type: <span className="font-medium">{order.type}</span></div>
                           <div className="text-gray-600">Items:</div>
                           <ul className="list-disc ml-6 text-gray-700">
-                            {order.items.map((item, iidx) => (
+                            {order.items.map((item: OrderItem, iidx: number) => (
                               <li key={iidx}>
                                 {item.menuItem.name} x {item.quantity}
                               </li>
@@ -326,7 +349,7 @@ const WaiterDashboard: React.FC = () => {
                 </div>
 
                 {/* Only show counters on status and billing tabs */}
-                {activeTab !== 'orders' && (
+                {activeTab !== 'orders' && activeTab !== 'settings' && (
                   <div className="w-full md:w-96">
                     {/* Small screens: adaptive auto-fit grid */}
                     <div
@@ -337,38 +360,38 @@ const WaiterDashboard: React.FC = () => {
                     >
                       {activeTab === 'billing' ? (
                         <>
-                          <div className="flex flex-col items-center min-w-[60px]">
-                            <p className="text-sm sm:text-base font-bold text-blue-500 w-8 text-center">
-                              {totalOrdersCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-base sm:text-lg font-bold text-blue-600 w-8 text-center">
+                              {totalBillingOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-[10px] sm:text-[11px] whitespace-nowrap">Total</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Total</p>
                           </div>
-                          <div className="flex flex-col items-center min-w-[60px]">
-                            <p className="text-sm sm:text-base font-bold text-orange-500 w-8 text-center">
-                              {readyForBillingCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-base sm:text-lg font-bold text-orange-500 w-8 text-center">
+                              {pendingOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-[10px] sm:text-[11px] whitespace-nowrap">Ready</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Pending</p>
                           </div>
-                          <div className="flex flex-col items-center min-w-[60px]">
-                            <p className="text-sm sm:text-base font-bold text-green-500 w-8 text-center">
-                              {generatedBillsCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
+                              {paidOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-[10px] sm:text-[11px] whitespace-nowrap">Bills</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Paid</p>
                           </div>
                         </>
                       ) : (
                         <>
                           <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-yellow-500 w-8 text-center">
-                              {pausedOrders.length}
+                            <p className="text-base sm:text-lg font-bold text-blue-600 w-8 text-center">
+                              {confirmedOrders.length}
                             </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Paused</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Confirmed</p>
                           </div>
                           <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-purple-600 w-8 text-center">
-                              {inProgressOrders.length}
+                            <p className="text-base sm:text-lg font-bold text-orange-500 w-8 text-center">
+                              {preparingOrders.length}
                             </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">In Progress</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Preparing</p>
                           </div>
                           <div className="flex flex-col items-center">
                             <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
@@ -384,38 +407,38 @@ const WaiterDashboard: React.FC = () => {
                     <div className="hidden md:flex md:items-center md:gap-6 md:justify-end">
                       {activeTab === 'billing' ? (
                         <>
-                          <div className="flex flex-col items-center min-w-[80px]">
-                            <p className="text-2xl font-bold text-blue-500 w-12 text-center tabular-nums">
-                              {totalOrdersCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-3xl font-bold text-blue-600 w-12 text-center tabular-nums">
+                              {totalBillingOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-xs whitespace-nowrap">Total</p>
+                            <p className="text-gray-500 text-sm">Total</p>
                           </div>
-                          <div className="flex flex-col items-center min-w-[80px]">
-                            <p className="text-2xl font-bold text-orange-500 w-12 text-center tabular-nums">
-                              {readyForBillingCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-3xl font-bold text-orange-500 w-12 text-center tabular-nums">
+                              {pendingOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-xs whitespace-nowrap">Ready</p>
+                            <p className="text-gray-500 text-sm">Pending</p>
                           </div>
-                          <div className="flex flex-col items-center min-w-[80px]">
-                            <p className="text-2xl font-bold text-green-500 w-12 text-center tabular-nums">
-                              {generatedBillsCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-3xl font-bold text-green-500 w-12 text-center tabular-nums">
+                              {paidOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-xs whitespace-nowrap">Bills</p>
+                            <p className="text-gray-500 text-sm">Paid</p>
                           </div>
                         </>
                       ) : (
                         <>
                           <div className="flex flex-col items-center">
-                            <p className="text-3xl font-bold text-yellow-500 w-12 text-center tabular-nums">
-                              {pausedOrders.length}
+                            <p className="text-3xl font-bold text-blue-600 w-12 text-center tabular-nums">
+                              {confirmedOrders.length}
                             </p>
-                            <p className="text-gray-500 text-sm">Paused</p>
+                            <p className="text-gray-500 text-sm">Confirmed</p>
                           </div>
                           <div className="flex flex-col items-center">
-                            <p className="text-3xl font-bold text-purple-600 w-12 text-center tabular-nums">
-                              {inProgressOrders.length}
+                            <p className="text-3xl font-bold text-orange-500 w-12 text-center tabular-nums">
+                              {preparingOrders.length}
                             </p>
-                            <p className="text-gray-500 text-sm">In Progress</p>
+                            <p className="text-gray-500 text-sm">Preparing</p>
                           </div>
                           <div className="flex flex-col items-center">
                             <p className="text-3xl font-bold text-green-500 w-12 text-center tabular-nums">

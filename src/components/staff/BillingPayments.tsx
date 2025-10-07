@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order, Bill } from '../../types';
-import { Receipt, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2, CheckCircle } from 'lucide-react'; // Reduced icons; printing removed
+import { Receipt, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2, Printer } from 'lucide-react';
 
 const BillingPayments: React.FC = () => {
   const { orders, generateBill, showNotification } = useApp();
@@ -111,6 +111,96 @@ const BillingPayments: React.FC = () => {
     }
   };
 
+  const handlePrintReceipt = (order: Order) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const customerInfo = order.customerName ? `
+      <div style="margin-bottom: 15px;">
+        <strong>Customer Details:</strong><br>
+        Name: ${order.customerName}<br>
+        ${order.customerPhone ? `Phone: ${order.customerPhone}<br>` : ''}
+        ${order.customerAddress ? `Address: ${order.customerAddress}<br>` : ''}
+        ${order.tableNumber ? `Table: ${order.tableNumber}<br>` : ''}
+      </div>
+    ` : '';
+
+    const orderDate = order.orderTime instanceof Date ? order.orderTime : 
+                     typeof order.orderTime === 'string' ? new Date(order.orderTime) : 
+                     order.orderTime?.toDate ? order.orderTime.toDate() : new Date();
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Order Receipt - ${order.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .order-info { margin-bottom: 20px; }
+            .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .items-table th { background-color: #f2f2f2; }
+            .total-section { border-top: 2px solid #333; padding-top: 10px; text-align: right; }
+            .total-line { margin: 5px 0; }
+            .grand-total { font-size: 18px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Restaurant Order Receipt</h2>
+            <p>Order ID: ${order.id}</p>
+          </div>
+          
+          <div class="order-info">
+            <strong>Order Details:</strong><br>
+            Date: ${orderDate.toLocaleDateString()} ${orderDate.toLocaleTimeString()}<br>
+            Type: ${order.type}<br>
+            Status: ${order.status}<br>
+            Payment Status: ${order.paymentStatus}<br>
+            ${order.paymentMethod ? `Payment Method: ${order.paymentMethod}<br>` : ''}
+          </div>
+
+          ${customerInfo}
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${order.items.map(item => `
+                <tr>
+                  <td>${item.menuItem.name}</td>
+                  <td>${item.quantity}</td>
+                  <td>$${item.menuItem.price.toFixed(2)}</td>
+                  <td>$${(item.quantity * item.menuItem.price).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="total-section">
+            <div class="total-line">Subtotal: $${order.total.toFixed(2)}</div>
+            <div class="total-line">Tax: $${order.tax.toFixed(2)}</div>
+            <div class="total-line grand-total">Grand Total: $${order.grandTotal.toFixed(2)}</div>
+          </div>
+
+          <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+            Thank you for your order!
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-6">
@@ -118,7 +208,7 @@ const BillingPayments: React.FC = () => {
         <div className="space-y-4">
           {/* Header and Filters */}
           <div className="flex items-center justify-between">
-            <h2 className="text-title-large">Orders ({filteredOrders.length})</h2>
+            <h2 className="text-title-large">Orders</h2>
             <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
               <div className="flex space-x-2 min-w-max">
@@ -226,10 +316,13 @@ const BillingPayments: React.FC = () => {
                           <span>Generate Bill</span>
                         </button>
                       ) : (
-                        <div className="w-full bg-success-100 text-success-700 rounded-lg text-center font-medium flex items-center justify-center space-x-2 min-h-[44px] border border-success-200">
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Payment Completed</span>
-                        </div>
+                        <button
+                          onClick={() => handlePrintReceipt(order)}
+                          className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                        >
+                          <Printer className="w-4 h-4" />
+                          <span>Print Receipt</span>
+                        </button>
                       )}
                     </div>
                   </div>
