@@ -20,8 +20,7 @@ const WaiterDashboard: React.FC = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [readyOrdersSnapshot, setReadyOrdersSnapshot] = useState<Order[]>([]);
-  const [seenReadyOrderIds, setSeenReadyOrderIds] = useState<string[]>([]);
-  const [prevReadyCount, setPrevReadyCount] = useState(0);
+  const [previousReadyOrderIds, setPreviousReadyOrderIds] = useState<string[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showPaymentOptionsModal, setShowPaymentOptionsModal] = useState(false);
   const [showClearCartConfirmation, setShowClearCartConfirmation] = useState(false);
@@ -89,17 +88,48 @@ const WaiterDashboard: React.FC = () => {
   const confirmedOrders = waiterOrders.filter(o => o.status === 'confirmed');
   const preparingOrders = waiterOrders.filter(o => o.status === 'preparing');
   const readyOrders = waiterOrders.filter(o => o.status === 'ready');
+  
+  // Debug logging to help troubleshoot notification issues (can be removed in production)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Waiter Dashboard Debug:', {
+        userId: user?.id,
+        totalOrders: orders.length,
+        waiterOrders: waiterOrders.length,
+        readyOrders: readyOrders.length,
+        readyOrderIds: readyOrders.map(o => ({ id: o.id, status: o.status, waiterId: o.waiterId }))
+      });
+    }
+  }, [orders, waiterOrders, readyOrders, user?.id]);
+  
   // Play sound and show notification when new ready order appears
   useEffect(() => {
-    if (readyOrders.length > prevReadyCount) {
+    const currentReadyOrderIds = readyOrders.map(o => o.id);
+    const newReadyOrders = readyOrders.filter(order => !previousReadyOrderIds.includes(order.id));
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔔 Notification Effect Debug:', {
+        currentReadyOrderIds,
+        previousReadyOrderIds,
+        newReadyOrders: newReadyOrders.map(o => ({ id: o.id, status: o.status })),
+        shouldNotify: newReadyOrders.length > 0
+      });
+    }
+    
+    if (newReadyOrders.length > 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Triggering notification for orders:', newReadyOrders.map(o => o.id));
+      }
       setShowNotification(true);
       if (audioRef.current) {
-        audioRef.current.play();
+        audioRef.current.play().catch(err => console.log('Audio play failed:', err));
       }
       setTimeout(() => setShowNotification(false), 3000);
     }
-    setPrevReadyCount(readyOrders.length);
-  }, [readyOrders.length]);
+    
+    // Update the previous ready orders list
+    setPreviousReadyOrderIds(currentReadyOrderIds);
+  }, [readyOrders, previousReadyOrderIds]);
   
   // Billing-specific counts (only for this waiter) - match what's shown in billing page
   const paidOrdersCount = waiterOrders.filter(order => order.status === 'completed').length;
@@ -216,16 +246,14 @@ const WaiterDashboard: React.FC = () => {
                         className="p-2 bg-yellow-400 text-white rounded-lg hover:bg-yellow-500 transition-colors flex-shrink-0 relative"
                         aria-label="Notifications"
                         onClick={() => {
-                          const unseenOrders = readyOrders.filter(order => !seenReadyOrderIds.includes(order.id));
-                          setReadyOrdersSnapshot(unseenOrders);
+                          setReadyOrdersSnapshot(readyOrders);
                           setShowNotificationModal(true);
-                          setSeenReadyOrderIds(prev => [...prev, ...unseenOrders.map(order => order.id)]);
                         }}
                       >
                         <Bell className="w-5 h-5" />
-                        {readyOrders.filter(order => !seenReadyOrderIds.includes(order.id)).length > 0 && (
+                        {readyOrders.length > 0 && (
                           <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                            {readyOrders.filter(order => !seenReadyOrderIds.includes(order.id)).length}
+                            {readyOrders.length}
                           </span>
                         )}
                       </button>
