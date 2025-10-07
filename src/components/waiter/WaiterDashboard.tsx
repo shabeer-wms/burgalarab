@@ -620,14 +620,6 @@ const WaiterDashboard: React.FC = () => {
 
             {/* Fixed Footer - Always visible */}
             <div className="p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-              {/* Total */}
-              <div className="flex justify-between items-center text-lg font-semibold mb-4">
-                <span>Total:</span>
-                <span className="text-purple-600">
-                  ${cartItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0).toFixed(2)}
-                </span>
-              </div>
-
               {/* Action Buttons */}
               <div className="space-y-3">
                 <button

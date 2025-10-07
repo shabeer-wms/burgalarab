@@ -10,7 +10,7 @@ import ConfirmationDialog from '../../components/ConfirmationDialog';
 const OrderStatusManagement: React.FC = () => {
   const { orders, updateOrder, showNotification } = useApp();
   const [selectedStatus, setSelectedStatus] = useState<'all' | Order['status']>('all');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
@@ -28,7 +28,7 @@ const OrderStatusManagement: React.FC = () => {
       } else if (width < 1280) { // Tablet
         setItemsPerPage(9);
       } else { // Desktop
-        setItemsPerPage(9);
+        setItemsPerPage(10);
       }
     };
 
@@ -138,37 +138,46 @@ const OrderStatusManagement: React.FC = () => {
       <div className="mb-6">
         <div className="flex items-start lg:items-center space-x-4">
           <Filter className="w-5 h-5 text-surface-600 flex-shrink-0 mt-1 lg:mt-0" />
-          <div className="flex lg:flex-wrap gap-2 overflow-x-auto lg:overflow-x-visible scrollbar-hide pb-2 flex-1">
-            <button
-              onClick={() => setSelectedStatus('all')}
-              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'all' ? 'chip-primary' : 'chip-secondary'}`}
-            >
-              All Orders
-            </button>
-            <button
-              onClick={() => setSelectedStatus('confirmed')}
-              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'confirmed' ? 'chip-primary' : 'chip-secondary'}`}
-            >
-              Confirmed
-            </button>
-            <button
-              onClick={() => setSelectedStatus('preparing')}
-              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'preparing' ? 'chip-primary' : 'chip-secondary'}`}
-            >
-              Preparing
-            </button>
-            <button
-              onClick={() => setSelectedStatus('ready')}
-              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'ready' ? 'chip-success' : 'chip-secondary'}`}
-            >
-              Ready
-            </button>
-            <button
-              onClick={() => setSelectedStatus('completed')}
-              className={`chip whitespace-nowrap flex-shrink-0 ${selectedStatus === 'completed' ? 'chip-success' : 'chip-secondary'}`}
-            >
-              Completed
-            </button>
+          <div className="overflow-x-auto pb-2 flex-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
+            <div className="flex space-x-2 min-w-max">
+              <button
+                onClick={() => setSelectedStatus('all')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                All Orders
+              </button>
+              <button
+                onClick={() => setSelectedStatus('confirmed')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'confirmed' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Confirmed
+              </button>
+              <button
+                onClick={() => setSelectedStatus('preparing')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'preparing' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Preparing
+              </button>
+              <button
+                onClick={() => setSelectedStatus('ready')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'ready' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Ready
+              </button>
+              <button
+                onClick={() => setSelectedStatus('completed')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'completed' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Completed
+              </button>
+              <button
+                onClick={() => setSelectedStatus('cancelled')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'cancelled' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Cancelled
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -273,7 +282,7 @@ const OrderStatusManagement: React.FC = () => {
                     <div className="flex space-x-2 shrink-0">
                       <button
                         onClick={() => {
-                          setSelectedOrder(order);
+                          setSelectedOrderId(order.id);
                           setShowOrderDialog(true);
                         }}
                         className="p-2 hover:bg-surface-200 rounded-lg transition-colors border border-surface-200"
@@ -298,76 +307,49 @@ const OrderStatusManagement: React.FC = () => {
             </div>
           )}
           
-          {/* Pagination Controls - Aligned to the right */}
+          {/* Simple Pagination Controls (Previous / Next) */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-end space-x-2 mt-4">
-              <button
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
-                  currentPage === 1
-                    ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
-                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                }`}
-              >
-                Previous
-              </button>
-              
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
-                  // Show only nearby pages to avoid overcrowding
-                  const showPage = page === 1 || page === totalPages || 
-                    (page >= currentPage - 1 && page <= currentPage + 1);
-                  
-                  if (!showPage) {
-                    if (page === currentPage - 2 || page === currentPage + 2) {
-                      return <span key={page} className="px-2 text-surface-400 lg:px-1 lg:text-xs">...</span>;
-                    }
-                    return null;
-                  }
-                  
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => goToPage(page)}
-                      className={`w-8 h-8 rounded-lg text-sm transition-colors lg:w-6 lg:h-6 lg:text-xs ${
-                        currentPage === page
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
+            <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
+              <div className="flex items-center">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 mr-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Previous page"
+                  title="Previous page"
+                >
+                  <span className="material-icons">chevron_left</span>
+                </button>
+
+                <div className="text-sm text-gray-600 mr-3">
+                  Page {currentPage} of {totalPages}
+                </div>
+
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Next page"
+                  title="Next page"
+                >
+                  <span className="material-icons">chevron_right</span>
+                </button>
               </div>
-              
-              <button
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-2 rounded-lg text-sm transition-colors lg:px-2 lg:py-1 lg:text-xs ${
-                  currentPage === totalPages
-                    ? 'bg-surface-100 text-surface-400 cursor-not-allowed'
-                    : 'bg-surface-100 text-surface-700 hover:bg-surface-200'
-                }`}
-              >
-                Next
-              </button>
             </div>
           )}
         </div>
       </div>
 
       {/* Order Details Dialog Modal */}
-      {showOrderDialog && selectedOrder && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4">
+  {showOrderDialog && selectedOrderId && (
+        <div className="fixed top-0 left-0 w-screen h-screen bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] m-0 p-0">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4 my-8">
             <div className="flex items-center justify-between p-6 border-b border-surface-200">
               <h3 className="text-title-large">Order Details</h3>
               <button
                 onClick={() => {
                   setShowOrderDialog(false);
-                  setSelectedOrder(null);
+                  setSelectedOrderId(null);
                 }}
                 className="p-2 hover:bg-surface-100 rounded-lg"
               >
@@ -376,7 +358,7 @@ const OrderStatusManagement: React.FC = () => {
             </div>
             
             <div className="p-6">
-              <OrderDetailsPanel order={selectedOrder} />
+              <OrderDetailsPanel orderId={selectedOrderId} />
             </div>
           </div>
         </div>
@@ -401,10 +383,19 @@ const OrderStatusManagement: React.FC = () => {
 };
 
 interface OrderDetailsPanelProps {
-  order: Order;
+  orderId: string;
 }
 
-const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
+const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
+  const { orders } = useApp();
+  const order = React.useMemo(() => orders.find(o => o.id === orderId), [orders, orderId]);
+  if (!order) {
+    return (
+      <div className="p-4 text-center text-surface-500">
+        <p>Order no longer available or was removed.</p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
         {/* Order Info */}
