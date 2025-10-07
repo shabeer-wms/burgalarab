@@ -118,7 +118,7 @@ const BillingPayments: React.FC = () => {
         <div className="space-y-4">
           {/* Header and Filters */}
           <div className="flex items-center justify-between">
-            <h2 className="text-title-large">Orders ({filteredOrders.length})</h2>
+            <h2 className="text-title-large">Orders</h2>
             <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
               <div className="flex space-x-2 min-w-max">
