@@ -134,7 +134,6 @@ const AdminDashboard: React.FC = () => {
           {activeTab === "settings" && (
             <div className="bg-white rounded-2xl shadow-md p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-6">Settings</h2>
-              
               {/* User Details Section */}
               <div className="mb-8">
                 <h3 className="text-lg font-semibold text-gray-700 mb-4">User Details</h3>
@@ -152,7 +151,6 @@ const AdminDashboard: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  
                   {user?.email && (
                     <div className="flex items-center space-x-3 pt-2 border-t border-gray-200">
                       <div className="w-5 h-5" />
@@ -164,9 +162,8 @@ const AdminDashboard: React.FC = () => {
                   )}
                 </div>
               </div>
-
-              {/* Actions Section */}
-              <div>
+              {/* Actions Section - only on mobile */}
+              <div className="block md:hidden">
                 <h3 className="text-lg font-semibold text-gray-700 mb-4">Actions</h3>
                 <div className="space-y-3">
                   <button

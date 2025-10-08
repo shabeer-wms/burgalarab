@@ -41,12 +41,17 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   selectedFilter,
   onFilterClick,
 }) => {
+  // Only show required options on small screens
+  const filteredItems = navigationItems.filter(
+    (item) => item.id !== "all"
+  );
+
   return (
     <nav
       className={`${kitchenLayout.responsive.bottomNav.position} ${kitchenColors.navigation.bottom.background} ${kitchenColors.navigation.bottom.border} ${kitchenLayout.responsive.bottomNav.hidden} z-50`}
     >
       <div className={`flex flex-row justify-between items-center ${kitchenLayout.responsive.bottomNav.height}`}>
-        {navigationItems.map((item) => (
+        {filteredItems.map((item) => (
           <button
             key={item.id}
             onClick={(e) => onFilterClick(e, item.id)}
