@@ -21,7 +21,7 @@ const WaiterDashboard: React.FC = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [readyOrdersSnapshot, setReadyOrdersSnapshot] = useState<Order[]>([]);
-  const [previousReadyOrderIds, setPreviousReadyOrderIds] = useState<string[]>([]);
+  const previousReadyOrderIdsRef = useRef<string[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showPaymentOptionsModal, setShowPaymentOptionsModal] = useState(false);
   const [showClearCartConfirmation, setShowClearCartConfirmation] = useState(false);
@@ -90,47 +90,25 @@ const WaiterDashboard: React.FC = () => {
   const preparingOrders = waiterOrders.filter(o => o.status === 'preparing');
   const readyOrders = waiterOrders.filter(o => o.status === 'ready');
   
-  // Debug logging to help troubleshoot notification issues (can be removed in production)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Waiter Dashboard Debug:', {
-        userId: user?.id,
-        totalOrders: orders.length,
-        waiterOrders: waiterOrders.length,
-        readyOrders: readyOrders.length,
-        readyOrderIds: readyOrders.map(o => ({ id: o.id, status: o.status, waiterId: o.waiterId }))
-      });
-    }
-  }, [orders, waiterOrders, readyOrders, user?.id]);
+  // Debug logging removed to prevent console spam
   
   // Play sound and show notification when new ready order appears
   useEffect(() => {
     const currentReadyOrderIds = readyOrders.map(o => o.id);
-    const newReadyOrders = readyOrders.filter(order => !previousReadyOrderIds.includes(order.id));
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔔 Notification Effect Debug:', {
-        currentReadyOrderIds,
-        previousReadyOrderIds,
-        newReadyOrders: newReadyOrders.map(o => ({ id: o.id, status: o.status })),
-        shouldNotify: newReadyOrders.length > 0
-      });
-    }
-    
+    const newReadyOrders = readyOrders.filter(order => !previousReadyOrderIdsRef.current.includes(order.id));
+
     if (newReadyOrders.length > 0) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Triggering notification for orders:', newReadyOrders.map(o => o.id));
-      }
       setShowNotification(true);
       if (audioRef.current) {
-        audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+        audioRef.current.play().catch(() => {});
       }
       setTimeout(() => setShowNotification(false), 3000);
     }
-    
+
     // Update the previous ready orders list
-    setPreviousReadyOrderIds(currentReadyOrderIds);
-  }, [readyOrders, previousReadyOrderIds]);
+    previousReadyOrderIdsRef.current = currentReadyOrderIds;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readyOrders]);
   
   // Billing-specific counts (only for this waiter) - match what's shown in billing page
   const paidOrdersCount = waiterOrders.filter(order => order.status === 'completed').length;
@@ -528,6 +506,8 @@ const WaiterDashboard: React.FC = () => {
                       </div>
                       <input
                         type="text"
+                        id={`special-instructions-${item.id}`}
+                        name={`specialInstructions-${item.id}`}
                         placeholder="Special instructions (optional)"
                         value={item.specialInstructions || ''}
                         onChange={(e) => cartFunctions?.updateSpecialInstructions && cartFunctions.updateSpecialInstructions(item.id, e.target.value)}

@@ -144,7 +144,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const processedBills = snapshot.docs.map((doc) => {
         try {
           const data = doc.data();
-          console.log("Raw bill data:", doc.id, data);
+          // Removed debug log: Raw bill data
           
           // Ensure all required fields have default values
           const processedBill = {
@@ -168,7 +168,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
           };
           
-          console.log("Processed bill:", processedBill);
+          // Removed debug log: Processed bill
           return processedBill as Bill;
         } catch (error) {
           console.error("Error processing bill:", doc.id, error);
@@ -336,9 +336,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     paymentMethod: Bill["paymentMethod"]
   ): Promise<Bill> => {
     try {
-      const order = orders.find((o) => o.id === orderId);
+      let order = orders.find((o) => o.id === orderId);
       if (!order) {
-        throw new Error(`Order with ID ${orderId} not found`);
+        // Fetch order directly from Firestore if not found locally
+        const orderDoc = await getDocs(query(collection(db, "orders"), where("__name__", "==", orderId)));
+        if (!orderDoc.empty) {
+          order = { ...orderDoc.docs[0].data(), id: orderId } as Order;
+        } else {
+          throw new Error(`Order with ID ${orderId} not found`);
+        }
       }
 
       console.log('Generating bill for order:', order);
