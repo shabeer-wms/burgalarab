@@ -112,7 +112,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
             >
               check
             </span>
-            Mark Ready
+            Ready
           </button>
         </div>
       );
@@ -166,8 +166,14 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
             {order.customerName}{" "}
             {order.tableNumber && `• Table ${order.tableNumber}`}
           </p>
-          <p className={`${kitchenLayout.typography.card.subtitle} text-gray-500 mt-1`}>
-            Order Taken: {order.orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <p
+            className={`${kitchenLayout.typography.card.subtitle} text-gray-500 mt-1`}
+          >
+            Order Taken:{" "}
+            {order.orderTime.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </p>
         </div>
         {order.status === "in-progress" && (
@@ -188,7 +194,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
         )}
       </div>
 
-  <div className="mb-3 lg:mb-4 space-y-2 flex-1 overflow-y-auto max-h-[120px] pr-1">
+      <div className="mb-3 lg:mb-4 space-y-2 flex-1 overflow-y-auto max-h-[120px] pr-1">
         {order.items.map((item) => {
           const isOrderReady = order.status === "ready";
           const badgeText = isOrderReady ? "ready" : item.status;
