@@ -1,313 +1,353 @@
-import React, { useState, useEffect } from 'react';
-import { useApp } from '../../context/AppContext';
-import { KitchenDisplayItem, OrderItem } from '../../types';
-import { Clock, ChefHat, AlertCircle, CheckCircle, Play, Pause } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import { useApp } from "../../context/AppContext";
+import { useAuth } from "../../context/AuthContext";
+import { OrderItem, MenuItem } from "../../types";
+
+// Components
+import { KitchenHeader } from "./components/KitchenHeader";
+import { SidebarNavigation } from "./components/SidebarNavigation";
+import { BottomNavigation } from "./components/BottomNavigation";
+import { OrderSection } from "./components/OrderSection";
+import { KitchenMenu } from "./components/KitchenMenu";
+import KitchenSettingsPage from "./components/KitchenSettingsPage";
+
+// Theme
+import { kitchenColors } from "./theme/colors";
+import { kitchenLayout } from "./theme/layout";
 
 const KitchenDisplaySystem: React.FC = () => {
-  const { kitchenOrders, updateKitchenOrderStatus, updateOrderItemStatus } = useApp();
+  const {
+    kitchenOrders,
+    updateKitchenOrderStatus,
+    updateOrderItemStatus,
+    menuItems,
+    updateMenuItem,
+    showNotification,
+  } = useApp();
+  const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const mainScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Hide top appbar(s) that may be rendered by a parent Layout.
+  // We deliberately don't edit Layout — instead we hide any likely header elements
+  // on mount and restore them on unmount so this view appears full-height.
+  // IMPORTANT: skip any headers that are inside this component (rootRef) so we
+  // don't accidentally hide our own header card.
+  useEffect(() => {
+    const selectors = [
+      "header",
+      "[data-topbar]",
+      ".topbar",
+      ".app-header",
+      "#top-appbar",
+    ];
+
+    const found: { el: Element; prev: string | null }[] = [];
+
+    selectors.forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) {
+        // skip if the element is inside our component
+        if (rootRef.current && rootRef.current.contains(el)) return;
+        found.push({ el, prev: (el as HTMLElement).style.display || null });
+        (el as HTMLElement).style.display = "none";
+      }
+    });
+
+    return () => {
+      // restore any hidden elements
+      found.forEach(({ el, prev }) => {
+        (el as HTMLElement).style.display = prev ?? "";
+      });
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-warning-100 text-warning-800 border-warning-300';
-      case 'in-progress': return 'bg-primary-100 text-primary-800 border-primary-300';
-      case 'ready': return 'bg-success-100 text-success-800 border-success-300';
-      default: return 'bg-surface-100 text-surface-800 border-surface-300';
+  const handleStatusChange = (
+    orderId: string,
+    newStatus: "pending" | "in-progress" | "ready",
+    paused?: boolean
+  ) => {
+    // Update backend
+    updateKitchenOrderStatus(orderId, newStatus, paused);
+
+    // Try to find order metadata for a friendlier message
+    const order = kitchenOrders.find((o) => o.orderId === orderId);
+    const orderNum = order?.orderNumber;
+    const customer = order?.customerName;
+
+    // Compose a short, human-friendly message including customer name when available
+    let message = "";
+    if (newStatus === "in-progress") {
+      // e.g. "Order for Alice started" or "#1234 started"
+      message = customer
+        ? `Order for ${customer} started`
+        : orderNum
+        ? `Order ${orderNum} started`
+        : `${orderId} started`;
+    } else if (newStatus === "pending") {
+      // e.g. "Order for Alice paused"
+      message = paused
+        ? customer
+          ? `Order for ${customer} paused`
+          : orderNum
+          ? `Order ${orderNum} paused`
+          : `${orderId} paused`
+        : customer
+        ? `Order for ${customer} moved to pending`
+        : orderNum
+        ? `Order ${orderNum} moved to pending`
+        : `${orderId} moved to pending`;
+    } else if (newStatus === "ready") {
+      // e.g. "Alice's order is ready" or "Order #1234 is ready"
+      message = customer
+        ? `${customer}'s order is ready`
+        : orderNum
+        ? `Order ${orderNum} is ready`
+        : `${orderId} is ready`;
+    }
+
+    // Show a brief success notification in the global snackbar
+    try {
+      showNotification(message, "success");
+    } catch (err) {
+      // swallow if notification is unavailable for any reason
+      console.warn("Failed to show notification:", err);
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'border-l-4 border-l-error-500';
-      case 'medium': return 'border-l-4 border-l-warning-500';
-      case 'low': return 'border-l-4 border-l-success-500';
-      default: return 'border-l-4 border-l-surface-300';
-    }
-  };
-
-  const getTimeElapsed = (orderTime: Date) => {
-    const diff = Math.floor((currentTime.getTime() - orderTime.getTime()) / 1000 / 60);
-    return diff;
-  };
-
-  const getTimeRemaining = (orderTime: Date, estimatedTime: number) => {
-    const elapsed = getTimeElapsed(orderTime);
-    const remaining = estimatedTime - elapsed;
-    return Math.max(0, remaining);
-  };
-
-  const isOverdue = (orderTime: Date, estimatedTime: number) => {
-    return getTimeElapsed(orderTime) > estimatedTime;
-  };
-
-  const handleStatusChange = (orderId: string, newStatus: 'pending' | 'in-progress' | 'ready') => {
-    updateKitchenOrderStatus(orderId, newStatus);
-  };
-
-  const handleItemStatusChange = (orderId: string, itemId: string, status: OrderItem['status']) => {
+  const handleItemStatusChange = (
+    orderId: string,
+    itemId: string,
+    status: OrderItem["status"]
+  ) => {
     updateOrderItemStatus(orderId, itemId, status);
   };
 
-  const pendingOrders = kitchenOrders.filter(order => order.status === 'pending');
-  const inProgressOrders = kitchenOrders.filter(order => order.status === 'in-progress');
-  const readyOrders = kitchenOrders.filter(order => order.status === 'ready');
+  const handleUpdateMenuItem = (itemId: string, updates: Partial<MenuItem>) => {
+    updateMenuItem(itemId, updates);
+  };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="card">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-primary-100 rounded-2xl">
-              <ChefHat className="w-6 h-6 text-primary-600" />
-            </div>
-            <div>
-              <h1 className="text-headline-medium">Kitchen Display System</h1>
-              <p className="text-body-medium text-surface-600">
-                {currentTime.toLocaleTimeString()} | {kitchenOrders.length} Active Orders
-              </p>
-            </div>
-          </div>
-          <div className="flex space-x-4">
-            <div className="text-center">
-              <div className="text-title-large text-warning-600">{pendingOrders.length}</div>
-              <div className="text-body-small text-surface-600">Pending</div>
-            </div>
-            <div className="text-center">
-              <div className="text-title-large text-primary-600">{inProgressOrders.length}</div>
-              <div className="text-body-small text-surface-600">In Progress</div>
-            </div>
-            <div className="text-center">
-              <div className="text-title-large text-success-600">{readyOrders.length}</div>
-              <div className="text-body-small text-surface-600">Ready</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Kitchen Orders Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pending Orders */}
-        <div>
-          <h2 className="text-title-large mb-4 flex items-center space-x-2">
-            <AlertCircle className="w-5 h-5 text-warning-600" />
-            <span>Pending ({pendingOrders.length})</span>
-          </h2>
-          <div className="space-y-4">
-            {pendingOrders.map(order => (
-              <KitchenOrderCard
-                key={order.orderId}
-                order={order}
-                currentTime={currentTime}
-                onStatusChange={handleStatusChange}
-                onItemStatusChange={handleItemStatusChange}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* In Progress Orders */}
-        <div>
-          <h2 className="text-title-large mb-4 flex items-center space-x-2">
-            <Play className="w-5 h-5 text-primary-600" />
-            <span>In Progress ({inProgressOrders.length})</span>
-          </h2>
-          <div className="space-y-4">
-            {inProgressOrders.map(order => (
-              <KitchenOrderCard
-                key={order.orderId}
-                order={order}
-                currentTime={currentTime}
-                onStatusChange={handleStatusChange}
-                onItemStatusChange={handleItemStatusChange}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Ready Orders */}
-        <div>
-          <h2 className="text-title-large mb-4 flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-success-600" />
-            <span>Ready ({readyOrders.length})</span>
-          </h2>
-          <div className="space-y-4">
-            {readyOrders.map(order => (
-              <KitchenOrderCard
-                key={order.orderId}
-                order={order}
-                currentTime={currentTime}
-                onStatusChange={handleStatusChange}
-                onItemStatusChange={handleItemStatusChange}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+  // Filter orders by status
+  const pendingOrders = kitchenOrders.filter(
+    (order) => order.status === "pending"
   );
-};
+  const inProgressOrders = kitchenOrders.filter(
+    (order) => order.status === "in-progress"
+  );
+  const readyOrders = kitchenOrders.filter((order) => order.status === "ready");
 
-interface KitchenOrderCardProps {
-  order: KitchenDisplayItem;
-  currentTime: Date;
-  onStatusChange: (orderId: string, status: 'pending' | 'in-progress' | 'ready') => void;
-  onItemStatusChange: (orderId: string, itemId: string, status: OrderItem['status']) => void;
-}
-
-const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
-  order,
-  currentTime,
-  onStatusChange,
-  onItemStatusChange
-}) => {
-  const getTimeElapsed = (orderTime: Date) => {
-    return Math.floor((currentTime.getTime() - orderTime.getTime()) / 1000 / 60);
+  // UI filter state for navigation
+  // On small screens (tailwind "lg" breakpoint is 1024px) we don't show "All"
+  // so default to "pending". On larger screens default to "all".
+  const getInitialFilter = () => {
+    if (typeof window === "undefined") return "all" as const;
+    return window.innerWidth < 1024 ? ("pending" as const) : ("all" as const);
   };
 
-  const getTimeRemaining = (orderTime: Date, estimatedTime: number) => {
-    const elapsed = getTimeElapsed(orderTime);
-    const remaining = estimatedTime - elapsed;
-    return Math.max(0, remaining);
-  };
+  const [selectedFilter, setSelectedFilter] = useState<
+    "all" | "pending" | "in-progress" | "ready" | "menu" | "settings"
+  >(getInitialFilter);
 
-  const isOverdue = (orderTime: Date, estimatedTime: number) => {
-    return getTimeElapsed(orderTime) > estimatedTime;
-  };
+  // Keep behaviour consistent when resizing: if the viewport becomes small
+  // and the current filter is "all", switch to "pending" because "all"
+  // is not available on small screens.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq: MediaQueryList = window.matchMedia("(min-width: 1024px)");
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'border-l-4 border-l-error-500';
-      case 'medium': return 'border-l-4 border-l-warning-500';
-      case 'low': return 'border-l-4 border-l-success-500';
-      default: return 'border-l-4 border-l-surface-300';
+    // Augment MediaQueryList with legacy methods for older browsers
+    type MQAugmented = MediaQueryList & {
+      addListener?: (listener: (e: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (e: MediaQueryListEvent) => void) => void;
+      addEventListener?: (
+        type: string,
+        listener: (e: MediaQueryListEvent) => void
+      ) => void;
+      removeEventListener?: (
+        type: string,
+        listener: (e: MediaQueryListEvent) => void
+      ) => void;
+    };
+
+    const mqAug = mq as MQAugmented;
+
+    const onChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      // e.matches === true means viewport is >= 1024px (large)
+      if (!e.matches) {
+        // now small screen: if currently "all", switch to "pending"
+        setSelectedFilter((prev) => (prev === "all" ? "pending" : prev));
+      }
+    };
+
+    // Run once to enforce correct state on mount
+    onChange(mq);
+
+    // Attach listener in a cross-browser way
+    if (typeof mqAug.addEventListener === "function") {
+      mqAug.addEventListener(
+        "change",
+        onChange as (e: MediaQueryListEvent) => void
+      );
+    } else if (typeof mqAug.addListener === "function") {
+      // Safari and older browsers
+      mqAug.addListener(onChange as (e: MediaQueryListEvent) => void);
+    }
+
+    return () => {
+      if (typeof mqAug.removeEventListener === "function") {
+        mqAug.removeEventListener(
+          "change",
+          onChange as (e: MediaQueryListEvent) => void
+        );
+      } else if (typeof mqAug.removeListener === "function") {
+        mqAug.removeListener(onChange as (e: MediaQueryListEvent) => void);
+      }
+    };
+  }, []);
+
+  const handleFilterClick = (
+    e: React.MouseEvent,
+    filter: typeof selectedFilter
+  ) => {
+    e.preventDefault();
+    // Always scroll to top when changing filters
+    setSelectedFilter(filter);
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTop = 0;
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-warning-100 text-warning-800 border-warning-300';
-      case 'in-progress': return 'bg-primary-100 text-primary-800 border-primary-300';
-      case 'ready': return 'bg-success-100 text-success-800 border-success-300';
-      default: return 'bg-surface-100 text-surface-800 border-surface-300';
+  // Scroll to top when filter changes
+  useEffect(() => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTop = 0;
     }
-  };
-
-  const elapsed = getTimeElapsed(order.orderTime);
-  const remaining = getTimeRemaining(order.orderTime, order.estimatedTime);
-  const overdue = isOverdue(order.orderTime, order.estimatedTime);
+  }, [selectedFilter]);
 
   return (
-    <div className={`card ${getPriorityColor(order.priority)} ${overdue ? 'animate-pulse' : ''}`}>
-      {/* Order Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-title-medium">{order.orderNumber}</h3>
-          <p className="text-body-small text-surface-600">
-            {order.customerName} {order.tableNumber && `• Table ${order.tableNumber}`}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className={`chip ${getStatusColor(order.status)}`}>
-            {order.status.toUpperCase()}
-          </div>
-          <div className="flex items-center space-x-1 mt-1">
-            <Clock className="w-4 h-4 text-surface-500" />
-            <span className={`text-body-small ${overdue ? 'text-error-600 font-medium' : 'text-surface-600'}`}>
-              {overdue ? `+${elapsed - order.estimatedTime}min` : `${remaining}min`}
-            </span>
-          </div>
-        </div>
-      </div>
+    // Full-viewport container so the view truly fills the page
+    <div
+      ref={rootRef}
+      className={`fixed inset-0 flex ${kitchenColors.ui.layout.background}`}
+    >
+      {/* Desktop Sidebar Navigation */}
+      <SidebarNavigation
+        selectedFilter={selectedFilter}
+        onFilterClick={handleFilterClick}
+        userName={user?.name}
+        userRole={user?.role}
+        onLogout={logout}
+      />
 
-      {/* Order Items */}
-      <div className="space-y-3 mb-4">
-        {order.items.map(item => (
-          <div key={item.id} className="flex items-center justify-between p-3 bg-surface-50 rounded-lg">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2">
-                <span className="text-body-medium font-medium">{item.quantity}x</span>
-                <span className="text-body-medium">{item.menuItem.name}</span>
-                <span className={`chip text-xs ${
-                  item.status === 'pending' ? 'chip-warning' :
-                  item.status === 'preparing' ? 'chip-primary' :
-                  item.status === 'ready' ? 'chip-success' : 'chip-secondary'
-                }`}>
-                  {item.status}
-                </span>
+      {/* Main Content */}
+      <main
+        ref={mainScrollRef}
+        className={`flex-1 ${kitchenLayout.responsive.main.padding} min-h-screen ${kitchenLayout.responsive.main.margin} overflow-y-scroll kitchen-main ${kitchenLayout.responsive.main.paddingBottom}`}
+      >
+        <div className="w-full">
+          {/* Sticky Kitchen Header */}
+          <div className="sticky top-0 z-40 bg-transparent">
+            <KitchenHeader
+              currentTime={currentTime}
+              totalOrders={pendingOrders.length + inProgressOrders.length}
+              pendingCount={pendingOrders.length}
+              inProgressCount={inProgressOrders.length}
+              readyCount={readyOrders.length}
+              onLogout={logout}
+              title={
+                selectedFilter === "menu"
+                  ? "Menu Management"
+                  : selectedFilter === "settings"
+                  ? "Settings"
+                  : "Kitchen Display System"
+              }
+              isSettings={selectedFilter === "settings"}
+            />
+          </div>
+
+          {/* Content based on selected filter */}
+          {selectedFilter === "menu" ? (
+            <KitchenMenu
+              menuItems={menuItems}
+              onUpdateMenuItem={handleUpdateMenuItem}
+            />
+          ) : selectedFilter === "settings" ? (
+            <KitchenSettingsPage />
+          ) : (
+            <>
+              {/* Order Sections */}
+              <div
+                className={
+                  selectedFilter === "all" ? kitchenLayout.grid.main : "w-full"
+                }
+              >
+                {/* Pending Orders Section */}
+                {(selectedFilter === "all" || selectedFilter === "pending") && (
+                  <OrderSection
+                    title="Pending"
+                    icon="hourglass_top"
+                    iconColorClass={kitchenColors.status.pending.icon}
+                    orders={pendingOrders}
+                    currentTime={currentTime}
+                    onStatusChange={handleStatusChange}
+                    onItemStatusChange={handleItemStatusChange}
+                    selectedFilter={selectedFilter}
+                    onViewAllClick={() => setSelectedFilter("pending")}
+                    viewAllButtonColor={kitchenColors.status.pending.button}
+                  />
+                )}
+                {(selectedFilter === "all" ||
+                  selectedFilter === "in-progress") && (
+                  <OrderSection
+                    title="In Progress"
+                    icon="autorenew"
+                    iconColorClass={kitchenColors.status.inProgress.icon}
+                    orders={inProgressOrders}
+                    currentTime={currentTime}
+                    onStatusChange={handleStatusChange}
+                    onItemStatusChange={handleItemStatusChange}
+                    selectedFilter={selectedFilter}
+                    onViewAllClick={() => setSelectedFilter("in-progress")}
+                    inProgress={true}
+                    viewAllButtonColor={kitchenColors.status.inProgress.button}
+                    viewAllButtonHover={kitchenColors.status.inProgress.hover}
+                  />
+                )}
+
+                {/* Ready Orders Section */}
+                {(selectedFilter === "all" || selectedFilter === "ready") && (
+                  <OrderSection
+                    title="Ready"
+                    icon="check_circle"
+                    iconColorClass={kitchenColors.status.ready.icon}
+                    orders={readyOrders}
+                    currentTime={currentTime}
+                    onStatusChange={handleStatusChange}
+                    onItemStatusChange={handleItemStatusChange}
+                    selectedFilter={selectedFilter}
+                    onViewAllClick={() => setSelectedFilter("ready")}
+                    ready={true}
+                    viewAllButtonColor={kitchenColors.status.ready.button}
+                    viewAllButtonHover={kitchenColors.status.ready.hover}
+                  />
+                )}
               </div>
-              {item.specialInstructions && (
-                <p className="text-body-small text-surface-600 mt-1">
-                  Note: {item.specialInstructions}
-                </p>
-              )}
-            </div>
-            <div className="flex space-x-1">
-              <button
-                onClick={() => onItemStatusChange(order.orderId, item.id, 'preparing')}
-                className="p-1 rounded text-xs bg-primary-100 text-primary-700 hover:bg-primary-200"
-                disabled={item.status !== 'pending'}
-              >
-                Start
-              </button>
-              <button
-                onClick={() => onItemStatusChange(order.orderId, item.id, 'ready')}
-                className="p-1 rounded text-xs bg-success-100 text-success-700 hover:bg-success-200"
-                disabled={item.status === 'ready'}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Kitchen Notes */}
-      {order.kitchenNotes && (
-        <div className="p-3 bg-warning-50 border border-warning-200 rounded-lg mb-4">
-          <p className="text-body-small text-warning-800">
-            <strong>Kitchen Notes:</strong> {order.kitchenNotes}
-          </p>
+            </>
+          )}
         </div>
-      )}
+      </main>
 
-      {/* Action Buttons */}
-      <div className="flex space-x-2">
-        {order.status === 'pending' && (
-          <button
-            onClick={() => onStatusChange(order.orderId, 'in-progress')}
-            className="flex-1 btn-primary py-2 text-sm"
-          >
-            Start Cooking
-          </button>
-        )}
-        {order.status === 'in-progress' && (
-          <>
-            <button
-              onClick={() => onStatusChange(order.orderId, 'pending')}
-              className="flex-1 btn-outlined py-2 text-sm"
-            >
-              Pause
-            </button>
-            <button
-              onClick={() => onStatusChange(order.orderId, 'ready')}
-              className="flex-1 btn-primary py-2 text-sm"
-            >
-              Mark Ready
-            </button>
-          </>
-        )}
-        {order.status === 'ready' && (
-          <div className="flex-1 text-center py-2 text-sm text-success-600 font-medium">
-            Ready for Pickup
-          </div>
-        )}
-      </div>
+      {/* Bottom Navigation for Mobile and Tablet */}
+      <BottomNavigation
+        selectedFilter={selectedFilter}
+        onFilterClick={handleFilterClick}
+      />
     </div>
   );
 };

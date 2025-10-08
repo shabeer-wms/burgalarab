@@ -2,126 +2,94 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order, Bill } from '../../types';
-import { Receipt, Download, Printer, CreditCard, Banknote, Smartphone, Globe } from 'lucide-react';
+import { Receipt, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2, Printer } from 'lucide-react';
 
 const BillingPayments: React.FC = () => {
-  const { orders, bills, generateBill, getTodaysRevenue } = useApp();
+  const { orders, generateBill, showNotification } = useApp();
   const { user } = useAuth();
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<Bill['paymentMethod']>('cash');
-  const [showBillPreview, setShowBillPreview] = useState<Bill | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<'all' | Order['paymentStatus']>('all');
+  const [showBillingDialog, setShowBillingDialog] = useState(false);
+  const [billingOrder, setBillingOrder] = useState<Order | null>(null);
+  const [isGeneratingBill, setIsGeneratingBill] = useState(false);
+  
+  // Pagination states for orders
+  const [currentOrderPage, setCurrentOrderPage] = useState(1);
+  const [orderItemsPerPage, setOrderItemsPerPage] = useState(9); // Default for tablet/desktop
+  
+  // Bills listing removed; retain bills only for generating when payment occurs
 
-  const readyOrders = orders.filter(order => 
-    order.status === 'ready' && order.paymentStatus === 'pending'
-  );
+  // Responsive items per page based on screen size
+  React.useEffect(() => {
+    const updateItemsPerPage = () => {
+      const width = window.innerWidth;
+      if (width < 768) { // Mobile
+        setOrderItemsPerPage(6);
+  // bills list removed
+      } else if (width < 1280) { // Tablet
+        setOrderItemsPerPage(9);
+  // bills list removed
+      } else { // Desktop
+        setOrderItemsPerPage(9);
+  // bills list removed
+      }
+    };
 
-  const todaysRevenue = getTodaysRevenue();
+    updateItemsPerPage();
+    window.addEventListener('resize', updateItemsPerPage);
+    return () => window.removeEventListener('resize', updateItemsPerPage);
+  }, []);
 
-  const handleGenerateBill = () => {
-    if (!selectedOrder || !user) return;
+  // Reset to first page when payment filter changes
+  React.useEffect(() => {
+    setCurrentOrderPage(1);
+  }, [paymentFilter]);
 
-    try {
-      const bill = generateBill(selectedOrder.id, user.name, paymentMethod);
-      setShowBillPreview(bill);
-      setSelectedOrder(null);
-    } catch (error) {
-      alert('Error generating bill');
+  // If a waiter is logged in, only include their orders
+  const baseOrders = user?.role === 'waiter' && user.id ? orders.filter(o => o.waiterId === user.id) : orders;
+
+  const filteredOrders = (paymentFilter === 'all'
+    ? baseOrders.filter(order => ['ready', 'completed'].includes(order.status))
+    : baseOrders.filter(order => ['ready', 'completed'].includes(order.status) && order.paymentStatus === paymentFilter)
+  ).sort((a, b) => {
+    // Sort by order time in descending order (most recent first)
+    const timeA = a.orderTime instanceof Date ? a.orderTime : 
+                  typeof a.orderTime === 'string' ? new Date(a.orderTime) : 
+                  a.orderTime?.toDate ? a.orderTime.toDate() : new Date(0);
+    const timeB = b.orderTime instanceof Date ? b.orderTime : 
+                  typeof b.orderTime === 'string' ? new Date(b.orderTime) : 
+                  b.orderTime?.toDate ? b.orderTime.toDate() : new Date(0);
+    return timeB.getTime() - timeA.getTime();
+  });
+
+  // Orders pagination calculations
+  const totalOrderItems = filteredOrders.length;
+  const totalOrderPages = Math.ceil(totalOrderItems / orderItemsPerPage);
+  const orderStartIndex = (currentOrderPage - 1) * orderItemsPerPage;
+  const orderEndIndex = orderStartIndex + orderItemsPerPage;
+  const paginatedOrders = filteredOrders.slice(orderStartIndex, orderEndIndex);
+
+  // Bills pagination calculations
+  // Removed bill pagination calculations
+  // Removed bill pagination & export helpers since All Bills view is gone
+
+  // Pagination helpers
+  const goToOrderPage = (page: number) => {
+    if (page < 1) {
+      setCurrentOrderPage(1);
+    } else if (page > totalOrderPages) {
+      setCurrentOrderPage(totalOrderPages || 1);
+    } else {
+      setCurrentOrderPage(page);
     }
   };
 
-  const downloadBillPDF = (bill: Bill) => {
-    // In a real app, this would generate and download a PDF
-    const billContent = generateBillHTML(bill);
-    const blob = new Blob([billContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bill-${bill.id}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const printBill = (bill: Bill) => {
-    const billContent = generateBillHTML(bill);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(billContent);
-      printWindow.document.close();
-      printWindow.print();
+  // Keep current page in bounds if data size shrinks
+  React.useEffect(() => {
+    if (currentOrderPage > totalOrderPages && totalOrderPages > 0) {
+      setCurrentOrderPage(totalOrderPages);
     }
-  };
-
-  const generateBillHTML = (bill: Bill) => {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Bill - ${bill.id}</title>
-        <style>
-          body { font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; }
-          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-          .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
-          .total { border-top: 1px solid #000; padding-top: 10px; margin-top: 10px; font-weight: bold; }
-          .footer { text-align: center; margin-top: 20px; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h2>Hotel Management</h2>
-          <p>Bill No: ${bill.id}</p>
-          <p>Date: ${bill.generatedAt.toLocaleDateString()}</p>
-          <p>Time: ${bill.generatedAt.toLocaleTimeString()}</p>
-        </div>
-        
-        <div>
-          <p><strong>Customer:</strong> ${bill.customerDetails.name}</p>
-          <p><strong>Phone:</strong> ${bill.customerDetails.phone}</p>
-          ${bill.customerDetails.tableNumber ? `<p><strong>Table:</strong> ${bill.customerDetails.tableNumber}</p>` : ''}
-          ${bill.customerDetails.address ? `<p><strong>Address:</strong> ${bill.customerDetails.address}</p>` : ''}
-        </div>
-        
-        <div style="margin: 20px 0;">
-          ${bill.items.map(item => `
-            <div class="item">
-              <span>${item.quantity}x ${item.menuItem.name}</span>
-              <span>$${(item.menuItem.price * item.quantity).toFixed(2)}</span>
-            </div>
-          `).join('')}
-        </div>
-        
-        <div class="total">
-          <div class="item">
-            <span>Subtotal:</span>
-            <span>$${bill.subtotal.toFixed(2)}</span>
-          </div>
-          ${bill.serviceCharge ? `
-            <div class="item">
-              <span>Service Charge (10%):</span>
-              <span>$${bill.serviceCharge.toFixed(2)}</span>
-            </div>
-          ` : ''}
-          <div class="item">
-            <span>Tax (${(bill.taxRate * 100).toFixed(0)}%):</span>
-            <span>$${bill.taxAmount.toFixed(2)}</span>
-          </div>
-          <div class="item" style="font-size: 18px;">
-            <span>Total:</span>
-            <span>$${bill.total.toFixed(2)}</span>
-          </div>
-          <div class="item">
-            <span>Payment Method:</span>
-            <span>${bill.paymentMethod.toUpperCase()}</span>
-          </div>
-        </div>
-        
-        <div class="footer">
-          <p>Thank you for your visit!</p>
-          <p>Generated by: ${bill.generatedBy}</p>
-        </div>
-      </body>
-      </html>
-    `;
-  };
+  }, [currentOrderPage, totalOrderPages]);
 
   const getPaymentIcon = (method: Bill['paymentMethod']) => {
     switch (method) {
@@ -133,248 +101,421 @@ const BillingPayments: React.FC = () => {
     }
   };
 
+  const getPaymentStatusColor = (status: Order['paymentStatus']) => {
+    switch (status) {
+      case 'paid': return 'text-success-600';
+      case 'pending': return 'text-warning-600';
+      case 'partial': return 'text-warning-600';
+      case 'refunded': return 'text-error-600';
+      default: return 'text-surface-600';
+    }
+  };
+
+  const handlePrintReceipt = (order: Order) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const customerInfo = order.customerName ? `
+      <div style="margin-bottom: 15px;">
+        <strong>Customer Details:</strong><br>
+        Name: ${order.customerName}<br>
+        ${order.customerPhone ? `Phone: ${order.customerPhone}<br>` : ''}
+        ${order.customerAddress ? `Address: ${order.customerAddress}<br>` : ''}
+        ${order.tableNumber ? `Table: ${order.tableNumber}<br>` : ''}
+      </div>
+    ` : '';
+
+    const orderDate = order.orderTime instanceof Date ? order.orderTime : 
+                     typeof order.orderTime === 'string' ? new Date(order.orderTime) : 
+                     order.orderTime?.toDate ? order.orderTime.toDate() : new Date();
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Order Receipt - ${order.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .order-info { margin-bottom: 20px; }
+            .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .items-table th { background-color: #f2f2f2; }
+            .total-section { border-top: 2px solid #333; padding-top: 10px; text-align: right; }
+            .total-line { margin: 5px 0; }
+            .grand-total { font-size: 18px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Restaurant Order Receipt</h2>
+            <p>Order ID: ${order.id}</p>
+          </div>
+          
+          <div class="order-info">
+            <strong>Order Details:</strong><br>
+            Date: ${orderDate.toLocaleDateString()} ${orderDate.toLocaleTimeString()}<br>
+            Type: ${order.type}<br>
+            Status: ${order.status}<br>
+            Payment Status: ${order.paymentStatus}<br>
+            ${order.paymentMethod ? `Payment Method: ${order.paymentMethod}<br>` : ''}
+          </div>
+
+          ${customerInfo}
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${order.items.map(item => `
+                <tr>
+                  <td>${item.menuItem.name}</td>
+                  <td>${item.quantity}</td>
+                  <td>$${item.menuItem.price.toFixed(2)}</td>
+                  <td>$${(item.quantity * item.menuItem.price).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="total-section">
+            <div class="total-line">Subtotal: $${order.total.toFixed(2)}</div>
+            <div class="total-line">Tax: $${order.tax.toFixed(2)}</div>
+            <div class="total-line grand-total">Grand Total: $${order.grandTotal.toFixed(2)}</div>
+          </div>
+
+          <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+            Thank you for your order!
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   return (
     <div className="space-y-6">
-      {/* Revenue Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card text-center">
-          <div className="text-title-large text-success-600">${todaysRevenue.toFixed(2)}</div>
-          <div className="text-body-medium text-surface-600">Today's Revenue</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-title-large text-primary-600">{readyOrders.length}</div>
-          <div className="text-body-medium text-surface-600">Ready for Billing</div>
-        </div>
-        <div className="card text-center">
-          <div className="text-title-large text-surface-900">{bills.length}</div>
-          <div className="text-body-medium text-surface-600">Bills Generated</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Orders Ready for Billing */}
+      <div className="space-y-6">
+  {/* Section */}
         <div className="space-y-4">
-          <h2 className="text-title-large">Ready for Billing ({readyOrders.length})</h2>
-          {readyOrders.length === 0 ? (
-            <div className="card text-center py-8">
-              <Receipt className="w-12 h-12 text-surface-300 mx-auto mb-4" />
-              <p className="text-surface-600">No orders ready for billing</p>
-            </div>
-          ) : (
-            readyOrders.map(order => (
-              <div 
-                key={order.id} 
-                className={`card cursor-pointer transition-all duration-200 hover:shadow-elevation-3 ${
-                  selectedOrder?.id === order.id ? 'ring-2 ring-primary-500' : ''
-                }`}
-                onClick={() => setSelectedOrder(order)}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="text-title-medium">#{order.id.slice(-6)}</h3>
-                    <p className="text-body-medium text-surface-600">
-                      {order.customerName}
-                      {order.tableNumber && ` • Table ${order.tableNumber}`}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-title-medium">${order.grandTotal.toFixed(2)}</div>
-                    <div className="chip chip-success text-xs">Ready</div>
-                  </div>
-                </div>
-                
-                <div className="space-y-1">
-                  {order.items.slice(0, 2).map(item => (
-                    <div key={item.id} className="flex justify-between text-body-small">
-                      <span>{item.quantity}x {item.menuItem.name}</span>
-                      <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
-                    </div>
-                  ))}
-                  {order.items.length > 2 && (
-                    <p className="text-body-small text-surface-600">
-                      +{order.items.length - 2} more items
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Billing Panel */}
-        <div className="sticky top-6">
-          {selectedOrder ? (
-            <div className="space-y-4">
-              {/* Bill Details */}
-              <div className="card">
-                <h3 className="text-title-large mb-4">Generate Bill</h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-title-medium mb-2">Order #{selectedOrder.id.slice(-6)}</h4>
-                    <p className="text-body-medium text-surface-600">
-                      {selectedOrder.customerName} • {selectedOrder.customerPhone}
-                    </p>
-                    {selectedOrder.tableNumber && (
-                      <p className="text-body-medium text-surface-600">Table {selectedOrder.tableNumber}</p>
-                    )}
-                  </div>
-
-                  {/* Items */}
-                  <div>
-                    <h4 className="text-title-medium mb-2">Items</h4>
-                    <div className="space-y-2">
-                      {selectedOrder.items.map(item => (
-                        <div key={item.id} className="flex justify-between text-body-medium">
-                          <span>{item.quantity}x {item.menuItem.name}</span>
-                          <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bill Calculation */}
-                  <div className="border-t border-surface-200 pt-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>${selectedOrder.total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Service Charge (10%):</span>
-                      <span>${(selectedOrder.total * 0.1).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Tax (18%):</span>
-                      <span>${selectedOrder.tax.toFixed(2)}</span>
-                    </div>
-                    <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
-                      <span>Total:</span>
-                      <span>${(selectedOrder.total + (selectedOrder.total * 0.1) + selectedOrder.tax).toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  {/* Payment Method */}
-                  <div>
-                    <h4 className="text-title-medium mb-3">Payment Method</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(['cash', 'card', 'upi', 'online'] as Bill['paymentMethod'][]).map(method => (
-                        <button
-                          key={method}
-                          onClick={() => setPaymentMethod(method)}
-                          className={`flex items-center justify-center space-x-2 p-3 rounded-lg border transition-colors ${
-                            paymentMethod === method
-                              ? 'border-primary-500 bg-primary-50 text-primary-700'
-                              : 'border-surface-300 hover:bg-surface-50'
-                          }`}
-                        >
-                          {getPaymentIcon(method)}
-                          <span className="capitalize">{method}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleGenerateBill}
-                    className="w-full btn-primary flex items-center justify-center space-x-2"
-                  >
-                    <Receipt className="w-4 h-4" />
-                    <span>Generate Bill & Process Payment</span>
-                  </button>
-                </div>
+          {/* Header and Filters */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-title-large"></h2>
+            <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
+              <div className="flex space-x-2 min-w-max">
+                <button
+                  onClick={() => setPaymentFilter('all')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    paymentFilter === 'all' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setPaymentFilter('pending')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    paymentFilter === 'pending' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Pending
+                </button>
+                <button
+                  onClick={() => setPaymentFilter('paid')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    paymentFilter === 'paid' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Paid
+                </button>
               </div>
             </div>
-          ) : (
-            <div className="card text-center py-12">
-              <Receipt className="w-12 h-12 text-surface-300 mx-auto mb-4" />
-              <p className="text-surface-600">Select an order to generate bill</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Recent Bills */}
-      <div className="card">
-        <h3 className="text-title-large mb-4">Recent Bills ({bills.length})</h3>
-        {bills.length === 0 ? (
-          <p className="text-surface-600 text-center py-8">No bills generated yet</p>
-        ) : (
-          <div className="space-y-3">
-            {bills.slice(-10).reverse().map(bill => (
-              <div key={bill.id} className="flex items-center justify-between p-4 bg-surface-50 rounded-lg">
-                <div>
-                  <p className="text-body-medium font-medium">{bill.id}</p>
-                  <p className="text-body-small text-surface-600">
-                    {bill.customerDetails.name} • {bill.generatedAt.toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="text-body-medium font-medium">${bill.total.toFixed(2)}</p>
-                    <div className="flex items-center space-x-1 text-body-small text-surface-600">
-                      {getPaymentIcon(bill.paymentMethod)}
-                      <span className="capitalize">{bill.paymentMethod}</span>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => downloadBillPDF(bill)}
-                      className="p-2 hover:bg-surface-200 rounded-lg"
-                      title="Download PDF"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => printBill(bill)}
-                      className="p-2 hover:bg-surface-200 rounded-lg"
-                      title="Print"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
-        )}
+          
+          {/* Grid */}
+          {filteredOrders.length === 0 ? (
+            <div className="card text-center py-12 border border-dashed border-surface-300">
+              <Receipt className="w-16 h-16 text-surface-300 mx-auto mb-4" />
+              <p className="text-headline-small text-surface-600">No orders found</p>
+              <p className="text-body-medium text-surface-500 mt-2">Orders will appear here once they are ready for billing</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paginatedOrders.map(order => (
+                  <div 
+                    key={order.id} 
+                    className="card p-0 border border-surface-200 hover:shadow-md transition-all duration-300 flex flex-col h-full"
+                  >
+                    {/* Card Content - Main body */}
+                    <div className="flex-1 p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="text-title-medium text-primary-900">Order #{order.id.slice(-6)}</h3>
+                          <p className="text-body-medium text-surface-700">
+                            {order.customerName}
+                            {order.tableNumber && ` • Table ${order.tableNumber}`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-title-medium font-bold">${order.grandTotal.toFixed(2)}</div>
+                          <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-1 ${
+                            order.status === 'ready' ? 'bg-success-100 text-success-800' : 
+                            order.status === 'completed' ? 'bg-primary-100 text-primary-800' : 
+                            'bg-surface-100 text-surface-800'
+                          }`}>
+                            {order.status.toUpperCase()}
+                          </div>
+                          <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)} flex items-center justify-end`}>
+                            <DollarSign className="w-3 h-3 mr-1" />
+                            {order.paymentStatus.toUpperCase()}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 border-t border-b border-surface-100 py-2">
+                        {order.items.slice(0, 2).map(item => (
+                          <div key={item.id} className="flex justify-between text-body-small">
+                            <span>{item.quantity}x {item.menuItem.name}</span>
+                            <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                        {order.items.length > 2 && (
+                          <p className="text-body-small text-surface-600">
+                            +{order.items.length - 2} more items
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Footer - Sticky at bottom */}
+                    <div className="border-t border-surface-100 bg-surface-50 px-4 py-3">
+                      {order.paymentStatus !== 'paid' ? (
+                        <button
+                          onClick={() => {
+                            setBillingOrder(order);
+                            setShowBillingDialog(true);
+                          }}
+                          className="w-full btn-primary flex items-center justify-center space-x-2"
+                        >
+                          <Receipt className="w-4 h-4" />
+                          <span>Generate Bill</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handlePrintReceipt(order)}
+                          className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                        >
+                          <Printer className="w-4 h-4" />
+                          <span>Print Receipt</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Simple Pagination Controls (Previous / Next) */}
+              {totalOrderPages > 1 && (
+                <div className="flex items-center justify-end mt-8 pb-8 sm:pb-12 md:pb-6">
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => goToOrderPage(currentOrderPage - 1)}
+                      disabled={currentOrderPage === 1}
+                      className="p-2 mr-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Previous page"
+                      title="Previous page"
+                    >
+                      <span className="material-icons">chevron_left</span>
+                    </button>
+
+                    <div className="text-sm text-gray-600 mr-3">
+                      Page {currentOrderPage} of {totalOrderPages}
+                    </div>
+
+                    <button
+                      onClick={() => goToOrderPage(currentOrderPage + 1)}
+                      disabled={currentOrderPage === totalOrderPages}
+                      className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Next page"
+                      title="Next page"
+                    >
+                      <span className="material-icons">chevron_right</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Bill Preview Modal */}
-      {showBillPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-title-large">Bill Generated Successfully</h3>
+  {/* All Bills section removed per requirement: only show orders (billing queue) */}
+
+      {/* Billing Dialog Modal */}
+      {showBillingDialog && billingOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto relative">
+            {/* Loading Overlay */}
+            {isGeneratingBill && (
+              <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 rounded-lg">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-2" />
+                  <p className="text-body-medium text-surface-600">Generating Bill...</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between p-6 border-b border-surface-200">
+              <h3 className="text-title-large">Generate Bill</h3>
               <button
-                onClick={() => setShowBillPreview(null)}
-                className="p-2 hover:bg-surface-100 rounded-lg"
+                onClick={() => {
+                  if (!isGeneratingBill) {
+                    setShowBillingDialog(false);
+                    setBillingOrder(null);
+                  }
+                }}
+                disabled={isGeneratingBill}
+                className={`p-2 rounded-lg transition-colors ${
+                  isGeneratingBill 
+                    ? 'cursor-not-allowed opacity-50' 
+                    : 'hover:bg-surface-100'
+                }`}
               >
-                ×
+                <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="space-y-4">
-              <div className="text-center p-4 bg-success-50 border border-success-200 rounded-lg">
-                <Receipt className="w-8 h-8 text-success-600 mx-auto mb-2" />
-                <p className="text-success-800 font-medium">Payment Processed Successfully</p>
-                <p className="text-success-700">Bill ID: {showBillPreview.id}</p>
+            <div className="p-6 space-y-4">
+              {/* Order Details */}
+              <div>
+                <h4 className="text-title-medium mb-2">Order #{billingOrder.id.slice(-6)}</h4>
+                <p className="text-body-medium text-surface-600">
+                  {billingOrder.customerName} • {billingOrder.customerPhone}
+                </p>
+                {billingOrder.tableNumber && (
+                  <p className="text-body-medium text-surface-600">Table {billingOrder.tableNumber}</p>
+                )}
               </div>
-              
-              <div className="flex space-x-2">
+
+              {/* Items */}
+              <div>
+                <h4 className="text-title-medium mb-2">Items</h4>
+                <div className="space-y-2">
+                  {billingOrder.items.map(item => (
+                    <div key={item.id} className="flex justify-between items-start text-body-medium">
+                      <div className="flex-1">
+                        <div>{item.quantity}x {item.menuItem.name}</div>
+                        {item.sugarPreference && (
+                          <div className="text-body-small text-primary-600">Sugar: {item.sugarPreference}</div>
+                        )}
+                        {item.specialInstructions && (
+                          <div className="text-body-small text-warning-600">Note: {item.specialInstructions}</div>
+                        )}
+                      </div>
+                      <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bill Calculation */}
+              <div className="border-t border-surface-200 pt-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>${billingOrder.total.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Service Charge (10%):</span>
+                  <span>${(billingOrder.total * 0.1).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Tax (18%):</span>
+                  <span>${billingOrder.tax.toFixed(2)}</span>
+                </div>
+                <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
+                  <span>Total:</span>
+                  <span>${billingOrder.grandTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Payment Status:</span>
+                  <span className={`font-medium ${getPaymentStatusColor(billingOrder.paymentStatus)}`}>
+                    {billingOrder.paymentStatus.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Payment Method */}
+              <div className={isGeneratingBill ? 'opacity-50 pointer-events-none' : ''}>
+                <h4 className="text-title-medium mb-3">Payment Method</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['cash', 'card', 'upi', 'online'] as Bill['paymentMethod'][]).map(method => (
+                    <button
+                      key={method}
+                      onClick={() => setPaymentMethod(method)}
+                      disabled={isGeneratingBill}
+                      className={`flex items-center justify-center space-x-2 p-3 rounded-lg border transition-colors ${
+                        paymentMethod === method
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-surface-300 hover:bg-surface-50'
+                      } ${isGeneratingBill ? 'cursor-not-allowed' : ''}`}
+                    >
+                      {getPaymentIcon(method)}
+                      <span className="capitalize">{method}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
                 <button
-                  onClick={() => downloadBillPDF(showBillPreview)}
-                  className="flex-1 btn-outlined flex items-center justify-center space-x-2"
+                  onClick={async () => {
+                    if (billingOrder && !isGeneratingBill) {
+                      try {
+                        setIsGeneratingBill(true);
+                        await generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
+                        showNotification('✅ Payment processed successfully! Marked as payment completed.', 'success');
+                        setShowBillingDialog(false);
+                        setBillingOrder(null);
+                      } catch (error) {
+                        console.error('Error generating bill:', error);
+                        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                        showNotification(`Failed to generate bill: ${errorMessage}`, 'error');
+                      } finally {
+                        setIsGeneratingBill(false);
+                      }
+                    }
+                  }}
+                  disabled={isGeneratingBill}
+                  className={`w-full flex items-center justify-center space-x-2 min-h-[48px] ${
+                    isGeneratingBill 
+                      ? 'bg-surface-300 text-surface-500 cursor-not-allowed' 
+                      : 'btn-primary'
+                  }`}
                 >
-                  <Download className="w-4 h-4" />
-                  <span>Download</span>
+                  {isGeneratingBill ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Receipt className="w-4 h-4" />
+                  )}
+                  <span>{isGeneratingBill ? 'Generating Bill...' : 'Generate Bill & Process Payment'}</span>
                 </button>
-                <button
-                  onClick={() => printBill(showBillPreview)}
-                  className="flex-1 btn-primary flex items-center justify-center space-x-2"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>Print</span>
-                </button>
+                
+                {/* Print Invoice button removed along with All Bills section */}
               </div>
             </div>
           </div>

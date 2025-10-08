@@ -2,8 +2,15 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'customer' | 'waiter' | 'kitchen' | 'admin';
+  role: "customer" | "waiter" | "kitchen" | "admin";
   tableNumber?: string;
+}
+
+export interface Notification {
+  id: string;
+  message: string;
+  type: "success" | "error";
+  timestamp: Date;
 }
 
 export interface MenuItem {
@@ -22,7 +29,9 @@ export interface OrderItem {
   menuItem: MenuItem;
   quantity: number;
   specialInstructions?: string;
-  status: 'pending' | 'preparing' | 'ready' | 'served';
+  sugarPreference?: "sugar" | "sugarless"; // For beverage items
+  spicyPreference?: "spicy" | "non-spicy"; // For main course items
+  status: "pending" | "preparing" | "ready" | "served";
 }
 
 export interface Order {
@@ -31,20 +40,27 @@ export interface Order {
   customerName: string;
   customerPhone: string;
   customerAddress?: string;
-  type: 'dine-in' | 'delivery';
+  type: "dine-in" | "delivery";
   tableNumber?: string;
   items: OrderItem[];
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+  status:
+    | "pending"
+    | "confirmed"
+    | "preparing"
+    | "ready"
+    | "completed"
+    | "cancelled";
   total: number;
   tax: number;
   grandTotal: number;
-  paymentMethod?: 'cash' | 'card' | 'online' | 'upi';
-  paymentStatus: 'pending' | 'paid' | 'partial' | 'refunded';
+  paymentMethod?: "cash" | "card" | "online" | "upi";
+  paymentStatus: "pending" | "paid" | "partial" | "refunded";
   orderTime: Date | string | { toDate: () => Date };
   completedTime?: Date;
   waiterId?: string;
-  kitchenNotes?: string;
   estimatedTime?: number; // in minutes
+  draft?: boolean; // indicates if the order is a draft
+  paused?: boolean; // Track if the order was paused from kitchen
 }
 
 export interface Category {
@@ -64,9 +80,9 @@ export interface Bill {
   serviceCharge?: number;
   discount?: number;
   total: number;
-  generatedAt: Date;
+  generatedAt: Date | string | { toDate: () => Date };
   generatedBy: string;
-  paymentMethod: 'cash' | 'card' | 'online' | 'upi';
+  paymentMethod: "cash" | "card" | "online" | "upi";
   customerDetails: {
     name: string;
     phone: string;
@@ -83,7 +99,21 @@ export interface KitchenDisplayItem {
   items: OrderItem[];
   orderTime: Date;
   estimatedTime: number;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in-progress' | 'ready';
-  kitchenNotes?: string;
+  priority: "low" | "medium" | "high";
+  status: "pending" | "in-progress" | "ready";
+  paused?: boolean; // Track if the order was paused and moved back to pending
+}
+
+export interface Staff {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  role: "waiter" | "kitchen" | "admin" | "manager";
+  isFrozen: boolean;
+  dateJoined: string;
+  password?: string; // Only used during creation, not stored in Firestore
+  uid?: string; // Firebase Auth UID
+  createdAt?: Date;
+  updatedAt?: Date;
 }
