@@ -44,7 +44,9 @@ export const OrderSection: React.FC<OrderSectionProps> = ({
   viewAllButtonHover = "hover:bg-purple-700",
 }) => {
   const isAllView = selectedFilter === "all";
-  const displayOrders = isAllView ? orders.slice(0, 4) : orders;
+  // Sort orders by latest orderTime first
+  const sortedOrders = [...orders].sort((a, b) => b.orderTime.getTime() - a.orderTime.getTime());
+  const displayOrders = isAllView ? sortedOrders.slice(0, 4) : sortedOrders;
   const showViewAllButton = isAllView && orders.length > 4 && onViewAllClick;
 
   return (

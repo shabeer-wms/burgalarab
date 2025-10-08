@@ -166,6 +166,9 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
             {order.customerName}{" "}
             {order.tableNumber && `• Table ${order.tableNumber}`}
           </p>
+          <p className={`${kitchenLayout.typography.card.subtitle} text-gray-500 mt-1`}>
+            Order Taken: {order.orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
         </div>
         {order.status === "in-progress" && (
           <div
