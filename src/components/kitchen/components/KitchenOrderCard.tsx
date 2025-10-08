@@ -151,7 +151,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
 
   return (
     <div
-      className={`${kitchenColors.ui.layout.card} ${kitchenLayout.spacing.card} rounded-2xl h-full flex flex-col`}
+      className={`${kitchenColors.ui.layout.card} ${kitchenLayout.spacing.card} rounded-2xl flex flex-col h-[350px] min-h-[350px] max-h-[350px] justify-between`}
     >
       <div className="flex justify-between items-start mb-3 lg:mb-4">
         <div className="min-w-0 flex-1 mr-3">
@@ -165,6 +165,9 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           >
             {order.customerName}{" "}
             {order.tableNumber && `• Table ${order.tableNumber}`}
+          </p>
+          <p className={`${kitchenLayout.typography.card.subtitle} text-gray-500 mt-1`}>
+            Order Taken: {order.orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
         {order.status === "in-progress" && (
@@ -185,7 +188,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
         )}
       </div>
 
-      <div className="mb-3 lg:mb-4 space-y-2 flex-1">
+  <div className="mb-3 lg:mb-4 space-y-2 flex-1 overflow-y-auto max-h-[120px] pr-1">
         {order.items.map((item) => {
           const isOrderReady = order.status === "ready";
           const badgeText = isOrderReady ? "ready" : item.status;

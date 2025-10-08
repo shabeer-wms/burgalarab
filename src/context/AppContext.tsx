@@ -281,36 +281,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const updateKitchenOrderStatus = (
+  const updateKitchenOrderStatus = async (
     orderId: string,
     status: "pending" | "in-progress" | "ready",
     paused?: boolean
   ) => {
-    // Use a properly typed partial of KitchenDisplayItem so lint rules don't flag `any`
-    const updateData: Partial<KitchenDisplayItem> = { status };
-    if (paused !== undefined) {
-      updateData.paused = paused;
-    }
+    try {
+      // Update kitchen document first
+      const ref = doc(db, "kitchenOrders", orderId);
+      const updateData: Partial<KitchenDisplayItem> = { status };
+      if (paused !== undefined) updateData.paused = paused;
+      await updateDoc(ref, updateData as Partial<Record<string, unknown>>);
 
-    const ref = doc(db, "kitchenOrders", orderId);
-    updateDoc(ref, updateData as Partial<Record<string, unknown>>);
-    
-    // Update main order status based on kitchen status
-    if (status === 'ready') {
-      // Check if payment is already made for this order
+      // Map kitchen status to order status
       const order = orders.find(o => o.id === orderId);
-      if (order?.paymentStatus === 'paid') {
-        // If payment is already made, mark as completed
-        updateOrder(orderId, { status: 'completed', paused: false });
-      } else {
-        // If payment is pending, mark as ready
-        updateOrder(orderId, { status: 'ready', paused: false });
+      if (!order) return; // nothing else to do if not yet in local state
+
+      if (status === 'ready') {
+        if (order.paymentStatus === 'paid') {
+          await updateOrder(orderId, { status: 'completed', paused: false });
+        } else {
+          await updateOrder(orderId, { status: 'ready', paused: false });
+        }
+      } else if (status === 'in-progress') {
+        await updateOrder(orderId, { status: 'preparing', paused: false });
+      } else if (status === 'pending') {
+        // If explicitly paused, reflect that; otherwise revert to confirmed (waiting to start)
+        await updateOrder(orderId, { status: paused ? 'confirmed' : 'confirmed', paused: !!paused });
       }
-    } else if (status === 'in-progress') {
-      updateOrder(orderId, { status: 'preparing', paused: false });
-    } else if (status === 'pending' && paused) {
-      // When paused, change main order status back to confirmed and mark as paused
-      updateOrder(orderId, { status: 'confirmed', paused: true });
+    } catch (err) {
+      console.error('Failed to update kitchen/order status:', err);
+      try {
+        showNotification('Failed to update status. Please retry.', 'error');
+      } catch (_) {
+        // ignore if notification unavailable
+      }
     }
   };
 
@@ -376,18 +381,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const billRef = await addDoc(collection(db, 'bills'), billData);
       console.log('Bill saved with ID:', billRef.id);
 
-      // Update order status to confirmed so it goes to kitchen
-      await updateOrder(orderId, { paymentStatus: 'paid', status: 'confirmed' });
-      console.log('Order status updated to confirmed - sent to kitchen');
-
-      // Also update kitchen order status to confirmed for kitchen display
-      try {
-        const kitchenRef = doc(db, "kitchenOrders", orderId);
-        await updateDoc(kitchenRef, { status: 'confirmed' });
-        console.log('Kitchen order status updated to confirmed');
-      } catch (kitchenError) {
-        console.log('Kitchen order may not exist or already updated:', kitchenError);
+      // After billing, mark payment paid. Preserve or advance order status logically.
+      // If order already reached 'ready' or beyond, move to 'completed'. Otherwise keep its current progress (e.g., confirmed/preparing) but do not regress.
+      const currentStatus = order.status;
+      let nextStatus: Order['status'] = currentStatus;
+      if (['ready', 'completed'].includes(currentStatus)) {
+        nextStatus = 'completed';
       }
+      await updateOrder(orderId, { paymentStatus: 'paid', status: nextStatus });
+      console.log(`Order status updated after payment to ${nextStatus}`);
 
       const completeBill: Bill = { ...billData, id: billRef.id };
       return completeBill;

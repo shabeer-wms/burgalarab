@@ -1,22 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import OrderManagement from '../staff/OrderManagement';
 import OrderStatusManagement from '../staff/OrderStatusManagement';
 import BillingPayments from '../staff/BillingPayments';
 import Snackbar from '../SnackBar';
-import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings, Plus, Minus, Trash2 } from 'lucide-react';
+import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
+import WaiterSettings from './WaiterSettings';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
-import { OrderItem } from '../../types';
+import { OrderItem, Order } from '../../types';
 
 
 const WaiterDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'status' | 'billing' | 'settings'>('orders');
   const [selectedTable, setSelectedTable] = useState<string>('');
   const { user, logout } = useAuth();
-  const { orders, bills, getActiveOrders } = useApp();
+  const { orders } = useApp();
   const [currentTime, setCurrentTime] = useState(new Date());
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const [showCartModal, setShowCartModal] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [readyOrdersSnapshot, setReadyOrdersSnapshot] = useState<Order[]>([]);
+  const [previousReadyOrderIds, setPreviousReadyOrderIds] = useState<string[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showPaymentOptionsModal, setShowPaymentOptionsModal] = useState(false);
   const [showClearCartConfirmation, setShowClearCartConfirmation] = useState(false);
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
@@ -77,15 +83,59 @@ const WaiterDashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const activeOrders = getActiveOrders();
-  const pausedOrders = orders.filter(o => o.status === 'confirmed' && o.paused === true);
-  const inProgressOrders = orders.filter(o => o.status === 'preparing' || (o.status === 'confirmed' && o.paused !== true));
-  const readyOrders = orders.filter(o => o.status === 'ready');
+  // Only show orders that belong to the logged-in waiter
+  const waiterOrders = user?.id ? orders.filter(o => o.waiterId === user.id) : [];
+
+  const confirmedOrders = waiterOrders.filter(o => o.status === 'confirmed');
+  const preparingOrders = waiterOrders.filter(o => o.status === 'preparing');
+  const readyOrders = waiterOrders.filter(o => o.status === 'ready');
   
-  // Billing-specific counts
-  const totalOrdersCount = orders.filter(order => ['ready', 'completed'].includes(order.status)).length;
-  const readyForBillingCount = orders.filter(order => order.status === 'ready' && order.paymentStatus === 'pending').length;
-  const generatedBillsCount = bills.length;
+  // Debug logging to help troubleshoot notification issues (can be removed in production)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Waiter Dashboard Debug:', {
+        userId: user?.id,
+        totalOrders: orders.length,
+        waiterOrders: waiterOrders.length,
+        readyOrders: readyOrders.length,
+        readyOrderIds: readyOrders.map(o => ({ id: o.id, status: o.status, waiterId: o.waiterId }))
+      });
+    }
+  }, [orders, waiterOrders, readyOrders, user?.id]);
+  
+  // Play sound and show notification when new ready order appears
+  useEffect(() => {
+    const currentReadyOrderIds = readyOrders.map(o => o.id);
+    const newReadyOrders = readyOrders.filter(order => !previousReadyOrderIds.includes(order.id));
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔔 Notification Effect Debug:', {
+        currentReadyOrderIds,
+        previousReadyOrderIds,
+        newReadyOrders: newReadyOrders.map(o => ({ id: o.id, status: o.status })),
+        shouldNotify: newReadyOrders.length > 0
+      });
+    }
+    
+    if (newReadyOrders.length > 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Triggering notification for orders:', newReadyOrders.map(o => o.id));
+      }
+      setShowNotification(true);
+      if (audioRef.current) {
+        audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+      }
+      setTimeout(() => setShowNotification(false), 3000);
+    }
+    
+    // Update the previous ready orders list
+    setPreviousReadyOrderIds(currentReadyOrderIds);
+  }, [readyOrders, previousReadyOrderIds]);
+  
+  // Billing-specific counts (only for this waiter) - match what's shown in billing page
+  const paidOrdersCount = waiterOrders.filter(order => order.status === 'completed').length;
+  const pendingOrdersCount = waiterOrders.filter(order => order.status === 'ready' && order.paymentStatus === 'pending').length;
+  const totalBillingOrdersCount = waiterOrders.filter(order => ['ready', 'completed'].includes(order.status)).length;
 
   const tabs = [
     { id: 'orders' as const, label: 'New Order', icon: ShoppingCart },
@@ -185,31 +235,122 @@ const WaiterDashboard: React.FC = () => {
                         {tabs.find(tab => tab.id === activeTab)?.label || 'Waiter Dashboard'}
                       </h1>
                       <p className="text-gray-500 text-sm">
-                        {currentTime.toLocaleTimeString()} 
-                        {activeTab !== 'orders' && ` | ${activeOrders.length} Active Orders`}
+                        {currentTime.toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
 
-                  {/* Cart Button for New Order tab only - No logout button in app bar for other tabs */}
+                  {/* Cart and Notification Icons for New Order tab only */}
                   {activeTab === 'orders' && (
-                    <button
-                      className="ml-4 p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex-shrink-0 relative"
-                      aria-label="Cart"
-                      onClick={() => setShowCartModal(true)}
-                    >
-                      <ShoppingCart className="w-5 h-5" />
-                      {cartItems.length > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                          {cartItems.length}
-                        </span>
-                      )}
-                    </button>
+                    <div className="flex items-center">
+                      <button
+                        className="p-2 bg-yellow-400 text-white rounded-lg hover:bg-yellow-500 transition-colors flex-shrink-0 relative"
+                        aria-label="Notifications"
+                        onClick={() => {
+                          setReadyOrdersSnapshot(readyOrders);
+                          setShowNotificationModal(true);
+                        }}
+                      >
+                        <Bell className="w-5 h-5" />
+                        {readyOrders.length > 0 && (
+                          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                            {readyOrders.length}
+                          </span>
+                        )}
+                      </button>
+                      <span className="mx-2" />
+                      <button
+                        className="ml-0 p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex-shrink-0 relative"
+                        aria-label="Cart"
+                        onClick={() => setShowCartModal(true)}
+                      >
+                        <ShoppingCart className="w-5 h-5" />
+                        {cartItems.length > 0 && (
+                          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                            {cartItems.length}
+                          </span>
+                        )}
+                      </button>
+            {/* Notification Modal - shows all ready orders as a snapshot when opened */}
+            {showNotificationModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-4 sm:p-6 relative mx-2 sm:mx-0" style={{width: '100%', maxWidth: '400px'}}>
+                  <button
+                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowNotificationModal(false)}
+                    aria-label="Close"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                  <div className="flex items-center gap-3 mb-4">
+                    <Bell className="w-7 h-7 text-yellow-500" />
+                    <h2 className="text-xl font-bold text-gray-800">Ready Orders Notification</h2>
+                  </div>
+                  {readyOrdersSnapshot.length === 0 ? (
+                    <div className="text-gray-500 text-center py-8">No ready orders yet.</div>
+                  ) : (
+                    <div className="space-y-6 max-h-96 overflow-y-auto">
+                      {readyOrdersSnapshot.map((order) => (
+                        <div key={order.id} className="border-b pb-4 mb-4 last:border-b-0 last:mb-0 last:pb-0">
+                          <div className="font-semibold text-gray-700">Order ID: <span className="text-purple-600">{order.id}</span></div>
+                          <div className="text-gray-600">{order.type === 'dine-in' ? `Table: ${order.tableNumber || 'N/A'}` : `Delivery`}</div>
+                          <div className="text-gray-600">Customer: <span className="font-medium">{order.customerName || 'N/A'}</span></div>
+                          <div className="text-gray-600">Type: <span className="font-medium">{order.type}</span></div>
+                          <div className="text-gray-600">Items:</div>
+                          <ul className="list-disc ml-6 text-gray-700">
+                            {order.items.map((item: OrderItem, iidx: number) => (
+                              <li key={iidx}>
+                                {item.menuItem.name} x {item.quantity}
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="text-green-600 font-semibold">Status: Ready</div>
+                          <div className="text-gray-500 text-xs mt-2">Order Time: {
+                            (() => {
+                              const ot = order.orderTime;
+                              if (!ot) return '';
+                              if (typeof ot === 'string') return ot;
+                              if (ot instanceof Date) return ot.toLocaleString();
+                              if (typeof ot === 'object' && typeof ot.toDate === 'function') return ot.toDate().toLocaleString();
+                              return '';
+                            })()
+                          }</div>
+                        </div>
+                      ))}
+                    </div>
                   )}
+                </div>
+              </div>
+            )}
+                      <audio ref={audioRef} src="/notification.mp3" preload="auto" />
+                      {/* Notification dropdown */}
+                      {showNotification && readyOrders.length > 0 && (
+                        <div className="absolute right-0 mt-14 w-72 bg-white border border-yellow-400 rounded-xl shadow-lg z-50">
+                          <div className="p-4 flex items-center gap-3 border-b border-yellow-100">
+                            <Bell className="w-6 h-6 text-yellow-500" />
+                            <span className="font-semibold text-yellow-800">Latest Ready Order</span>
+                          </div>
+                          <div className="p-4">
+                            <div className="text-gray-800 font-medium">Order #{readyOrders[readyOrders.length-1]?.id || 'N/A'}</div>
+                            <div className="text-gray-600 text-sm">Table: {readyOrders[readyOrders.length-1]?.tableNumber || 'N/A'}</div>
+                            <div className="text-gray-600 text-sm">Items: {readyOrders[readyOrders.length-1]?.items?.map(i => i.menuItem.name).join(', ') || 'N/A'}</div>
+                            <div className="text-green-600 text-xs mt-2">Status: Ready</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+            {/* Notification popup */}
+            {showNotification && (
+              <div className="fixed top-6 right-6 z-50 bg-yellow-100 border border-yellow-400 text-yellow-800 px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-bounce">
+                <Bell className="w-6 h-6 text-yellow-500" />
+                <span>{readyOrders.length} order{readyOrders.length > 1 ? 's' : ''} ready!</span>
+              </div>
+            )}
                 </div>
 
                 {/* Only show counters on status and billing tabs */}
-                {activeTab !== 'orders' && (
+                {activeTab !== 'orders' && activeTab !== 'settings' && (
                   <div className="w-full md:w-96">
                     {/* Small screens: adaptive auto-fit grid */}
                     <div
@@ -220,38 +361,38 @@ const WaiterDashboard: React.FC = () => {
                     >
                       {activeTab === 'billing' ? (
                         <>
-                          <div className="flex flex-col items-center min-w-[60px]">
-                            <p className="text-sm sm:text-base font-bold text-blue-500 w-8 text-center">
-                              {totalOrdersCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-base sm:text-lg font-bold text-blue-600 w-8 text-center">
+                              {totalBillingOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-[10px] sm:text-[11px] whitespace-nowrap">Total</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Total</p>
                           </div>
-                          <div className="flex flex-col items-center min-w-[60px]">
-                            <p className="text-sm sm:text-base font-bold text-orange-500 w-8 text-center">
-                              {readyForBillingCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-base sm:text-lg font-bold text-orange-500 w-8 text-center">
+                              {pendingOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-[10px] sm:text-[11px] whitespace-nowrap">Ready</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Pending</p>
                           </div>
-                          <div className="flex flex-col items-center min-w-[60px]">
-                            <p className="text-sm sm:text-base font-bold text-green-500 w-8 text-center">
-                              {generatedBillsCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
+                              {paidOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-[10px] sm:text-[11px] whitespace-nowrap">Bills</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Paid</p>
                           </div>
                         </>
                       ) : (
                         <>
                           <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-yellow-500 w-8 text-center">
-                              {pausedOrders.length}
+                            <p className="text-base sm:text-lg font-bold text-blue-600 w-8 text-center">
+                              {confirmedOrders.length}
                             </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Paused</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Confirmed</p>
                           </div>
                           <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-purple-600 w-8 text-center">
-                              {inProgressOrders.length}
+                            <p className="text-base sm:text-lg font-bold text-orange-500 w-8 text-center">
+                              {preparingOrders.length}
                             </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">In Progress</p>
+                            <p className="text-gray-500 text-[11px] sm:text-xs">Preparing</p>
                           </div>
                           <div className="flex flex-col items-center">
                             <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
@@ -267,38 +408,38 @@ const WaiterDashboard: React.FC = () => {
                     <div className="hidden md:flex md:items-center md:gap-6 md:justify-end">
                       {activeTab === 'billing' ? (
                         <>
-                          <div className="flex flex-col items-center min-w-[80px]">
-                            <p className="text-2xl font-bold text-blue-500 w-12 text-center tabular-nums">
-                              {totalOrdersCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-3xl font-bold text-blue-600 w-12 text-center tabular-nums">
+                              {totalBillingOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-xs whitespace-nowrap">Total</p>
+                            <p className="text-gray-500 text-sm">Total</p>
                           </div>
-                          <div className="flex flex-col items-center min-w-[80px]">
-                            <p className="text-2xl font-bold text-orange-500 w-12 text-center tabular-nums">
-                              {readyForBillingCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-3xl font-bold text-orange-500 w-12 text-center tabular-nums">
+                              {pendingOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-xs whitespace-nowrap">Ready</p>
+                            <p className="text-gray-500 text-sm">Pending</p>
                           </div>
-                          <div className="flex flex-col items-center min-w-[80px]">
-                            <p className="text-2xl font-bold text-green-500 w-12 text-center tabular-nums">
-                              {generatedBillsCount}
+                          <div className="flex flex-col items-center">
+                            <p className="text-3xl font-bold text-green-500 w-12 text-center tabular-nums">
+                              {paidOrdersCount}
                             </p>
-                            <p className="text-gray-500 text-xs whitespace-nowrap">Bills</p>
+                            <p className="text-gray-500 text-sm">Paid</p>
                           </div>
                         </>
                       ) : (
                         <>
                           <div className="flex flex-col items-center">
-                            <p className="text-3xl font-bold text-yellow-500 w-12 text-center tabular-nums">
-                              {pausedOrders.length}
+                            <p className="text-3xl font-bold text-blue-600 w-12 text-center tabular-nums">
+                              {confirmedOrders.length}
                             </p>
-                            <p className="text-gray-500 text-sm">Paused</p>
+                            <p className="text-gray-500 text-sm">Confirmed</p>
                           </div>
                           <div className="flex flex-col items-center">
-                            <p className="text-3xl font-bold text-purple-600 w-12 text-center tabular-nums">
-                              {inProgressOrders.length}
+                            <p className="text-3xl font-bold text-orange-500 w-12 text-center tabular-nums">
+                              {preparingOrders.length}
                             </p>
-                            <p className="text-gray-500 text-sm">In Progress</p>
+                            <p className="text-gray-500 text-sm">Preparing</p>
                           </div>
                           <div className="flex flex-col items-center">
                             <p className="text-3xl font-bold text-green-500 w-12 text-center tabular-nums">
@@ -327,53 +468,7 @@ const WaiterDashboard: React.FC = () => {
               {activeTab === 'status' && <OrderStatusManagement />}
               {activeTab === 'billing' && <BillingPayments />}
               {activeTab === 'settings' && (
-                <div className="bg-white rounded-2xl shadow-md p-6">
-                  <h2 className="text-xl font-bold text-gray-800 mb-6">Settings</h2>
-                  
-                  {/* User Details Section */}
-                  <div className="mb-8">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-4">User Details</h3>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center">
-                          <User className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div>
-                          <p className="text-lg font-semibold text-gray-800">
-                            {user?.name || 'Waiter'}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Waiter'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {user?.email && (
-                        <div className="flex items-center space-x-3 pt-2 border-t border-gray-200">
-                          <div className="w-5 h-5" />
-                          <div>
-                            <p className="text-sm text-gray-600">Email</p>
-                            <p className="text-sm font-medium text-gray-800">{user.email}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions Section */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Actions</h3>
-                    <div className="space-y-3">
-                      <button
-                        onClick={logout}
-                        className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-colors"
-                      >
-                        <LogOut className="w-5 h-5" />
-                        <span className="font-medium">Logout</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <WaiterSettings user={user} logout={logout} />
               )}
             </div>
           </div>
@@ -509,14 +604,6 @@ const WaiterDashboard: React.FC = () => {
 
             {/* Fixed Footer - Always visible */}
             <div className="p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-              {/* Total */}
-              <div className="flex justify-between items-center text-lg font-semibold mb-4">
-                <span>Total:</span>
-                <span className="text-purple-600">
-                  ${cartItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0).toFixed(2)}
-                </span>
-              </div>
-
               {/* Action Buttons */}
               <div className="space-y-3">
                 <button

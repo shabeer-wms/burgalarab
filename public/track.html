@@ -7,7 +7,7 @@
   <style>
     body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f6f7f9; margin:0; }
     .container { max-width: 720px; margin: 0 auto; padding: 24px; }
-    .card { background:#fff; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
+    .card { background:#fff; border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; margin-bottom: 20px; }
     .header { background: linear-gradient(90deg,#0ea5e9,#9333ea); color:#fff; border-radius: 20px 20px 0 0; padding: 24px; }
     .status { display:inline-block; padding: 8px 16px; border-radius: 9999px; font-size: 12px; font-weight: 600; margin-left: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
     .row { display: flex; justify-content: space-between; margin: 6px 0; }
@@ -30,6 +30,71 @@
     .timeline-step:last-child .timeline-line { display: none; }
     .footer { text-align:center; color:#6b7280; font-size:12px; margin-top: 16px; }
     .link { word-break: break-all; font-size: 12px; color:#374151; }
+    
+    /* Enhanced styles for detailed view */
+    .section-title { font-size: 18px; font-weight: 600; color: #1f2937; margin: 20px 0 12px 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
+    .section-title:first-child { margin-top: 0; }
+    .order-items { margin-top: 16px; }
+    .order-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 16px; background: #f8fafc; border-radius: 12px; margin-bottom: 8px; border: 1px solid #e2e8f0; }
+    .item-details { flex: 1; }
+    .item-name { font-weight: 600; color: #1f2937; margin-bottom: 4px; }
+    .item-price { color: #6b7280; font-size: 14px; }
+    .item-quantity { background: #3b82f6; color: white; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-left: 12px; }
+    .item-preferences { font-size: 12px; color: #7c3aed; margin-top: 4px; font-style: italic; }
+    .item-instructions { font-size: 12px; color: #dc2626; margin-top: 4px; }
+    .order-summary { background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 12px; padding: 16px; margin-top: 16px; }
+    .summary-row { display: flex; justify-content: space-between; margin: 4px 0; }
+    .summary-row.total { font-weight: 700; font-size: 16px; border-top: 1px solid #0ea5e9; padding-top: 8px; margin-top: 8px; }
+    .payment-info { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px; padding: 12px; margin-top: 12px; }
+    .payment-info.paid { background: #dcfce7; border-color: #10b981; }
+    .loading { text-align: center; padding: 40px; color: #6b7280; }
+    .error { background: #fef2f2; border: 1px solid #dc2626; color: #dc2626; padding: 12px; border-radius: 8px; margin: 16px 0; }
+    
+    /* Rating Dialog Styles */
+    .rating-overlay { 
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+      background: rgba(0, 0, 0, 0.7); z-index: 1000; 
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.3s ease-out;
+    }
+    .rating-dialog { 
+      background: white; border-radius: 20px; padding: 32px; 
+      max-width: 400px; width: 100%; text-align: center; 
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease-out;
+      border: 2px solid #e5e7eb;
+    }
+    .rating-title { font-size: 24px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
+    .rating-subtitle { font-size: 16px; color: #6b7280; margin-bottom: 24px; }
+    .stars-container { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
+    .star { 
+      font-size: 40px; color: #d1d5db; cursor: pointer; 
+      transition: all 0.2s ease; user-select: none;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .star:hover, .star.active { color: #fbbf24; transform: scale(1.2); text-shadow: 0 4px 8px rgba(251, 191, 36, 0.3); }
+    .star.filled { color: #f59e0b; transform: scale(1.1); }
+    .rating-thanks { 
+      font-size: 22px; font-weight: 700; color: #10b981; 
+      margin-bottom: 16px; animation: bounceIn 0.5s ease-out; 
+    }
+    .rating-message { font-size: 14px; color: #6b7280; line-height: 1.5; }
+    .close-rating-btn { 
+      background: #6b7280; color: white; border: none; 
+      padding: 12px 24px; border-radius: 10px; font-size: 14px; 
+      cursor: pointer; margin-top: 16px; transition: all 0.2s ease;
+      font-weight: 600;
+    }
+    .close-rating-btn:hover { background: #4b5563; transform: translateY(-1px); }
+    
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes bounceIn { 
+      0% { transform: scale(0.3); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
   </style>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -42,11 +107,29 @@
         <div id="orderId" style="margin-top:6px; opacity:.9;"></div>
       </div>
       <div style="padding: 20px;">
-        <div class="row"><div>Customer</div><div id="customer" class="muted"></div></div>
-        <div class="row"><div>Type</div><div id="type" class="muted"></div></div>
-        <div class="row" id="location-row"><div id="location-label">Table No</div><div id="location-value" class="muted"></div></div>
-        <div class="row"><div>Total</div><div id="total" class="pill">$0.00</div></div>
-        <div style="margin-top:14px;">
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+          <div>Loading order details...</div>
+        </div>
+        
+        <!-- Error State -->
+        <div id="error" class="error" style="display: none;">
+          <div id="error-message">Failed to load order details</div>
+        </div>
+        
+        <!-- Order Content -->
+        <div id="order-content" style="display: none;">
+          <!-- Customer Information -->
+          <div class="section-title">Customer Information</div>
+          <div class="row"><div>Customer</div><div id="customer" class="muted"></div></div>
+          <div class="row"><div>Phone</div><div id="phone" class="muted"></div></div>
+          <div class="row"><div>Type</div><div id="type" class="muted"></div></div>
+          <div class="row" id="location-row"><div id="location-label">Table No</div><div id="location-value" class="muted"></div></div>
+          <div class="row"><div>Order Time</div><div id="order-time" class="muted"></div></div>
+          <div class="row" id="estimated-time-row" style="display: none;"><div>Estimated Time</div><div id="estimated-time" class="muted"></div></div>
+          
+          <!-- Order Progress -->
+          <div class="section-title">Order Progress</div>
           <div>Kitchen Status <span id="kstatus" class="status">-</span></div>
           <div class="timeline">
             <div class="timeline-step" id="step-pending">
@@ -116,10 +199,61 @@
               </div>
             </div>
           </div>
+          
+          <!-- Order Items -->
+          <div class="section-title">Order Items</div>
+          <div id="order-items" class="order-items">
+            <!-- Items will be populated here -->
+          </div>
+          
+          <!-- Order Summary -->
+          <div class="order-summary">
+            <div class="summary-row">
+              <span>Subtotal:</span>
+              <span id="subtotal">$0.00</span>
+            </div>
+            <div class="summary-row">
+              <span>Tax:</span>
+              <span id="tax">$0.00</span>
+            </div>
+            <div class="summary-row total">
+              <span>Total:</span>
+              <span id="total">$0.00</span>
+            </div>
+          </div>
+          
+          <!-- Payment Information -->
+          <div id="payment-info" class="payment-info" style="display: none;">
+            <div><strong>Payment Status:</strong> <span id="payment-status"></span></div>
+            <div id="payment-method-info" style="display: none;"><strong>Payment Method:</strong> <span id="payment-method"></span></div>
+          </div>
+          
+          <div class="footer">
+            <p id="updated">Listening for updates...</p>
+            <p class="link">Share this link to track: <span id="share"></span></p>
+          </div>
         </div>
-        <div class="footer">
-          <p id="updated">Listening for updates...</p>
-          <p class="link">Share this link to track: <span id="share"></span></p>
+      </div>
+    </div>
+    
+    <!-- Rating Dialog -->
+    <div id="rating-overlay" class="rating-overlay" style="display: none;">
+      <div class="rating-dialog">
+        <div id="rating-content">
+          <h3 class="rating-title">Rate Your Experience</h3>
+          <p class="rating-subtitle">How was your order experience?</p>
+          <div class="stars-container" id="stars-container">
+            <span class="star" data-rating="1">★</span>
+            <span class="star" data-rating="2">★</span>
+            <span class="star" data-rating="3">★</span>
+            <span class="star" data-rating="4">★</span>
+            <span class="star" data-rating="5">★</span>
+          </div>
+        </div>
+        <div id="thank-you-content" style="display: none;">
+          <div class="rating-thanks">Thank You!</div>
+          <p class="rating-message">We appreciate your feedback and are glad you chose us for your dining experience.</p>
+          <button class="close-rating-btn" onclick="closeRatingDialog()">Close</button>
         </div>
       </div>
     </div>
@@ -134,6 +268,17 @@
     const orderId = params.get('order');
     document.getElementById('orderId').textContent = orderId ? `#${orderId.slice(-6)}` : 'No order id';
     document.getElementById('share').textContent = location.href;
+    
+    // Show error immediately if no order ID
+    if (!orderId) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      document.getElementById('error-message').textContent = 'No order ID provided in URL';
+    }
+    
+    // Track previous status for rating dialog trigger
+    let previousOrderStatus = null;
+    let ratingSubmitted = false;
 
     const firebaseConfig = {
       apiKey: "AIzaSyAlLz1bWFwiv3TTe7xqY6q2QU67jTZVRI8",
@@ -245,6 +390,191 @@
       badge.textContent = statusText[s] || 'UNKNOWN';
     }
 
+    // Helper function to format order time
+    const formatOrderTime = (orderTime) => {
+      try {
+        let date;
+        if (orderTime && typeof orderTime === 'object' && orderTime.toDate) {
+          date = orderTime.toDate();
+        } else if (orderTime) {
+          date = new Date(orderTime);
+        } else {
+          return '-';
+        }
+        return date.toLocaleString();
+      } catch (error) {
+        return '-';
+      }
+    };
+
+    // Helper function to populate order items
+    const populateOrderItems = (items) => {
+      const container = document.getElementById('order-items');
+      container.innerHTML = '';
+      
+      if (!items || items.length === 0) {
+        container.innerHTML = '<div class="muted">No items found</div>';
+        return;
+      }
+      
+      items.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'order-item';
+        
+        const menuItem = item.menuItem || {};
+        const itemName = menuItem.name || 'Unknown Item';
+        const itemPrice = (menuItem.price || 0).toFixed(2);
+        const quantity = item.quantity || 1;
+        
+        let preferencesHtml = '';
+        if (item.sugarPreference) {
+          preferencesHtml += `<div class="item-preferences">Sugar: ${item.sugarPreference}</div>`;
+        }
+        if (item.spicyPreference) {
+          preferencesHtml += `<div class="item-preferences">Spice: ${item.spicyPreference}</div>`;
+        }
+        if (item.specialInstructions) {
+          preferencesHtml += `<div class="item-instructions">Special Instructions: ${item.specialInstructions}</div>`;
+        }
+        
+        itemDiv.innerHTML = `
+          <div class="item-details">
+            <div class="item-name">${itemName}</div>
+            <div class="item-price">$${itemPrice} each</div>
+            ${preferencesHtml}
+          </div>
+          <div class="item-quantity">${quantity}x</div>
+        `;
+        
+        container.appendChild(itemDiv);
+      });
+    };
+
+    // Helper function to update payment information
+    const updatePaymentInfo = (paymentStatus, paymentMethod) => {
+      const paymentInfoDiv = document.getElementById('payment-info');
+      const paymentStatusSpan = document.getElementById('payment-status');
+      const paymentMethodInfo = document.getElementById('payment-method-info');
+      const paymentMethodSpan = document.getElementById('payment-method');
+      
+      if (paymentStatus) {
+        paymentInfoDiv.style.display = 'block';
+        paymentStatusSpan.textContent = paymentStatus.toUpperCase();
+        
+        // Update styling based on payment status
+        if (paymentStatus === 'paid') {
+          paymentInfoDiv.className = 'payment-info paid';
+        } else {
+          paymentInfoDiv.className = 'payment-info';
+        }
+        
+        // Show payment method if available and paid
+        if (paymentMethod && paymentStatus === 'paid') {
+          paymentMethodInfo.style.display = 'block';
+          const methodNames = {
+            'cash': 'Cash',
+            'card': 'Card',
+            'online': 'Online',
+            'upi': 'UPI'
+          };
+          paymentMethodSpan.textContent = methodNames[paymentMethod] || paymentMethod;
+        } else {
+          paymentMethodInfo.style.display = 'none';
+        }
+      } else {
+        paymentInfoDiv.style.display = 'none';
+      }
+    };
+
+    // Rating dialog functions
+    const showRatingDialog = () => {
+      const overlay = document.getElementById('rating-overlay');
+      overlay.style.display = 'flex';
+      
+      // Add click handlers to stars
+      const stars = document.querySelectorAll('.star');
+      stars.forEach((star, index) => {
+        star.addEventListener('click', () => handleStarClick(index + 1));
+        star.addEventListener('mouseenter', () => highlightStars(index + 1));
+        star.addEventListener('mouseleave', () => resetStarHighlight());
+      });
+    };
+    
+    const highlightStars = (rating) => {
+      const stars = document.querySelectorAll('.star');
+      stars.forEach((star, index) => {
+        if (index < rating) {
+          star.classList.add('active');
+        } else {
+          star.classList.remove('active');
+        }
+      });
+    };
+    
+    const resetStarHighlight = () => {
+      const stars = document.querySelectorAll('.star');
+      stars.forEach(star => star.classList.remove('active'));
+    };
+    
+    const handleStarClick = (rating) => {
+      // Prevent multiple clicks
+      if (ratingSubmitted) return;
+      
+      // Remove all click handlers to prevent double-clicks
+      const stars = document.querySelectorAll('.star');
+      stars.forEach(star => {
+        star.style.pointerEvents = 'none';
+        star.style.cursor = 'default';
+      });
+      
+      // Mark stars as filled with animation
+      stars.forEach((star, index) => {
+        setTimeout(() => {
+          if (index < rating) {
+            star.classList.add('filled');
+          } else {
+            star.classList.remove('filled');
+          }
+        }, index * 100); // Stagger the animation
+      });
+      
+      // Save rating to Firebase (optional - can be enabled for production)
+      console.log(`Customer rated: ${rating} stars for order: ${orderId}`);
+      
+      // Uncomment below to save rating to Firebase
+      // saveRatingToFirebase(orderId, rating);
+      
+      ratingSubmitted = true;
+      
+      // Show thank you message with delay
+      setTimeout(() => {
+        document.getElementById('rating-content').style.display = 'none';
+        document.getElementById('thank-you-content').style.display = 'block';
+      }, 800);
+      
+      // Auto-close after 4 seconds
+      setTimeout(() => {
+        closeRatingDialog();
+      }, 4000);
+    };
+    
+    const closeRatingDialog = () => {
+      const overlay = document.getElementById('rating-overlay');
+      overlay.style.display = 'none';
+      
+      // Reset dialog state
+      document.getElementById('rating-content').style.display = 'block';
+      document.getElementById('thank-you-content').style.display = 'none';
+      
+      // Reset stars
+      const stars = document.querySelectorAll('.star');
+      stars.forEach(star => {
+        star.classList.remove('filled', 'active');
+        star.style.pointerEvents = 'auto';
+        star.style.cursor = 'pointer';
+      });
+    };
+
     // Function to start order tracking after authentication
     const startOrderTracking = () => {
       if (orderId) {
@@ -268,12 +598,18 @@
               connectionAttempts = 0; // Reset attempts on successful connection
               
               if (!snap.exists()) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error-message').textContent = 'Order not found';
                 updateConnectionStatus('no-data', 'Order not found');
                 return;
               }
               
               const o = snap.data();
               if (!o) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error-message').textContent = 'Invalid order data';
                 updateConnectionStatus('no-data', 'Invalid order data');
                 return;
               }
@@ -281,8 +617,25 @@
               console.log('✅ Order data received:', o);
               lastUpdateTime = new Date();
               
+              // Hide loading, show content
+              document.getElementById('loading').style.display = 'none';
+              document.getElementById('error').style.display = 'none';
+              document.getElementById('order-content').style.display = 'block';
+              
+              // Populate customer information
               document.getElementById('customer').textContent = o.customerName || '-';
+              document.getElementById('phone').textContent = o.customerPhone || '-';
               document.getElementById('type').textContent = o.type || '-';
+              
+              // Format and display order time
+              const orderTime = formatOrderTime(o.orderTime);
+              document.getElementById('order-time').textContent = orderTime;
+              
+              // Show estimated time if available
+              if (o.estimatedTime) {
+                document.getElementById('estimated-time-row').style.display = 'flex';
+                document.getElementById('estimated-time').textContent = `${o.estimatedTime} minutes`;
+              }
               
               // Update location display based on order type
               const locationLabel = document.getElementById('location-label');
@@ -298,12 +651,36 @@
                 locationValue.textContent = '-';
               }
               
+              // Populate order items
+              populateOrderItems(o.items || []);
+              
+              // Update pricing
+              const subtotal = (o.total || 0).toFixed(2);
+              const tax = (o.tax || 0).toFixed(2);
               const total = (o.grandTotal || 0).toFixed(2);
+              document.getElementById('subtotal').textContent = `$${subtotal}`;
+              document.getElementById('tax').textContent = `$${tax}`;
               document.getElementById('total').textContent = `$${total}`;
+              
+              // Update payment information
+              updatePaymentInfo(o.paymentStatus, o.paymentMethod);
               
               // Update timeline with main order status (handle paused state)
               const displayStatus = (o.status === 'confirmed' && o.paused) ? 'paused' : o.status;
               setDots(displayStatus, o.type);
+              
+              // Check if order just became ready and show rating dialog
+              if (displayStatus === 'ready' && previousOrderStatus !== 'ready' && !ratingSubmitted) {
+                // Add a subtle celebration effect when order becomes ready
+                document.body.style.background = 'linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%)';
+                setTimeout(() => {
+                  document.body.style.background = '#f6f7f9';
+                }, 2000);
+                
+                // Show rating dialog after celebration
+                setTimeout(() => showRatingDialog(), 2000);
+              }
+              previousOrderStatus = displayStatus;
               
               // Update status message with more detail
               let statusMessage = `Order status: ${displayStatus.toUpperCase()}`;
@@ -322,6 +699,9 @@
               
             } catch (error) {
               console.error('❌ Error processing order data:', error);
+              document.getElementById('loading').style.display = 'none';
+              document.getElementById('error').style.display = 'block';
+              document.getElementById('error-message').textContent = 'Error processing order data';
               updateConnectionStatus('error', 'Error processing order data');
             }
           },
@@ -380,6 +760,32 @@
           console.error('❌ Authentication also failed:', authError);
           updateConnectionStatus('error', 'Unable to connect - Please check your internet connection and refresh');
         }
+      }
+    };
+
+    // Optional: Function to save rating to Firebase
+    const saveRatingToFirebase = async (orderId, rating) => {
+      try {
+        // This would save the rating to a 'ratings' collection
+        // await setDoc(doc(db, 'ratings', orderId), {
+        //   orderId: orderId,
+        //   rating: rating,
+        //   timestamp: new Date(),
+        //   customerType: 'anonymous'
+        // });
+        console.log('Rating saved to Firebase:', { orderId, rating });
+      } catch (error) {
+        console.error('Failed to save rating:', error);
+      }
+    };
+
+    // Make functions available globally for onclick
+    window.closeRatingDialog = closeRatingDialog;
+    window.testRatingDialog = () => {
+      if (!ratingSubmitted) {
+        showRatingDialog();
+      } else {
+        alert('Rating already submitted for this order!');
       }
     };
 

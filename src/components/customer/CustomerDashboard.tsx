@@ -40,8 +40,8 @@ const CustomerDashboard: React.FC = () => {
       const newOrderItem: OrderItem = {
         id: Date.now().toString(),
         menuItem,
-        quantity: 1,
-        status: 'pending'
+    quantity: 1,
+    status: 'pending'
       };
       setCart([...cart, newOrderItem]);
     }
@@ -81,8 +81,8 @@ const CustomerDashboard: React.FC = () => {
       customerPhone: customerDetails.phone,
       customerAddress: orderType === 'delivery' ? customerDetails.vehicleNumber : undefined,
       type: orderType,
-      items: cart,
-      status: 'pending',
+    items: cart,
+    status: 'confirmed',
       total: getCartTotal(),
       tax: getTax(),
       grandTotal: getGrandTotal(),
