@@ -10,7 +10,13 @@ interface NavigationItem {
 }
 
 interface BottomNavigationProps {
-  selectedFilter: "all" | "pending" | "in-progress" | "ready" | "menu" | "settings";
+  selectedFilter:
+    | "all"
+    | "pending"
+    | "in-progress"
+    | "ready"
+    | "menu"
+    | "settings";
   onFilterClick: (
     e: React.MouseEvent,
     filter: "all" | "pending" | "in-progress" | "ready" | "menu" | "settings"
@@ -27,10 +33,13 @@ const navigationItems: NavigationItem[] = [
 ];
 
 const getButtonClasses = (isSelected: boolean) => {
-  const baseClasses = `flex flex-col items-center justify-center ${kitchenLayout.sizing.button.navBottom} transition-colors`;
+  // Make buttons fill the nav height so the selected background covers the
+  // full tappable area instead of leaving padding around the selected box.
+  const baseClasses = `flex flex-col items-center justify-center h-full w-full ${kitchenLayout.sizing.button.navBottom} transition-colors`;
 
   if (isSelected) {
-    // All selected items use the same purple styling, just like admin module
+    // Selected item uses purple text and a light purple background that
+    // covers the full button area.
     return `${baseClasses} text-purple-600 bg-purple-50`;
   }
 
@@ -42,24 +51,27 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onFilterClick,
 }) => {
   // Only show required options on small screens
-  const filteredItems = navigationItems.filter(
-    (item) => item.id !== "all"
-  );
+  const filteredItems = navigationItems.filter((item) => item.id !== "all");
 
   return (
     <nav
       className={`${kitchenLayout.responsive.bottomNav.position} ${kitchenColors.navigation.bottom.background} ${kitchenColors.navigation.bottom.border} ${kitchenLayout.responsive.bottomNav.hidden} z-50`}
     >
-      <div className={`flex flex-row justify-between items-center ${kitchenLayout.responsive.bottomNav.height}`}>
+      <div
+        className={`flex flex-row justify-between items-center ${kitchenLayout.responsive.bottomNav.height}`}
+      >
         {filteredItems.map((item) => (
           <button
             key={item.id}
             onClick={(e) => onFilterClick(e, item.id)}
-            className={getButtonClasses(selectedFilter === item.id) + " flex-1 min-w-0 px-1"}
-            style={{ maxWidth: "120px" }}
+            className={
+              getButtonClasses(selectedFilter === item.id) + " flex-1 min-w-0"
+            }
           >
             {item.id === "settings" ? (
-              <Settings className={`w-5 h-5 ${kitchenLayout.typography.navigation.bottom} text-purple-600`} />
+              <Settings
+                className={`w-5 h-5 ${kitchenLayout.typography.navigation.bottom} text-purple-600`}
+              />
             ) : (
               <span
                 className={`material-icons ${kitchenLayout.typography.navigation.bottom}`}
