@@ -204,11 +204,11 @@ const BillingPayments: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-6">
-        {/* Orders Section */}
+  {/* Section */}
         <div className="space-y-4">
           {/* Header and Filters */}
           <div className="flex items-center justify-between">
-            <h2 className="text-title-large">Orders</h2>
+            <h2 className="text-title-large"></h2>
             <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
               <div className="flex space-x-2 min-w-max">
@@ -220,7 +220,7 @@ const BillingPayments: React.FC = () => {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  All Orders
+                  All
                 </button>
                 <button
                   onClick={() => setPaymentFilter('pending')}
@@ -246,7 +246,7 @@ const BillingPayments: React.FC = () => {
             </div>
           </div>
           
-          {/* Orders Grid */}
+          {/* Grid */}
           {filteredOrders.length === 0 ? (
             <div className="card text-center py-12 border border-dashed border-surface-300">
               <Receipt className="w-16 h-16 text-surface-300 mx-auto mb-4" />

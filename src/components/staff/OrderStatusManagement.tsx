@@ -131,7 +131,7 @@ const OrderStatusManagement: React.FC = () => {
                 onClick={() => setSelectedStatus('all')}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
-                All Orders
+                All
               </button>
               <button
                 onClick={() => setSelectedStatus('confirmed')}
@@ -168,16 +168,16 @@ const OrderStatusManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Orders List */}
+  {/* List */}
       <div className="space-y-6">
         <div className="space-y-4">
           {/* Header Section */}
-          <h2 className="text-title-large">Orders</h2>
+          <h2 className="text-title-large"></h2>
           
-          {/* Orders Grid */}
+          {/* Grid */}
           {filteredOrders.length === 0 ? (
             <div className="card text-center py-8">
-              <p className="text-surface-600">No orders found</p>
+              <p className="text-surface-600">No found</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
