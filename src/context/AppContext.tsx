@@ -144,7 +144,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const processedBills = snapshot.docs.map((doc) => {
         try {
           const data = doc.data();
-          console.log("Raw bill data:", doc.id, data);
+          // Removed debug log: Raw bill data
           
           // Ensure all required fields have default values
           const processedBill = {
@@ -168,7 +168,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
           };
           
-          console.log("Processed bill:", processedBill);
+          // Removed debug log: Processed bill
           return processedBill as Bill;
         } catch (error) {
           console.error("Error processing bill:", doc.id, error);
@@ -223,22 +223,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const addOrder = async (
+
     orderData: Omit<Order, "id" | "orderTime">
   ): Promise<string> => {
     const orderTime = new Date();
+
+    // Get the latest order to determine the next order number
+    const ref = collection(db, "orders");
+    const q = query(ref);
+    const snapshot = await getDocs(q);
+    let maxOrderNum = 0;
+    snapshot.forEach(docSnap => {
+      const id = docSnap.id;
+      // Check if id matches ORDXXX format
+      const match = id.match(/^ORD(\d{3,})$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxOrderNum) maxOrderNum = num;
+      }
+    });
+    const nextOrderNum = maxOrderNum + 1;
+    const newOrderId = `ORD${nextOrderNum.toString().padStart(3, "0")}`;
+
     const newOrder: Omit<Order, "id"> = {
       ...orderData,
       orderTime,
     };
-    const ref = collection(db, "orders");
-    const docRef = await addDoc(ref, newOrder);
+    await setDoc(doc(db, "orders", newOrderId), newOrder);
+
     // Add to kitchen display if confirmed
     if (orderData.status === "confirmed") {
       const kitchenItem: Omit<KitchenDisplayItem, "orderId"> & {
         orderId: string;
       } = {
-        orderId: docRef.id,
-        orderNumber: `#${docRef.id.slice(-4)}`,
+        orderId: newOrderId,
+        orderNumber: `#${newOrderId}`,
         customerName: orderData.customerName,
         items: orderData.items,
         orderTime,
@@ -246,15 +265,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         priority: orderData.type === "dine-in" ? "high" : "medium",
         status: "pending",
       };
-      
       // Add optional fields only if they have values
       if (orderData.tableNumber) {
         kitchenItem.tableNumber = orderData.tableNumber;
       }
-      
-      await setDoc(doc(db, "kitchenOrders", docRef.id), kitchenItem);
+      await setDoc(doc(db, "kitchenOrders", newOrderId), kitchenItem);
     }
-    return docRef.id;
+    return newOrderId;
   };
 
 
@@ -336,9 +353,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     paymentMethod: Bill["paymentMethod"]
   ): Promise<Bill> => {
     try {
-      const order = orders.find((o) => o.id === orderId);
+      let order = orders.find((o) => o.id === orderId);
       if (!order) {
-        throw new Error(`Order with ID ${orderId} not found`);
+        // Fetch order directly from Firestore if not found locally
+        const orderDoc = await getDocs(query(collection(db, "orders"), where("__name__", "==", orderId)));
+        if (!orderDoc.empty) {
+          order = { ...orderDoc.docs[0].data(), id: orderId } as Order;
+        } else {
+          throw new Error(`Order with ID ${orderId} not found`);
+        }
       }
 
       console.log('Generating bill for order:', order);

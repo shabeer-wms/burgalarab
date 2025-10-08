@@ -753,7 +753,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               const isOutOfStock = !item.available;
               
               return (
-                <button 
+                <div 
                   key={item.id} 
                   className={`card transition-all duration-200 text-left p-0 flex flex-col h-full ${
                     isOutOfStock 
@@ -763,7 +763,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                         : 'hover:shadow-elevation-4'
                   }`}
                   onClick={() => item.available && addToOrder(item)}
-                  disabled={!item.available}
+                  style={{ cursor: item.available ? 'pointer' : 'not-allowed' }}
                 >
                 {/* Card Content - Main body */}
                 <div className="flex-1 p-4 lg:p-3">
@@ -805,6 +805,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   updateQuantity(existingItem!.id, -1);
@@ -817,6 +818,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                                 {quantity}
                               </span>
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   addToOrder(item);
@@ -830,6 +832,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                         } else {
                           return (
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 addToOrder(item);
@@ -845,7 +848,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                     </div>
                   </div>
                 </div>
-              </button>
+                </div>
               );
             })}
             </div>
