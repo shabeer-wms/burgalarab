@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Search, Edit, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Edit, Trash2, X, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 import Snackbar, { SnackbarType } from "../../SnackBar";
 
@@ -59,6 +59,7 @@ export const AdminStaff: React.FC = () => {
     isFrozen: false,
     dateJoined: new Date().toISOString().split("T")[0],
   });
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
 
   // Staff management functions
   const filteredStaff = staff
@@ -460,14 +461,22 @@ export const AdminStaff: React.FC = () => {
                 </label>
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showStaffPassword ? "text" : "password"}
                     value={newStaff.password}
                     onChange={(e) =>
                       setNewStaff({ ...newStaff, password: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 pr-10"
                     placeholder="Enter password"
                   />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 focus:outline-none"
+                    onClick={() => setShowStaffPassword((prev) => !prev)}
+                    tabIndex={-1}
+                  >
+                    {showStaffPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 
