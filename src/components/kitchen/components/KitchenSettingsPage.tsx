@@ -33,15 +33,14 @@ const KitchenSettingsPage: React.FC = () => {
 			</div>
 			{/* Actions Section */}
 			<div>
-				<h3 className="text-lg font-semibold text-gray-700 mb-4">Actions</h3>
 				<div className="space-y-3">
-					<button
-						onClick={logout}
-						className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-colors"
-					>
-						<LogOut className="w-5 h-5" />
-						<span className="font-medium">Logout</span>
-					</button>
+					   <button
+						   onClick={logout}
+						   className="block md:hidden w-full flex items-center justify-center space-x-3 px-6 py-4 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-colors"
+					   >
+						   <LogOut className="w-5 h-5" />
+						   <span className="font-medium">Logout</span>
+					   </button>
 				</div>
 			</div>
 		</div>
