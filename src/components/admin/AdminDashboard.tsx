@@ -8,6 +8,7 @@ import { AdminOrders } from "./components/AdminOrders";
 import { AdminStaff } from "./components/AdminStaff";
 import { AdminMenu } from "./components/AdminMenu";
 import { TrendingUp, Users, Plus, LogOut, Settings, User } from "lucide-react";
+import AdminSettings from "./AdminSettings";
 
 const AdminDashboard: React.FC = () => {
   const { orders, updateOrder, menuItems, staff } = useApp();
@@ -132,50 +133,7 @@ const AdminDashboard: React.FC = () => {
           {activeTab === "staff" && <AdminStaff />}
 
           {activeTab === "settings" && (
-            <div className="bg-white rounded-2xl shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-6">Settings</h2>
-              {/* User Details Section */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-700 mb-4">User Details</h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold text-gray-800">
-                        {user?.name || 'Admin User'}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Admin'}
-                      </p>
-                    </div>
-                  </div>
-                  {user?.email && (
-                    <div className="flex items-center space-x-3 pt-2 border-t border-gray-200">
-                      <div className="w-5 h-5" />
-                      <div>
-                        <p className="text-sm text-gray-600">Email</p>
-                        <p className="text-sm font-medium text-gray-800">{user.email}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {/* Actions Section - only on mobile */}
-              <div className="block md:hidden">
-                <h3 className="text-lg font-semibold text-gray-700 mb-4">Actions</h3>
-                <div className="space-y-3">
-                  <button
-                    onClick={logout}
-                    className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-colors"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span className="font-medium">Logout</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+            <AdminSettings user={user} logout={logout} />
           )}
         </div>
       </main>
