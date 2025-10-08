@@ -54,10 +54,10 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       const width = window.innerWidth;
       // Tablet devices and iPad Pro: 768px to 1279px (md to lg breakpoints)
       if (width >= 768 && width < 1280) {
-        return 8;
+        return 9;
       }
-      // Desktop and larger: 1280px and above - New Order page shows 8 cards
-      return 8;
+      // Desktop and larger: 1280px and above - New Order page shows 10 cards
+      return 10;
     }
     return 8;
   };
