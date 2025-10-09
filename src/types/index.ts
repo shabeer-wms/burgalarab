@@ -55,6 +55,7 @@ export interface Order {
   grandTotal: number;
   paymentMethod?: "cash" | "card" | "online" | "upi";
   paymentStatus: "pending" | "paid" | "partial" | "refunded";
+  deliveryStatus?: "pending" | "delivered"; // Track if order has been delivered to customer
   orderTime: Date | string | { toDate: () => Date };
   completedTime?: Date;
   waiterId?: string;
