@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Search, Plus, Clock, Edit, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 import { ImageUpload } from "./ImageUpload";
 import Snackbar, { SnackbarType } from "../../SnackBar";
@@ -11,6 +12,9 @@ interface AdminMenuProps {
 export const AdminMenu: React.FC<AdminMenuProps> = ({
   categories,
 }) => {
+  // For undo delete
+  const lastDeletedMenuItem = useRef<any>(null);
+  const [showUndo, setShowUndo] = useState(false);
   const { menuItems, addMenuItem, updateMenuItem, deleteMenuItem } = useApp();
   const [menuSearchTerm, setMenuSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -194,10 +198,16 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
       try {
         setIsLoading(true);
         setIsDeletingMenuItem(true);
+        // Save deleted item for undo
+        const deletedItem = menuItems.find((item) => item.id === menuItemToDelete);
+        lastDeletedMenuItem.current = deletedItem;
         await deleteMenuItem(menuItemToDelete);
         setMenuItemToDelete(null);
         setShowDeleteMenuModal(false);
-        showSnackbar("Menu item deleted successfully!");
+        setShowUndo(true);
+        showSnackbar("Menu item deleted. Undo?");
+        // Hide undo after 5 seconds
+        setTimeout(() => setShowUndo(false), 5000);
       } catch (error) {
         console.error("Error deleting menu item:", error);
         showSnackbar("Failed to delete menu item. Please try again.", "error");
@@ -238,12 +248,13 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                 className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
               />
             </div>
+            {/* Responsive Add Menu button: shows '+' icon on mobile, full button on larger screens */}
             <button
               onClick={() => setShowAddMenuModal(true)}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 flex-shrink-0"
+              className="bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center h-10 flex-shrink-0 px-3 sm:px-4"
             >
-              <Plus className="w-4 h-4" />
-              <span className="text-sm">Add Menu</span>
+              <Plus className="w-5 h-5" />
+              <span className="text-sm hidden sm:inline ml-2">Add Menu</span>
             </button>
           </div>
           
@@ -297,99 +308,116 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
 
         {/* Menu Items Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-          {paginatedMenuItems.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-            >
-              <div className="relative">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-24 sm:h-28 md:h-32 object-cover"
-                />
-                <div className="absolute top-1 right-1">
-                  <span
-                    className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${
-                      item.available
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {item.available ? "Available" : "Unavailable"}
-                  </span>
+          {paginatedMenuItems.map((item) => {
+            // Category color theme map
+            const categoryColors: Record<string, string> = {
+              Beverage: 'bg-blue-50',
+              Dessert: 'bg-pink-50',
+              Main: 'bg-yellow-50',
+              Appetizer: 'bg-green-50',
+              // Add more as needed
+            };
+            const cardBg = categoryColors[item.category] || 'bg-white';
+            return (
+              <div
+                key={item.id}
+                className={`${cardBg} rounded-lg shadow-sm border border-gray-200 overflow-hidden`}
+              >
+                {/* Mobile: category and dot above image */}
+                <div className="block md:hidden px-2 pt-2 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-700">{item.category}</span>
+                  <span className={`inline-block w-3 h-3 rounded-full ${item.available ? 'bg-green-500' : 'bg-red-500'}`}></span>
                 </div>
-                <div className="absolute top-1 left-1">
-                  <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 text-xs font-medium rounded-full">
-                    {item.category}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-2 md:p-3">
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className="text-xs sm:text-sm font-semibold text-gray-900 truncate flex-1 pr-1">
-                    {item.name}
-                  </h3>
-                  <span className="text-xs sm:text-sm font-bold text-purple-600 flex-shrink-0">
-                    ${item.price}
-                  </span>
-                </div>
-
-                <p className="text-gray-600 text-xs mb-2 line-clamp-2 leading-tight">
-                  {item.description}
-                </p>
-
-                <div className="flex justify-start items-center text-xs text-gray-500 mb-2">
-                  <span className="flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {item.prepTime} min
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  {/* Available/Unavailable Toggle Button */}
-                  <button
-                    onClick={async () => {
-                      try {
-                        await updateMenuItem(item.id, { available: !item.available });
-                      } catch (error) {
-                        console.error("Error updating availability:", error);
-                      }
-                    }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
-                      item.available 
-                        ? 'bg-green-500 hover:bg-green-600' 
-                        : 'bg-red-500 hover:bg-red-600'
-                    }`}
-                    title={item.available ? 'Available - Click to disable' : 'Unavailable - Click to enable'}
-                  >
+                <div className="relative">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-full h-24 sm:h-28 md:h-32 object-cover"
+                  />
+                  {/* Desktop: category and status badge */}
+                  <div className="hidden md:block absolute top-1 left-1">
+                    <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 text-xs font-medium rounded-full">
+                      {item.category}
+                    </span>
+                  </div>
+                  <div className="hidden md:block absolute top-1 right-1">
                     <span
-                      className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
-                        item.available ? 'translate-x-5' : 'translate-x-1'
+                      className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${
+                        item.available
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
                       }`}
-                    />
-                  </button>
-                  <div className="flex space-x-1">
-                    <button
-                      onClick={() => openEditMenuModal(item)}
-                      className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
-                      title="Edit Item"
                     >
-                      <Edit className="w-3 h-3" />
-                    </button>
+                      {item.available ? "Available" : "Unavailable"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-2 md:p-3">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-900 truncate flex-1 pr-1">
+                      {item.name}
+                    </h3>
+                    <span className="text-xs sm:text-sm font-bold text-purple-600 flex-shrink-0">
+                      ${item.price}
+                    </span>
+                  </div>
+
+                  <p className="text-gray-600 text-xs mb-2 line-clamp-2 leading-tight">
+                    {item.description}
+                  </p>
+
+                  <div className="flex justify-start items-center text-xs text-gray-500 mb-2">
+                    <span className="flex items-center">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {item.prepTime} min
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    {/* Available/Unavailable Toggle Button */}
                     <button
-                      onClick={() => handleDeleteMenuItem(item.id)}
-                      className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
-                      title="Delete Item"
+                      onClick={async () => {
+                        try {
+                          await updateMenuItem(item.id, { available: !item.available });
+                        } catch (error) {
+                          console.error("Error updating availability:", error);
+                        }
+                      }}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                        item.available 
+                          ? 'bg-green-500 hover:bg-green-600' 
+                          : 'bg-red-500 hover:bg-red-600'
+                      }`}
+                      title={item.available ? 'Available - Click to disable' : 'Unavailable - Click to enable'}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <span
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                          item.available ? 'translate-x-5' : 'translate-x-1'
+                        }`}
+                      />
                     </button>
+                    <div className="flex space-x-1">
+                      <button
+                        onClick={() => openEditMenuModal(item)}
+                        className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded"
+                        title="Edit Item"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMenuItem(item.id)}
+                        className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
+                        title="Delete Item"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Simple Pagination Controls */}
@@ -810,6 +838,20 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
       )}
       
       {/* Snackbar */}
+      {/* Undo Snackbar */}
+      {showUndo && lastDeletedMenuItem.current && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-300 shadow-lg rounded-lg px-4 py-2 flex items-center space-x-2">
+          <span>Menu item deleted.</span>
+          <button
+            className="text-purple-600 font-semibold hover:underline"
+            onClick={async () => {
+              await addMenuItem(lastDeletedMenuItem.current);
+              setShowUndo(false);
+              showSnackbar("Menu item restored!");
+            }}
+          >Undo</button>
+        </div>
+      )}
       <Snackbar
         message={snackbar.message}
         type={snackbar.type}
