@@ -3,7 +3,7 @@ import OrderManagement from '../staff/OrderManagement';
 import OrderStatusManagement from '../staff/OrderStatusManagement';
 import BillingPayments from '../staff/BillingPayments';
 import Snackbar from '../SnackBar';
-import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
+import { ShoppingCart, Eye, Receipt, User, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
 import WaiterSettings from './WaiterSettings';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';

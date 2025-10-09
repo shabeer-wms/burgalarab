@@ -310,7 +310,7 @@ const OrderStatusManagement: React.FC = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      {(order.status === 'ready' || order.status === 'completed') && (
+                      {(order.status === 'ready' || order.status === 'completed') && selectedStatus !== 'ready' && (
                         <button
                           onClick={() => handleDeliveryStatusToggle(order.id, order.deliveryStatus)}
                           className={`p-2 rounded-lg transition-colors border ${
