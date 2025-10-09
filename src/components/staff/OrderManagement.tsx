@@ -891,7 +891,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
       {/* QR Code Modal */}
       {qrForOrderId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
             <div className="p-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white flex items-center justify-between">
               <h3 className="text-title-large">Track Your Order</h3>
