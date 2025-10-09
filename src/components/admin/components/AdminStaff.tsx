@@ -108,6 +108,23 @@ export const AdminStaff: React.FC = () => {
   const handleAddStaff = async () => {
     try {
       setIsAddingStaff(true);
+      
+      // Basic validation
+      if (!newStaff.name.trim()) {
+        showSnackbar("Please enter a valid name.", "error");
+        return;
+      }
+      
+      if (!newStaff.phoneNumber.trim()) {
+        showSnackbar("Please enter a phone number.", "error");
+        return;
+      }
+      
+      if (!newStaff.password.trim()) {
+        showSnackbar("Please enter a password.", "error");
+        return;
+      }
+      
       // Auto-generate email from phone number
       const generatedEmail = `${newStaff.phoneNumber}@gmail.com`;
       const staffWithEmail = {
@@ -127,9 +144,19 @@ export const AdminStaff: React.FC = () => {
       });
       setShowAddStaffModal(false);
       showSnackbar("Staff member added successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding staff:", error);
-      showSnackbar("Failed to add staff member. Please try again.", "error");
+      
+      // Handle specific error messages
+      if (error.message === "PHONE_NUMBER_EXISTS") {
+        showSnackbar("Phone number already exists. Please use a different phone number.", "error");
+      } else if (error.message.includes("Password is too weak")) {
+        showSnackbar(error.message, "error");
+      } else if (error.message.includes("Invalid phone number")) {
+        showSnackbar(error.message, "error");
+      } else {
+        showSnackbar("Failed to add staff member. Please try again.", "error");
+      }
     } finally {
       setIsAddingStaff(false);
     }
@@ -209,7 +236,73 @@ export const AdminStaff: React.FC = () => {
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+          {paginatedStaff.map((member) => (
+            <div
+              key={member.id}
+              className="bg-white shadow-lg rounded-2xl p-4 flex flex-col min-h-[200px] justify-between"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className="min-w-0 flex-1 mr-3">
+                  <h3 className="text-lg font-bold text-gray-800 truncate">
+                    {member.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 truncate">
+                    ID: #{member.id}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Phone: {member.phoneNumber}
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-600 capitalize">
+                    {member.role}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mb-3 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Status:</span>
+                  <button
+                    onClick={() => toggleFrozenStatus(member.id)}
+                    className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-md active:scale-95 ${
+                      !member.isFrozen
+                        ? "bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 shadow-green-200/50"
+                        : "bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900 shadow-red-200/50"
+                    }`}
+                    title={`Click to ${!member.isFrozen ? 'freeze' : 'activate'} user`}
+                  >
+                    {!member.isFrozen ? "Active" : "Frozen"}
+                  </button>
+                </div>
+                
+                {member.dateJoined && (
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm font-medium text-gray-700">Joined:</span>
+                    <span className="text-sm text-gray-600">
+                      {new Date(member.dateJoined).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3">
+                <button
+                  onClick={() => openEditModal(member)}
+                  className="w-full bg-purple-600 text-white hover:bg-purple-700 py-2 px-4 rounded-lg font-semibold transition duration-300 flex items-center justify-center text-sm"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Staff
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
