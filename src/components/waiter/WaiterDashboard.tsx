@@ -309,7 +309,7 @@ const WaiterDashboard: React.FC = () => {
                             <span className="font-semibold text-yellow-800">Latest Ready Order</span>
                           </div>
                           <div className="p-4">
-                            <div className="text-gray-800 font-medium">Order #{readyOrders[readyOrders.length-1]?.id || 'N/A'}</div>
+                            <div className="text-gray-800 font-medium">Order {readyOrders[readyOrders.length-1]?.id || 'N/A'}</div>
                             <div className="text-gray-600 text-sm">Table: {readyOrders[readyOrders.length-1]?.tableNumber || 'N/A'}</div>
                             <div className="text-gray-600 text-sm">Items: {readyOrders[readyOrders.length-1]?.items?.map(i => i.menuItem.name).join(', ') || 'N/A'}</div>
                             <div className="text-green-600 text-xs mt-2">Status: Ready</div>

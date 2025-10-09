@@ -215,7 +215,7 @@ const OrderStatusManagement: React.FC = () => {
                 <div className="flex-1 p-4">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="text-title-medium">#{order.id.slice(-6)}</h3>
+                      <h3 className="text-title-medium">{order.id.slice(-6)}</h3>
                       <p className="text-body-medium text-surface-600">
                         {order.customerName} • {order.type}
                         {order.tableNumber && ` • Table ${order.tableNumber}`}
@@ -434,7 +434,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
         {/* Order Info */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-title-medium">Order #{order.id.slice(-6)}</h4>
+            <h4 className="text-title-medium">Order {order.id.slice(-6)}</h4>
             {order.draft && (
               <span className="chip chip-secondary">DRAFT</span>
             )}

@@ -90,7 +90,7 @@ const CustomerDashboard: React.FC = () => {
       paymentStatus: 'pending'
     });
 
-    alert(`Order #${orderId} placed successfully!`);
+    alert(`Order ${orderId} placed successfully!`);
     setCart([]);
     setShowCheckout(false);
   };
@@ -263,7 +263,7 @@ const CustomerDashboard: React.FC = () => {
               <div key={order.id} className="border border-surface-200 rounded-2xl p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <p className="font-semibold text-surface-900">Order #{order.id.slice(-6)}</p>
+                    <p className="font-semibold text-surface-900">Order {order.id.slice(-6)}</p>
                     <p className="text-sm text-surface-600">
                       {(() => {
                         if (order.orderTime instanceof Date) {

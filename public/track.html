@@ -282,12 +282,12 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
     import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
     const params = new URLSearchParams(location.search);
     const orderId = params.get('order');
-    document.getElementById('orderId').textContent = orderId ? `#${orderId.slice(-6)}` : 'No order id';
+    document.getElementById('orderId').textContent = orderId ? `${orderId.slice(-6)}` : 'No order id';
     document.getElementById('share').textContent = location.href;
     
     // Show error immediately if no order ID
@@ -301,6 +301,7 @@
     let previousOrderStatus = null;
     let previousPaymentStatus = null;
     let ratingSubmitted = false;
+    let currentOrder = null; // Store order data for rating submission
 
     const firebaseConfig = {
       apiKey: "AIzaSyAlLz1bWFwiv3TTe7xqY6q2QU67jTZVRI8",
@@ -435,7 +436,7 @@
         'ready': 'READY',
         'completed': 'COMPLETED'
       };
-      badge.textContent = statusText[s] || 'UNKNOWN';
+      badge.textContent = statusText[s] || 'DELIVERED';
     }
 
     // Helper function to format order time
@@ -586,11 +587,11 @@
         }, index * 100); // Stagger the animation
       });
       
-      // Save rating to Firebase (optional - can be enabled for production)
+      // Save rating to Firebase
       console.log(`Customer rated: ${rating} stars for order: ${orderId}`);
       
-      // Uncomment below to save rating to Firebase
-      // saveRatingToFirebase(orderId, rating);
+      // Save rating to Firebase with customer information
+      saveRatingToFirebase(orderId, rating, currentOrder?.customerName);
       
       ratingSubmitted = true;
       
@@ -669,6 +670,9 @@
               document.getElementById('loading').style.display = 'none';
               document.getElementById('error').style.display = 'none';
               document.getElementById('order-content').style.display = 'block';
+              
+              // Store order data for rating submission
+              currentOrder = o;
               
               // Populate customer information
               document.getElementById('customer').textContent = o.customerName || '-';
@@ -826,17 +830,19 @@
       }
     };
 
-    // Optional: Function to save rating to Firebase
-    const saveRatingToFirebase = async (orderId, rating) => {
+    // Function to save rating to Firebase
+    const saveRatingToFirebase = async (orderId, rating, customerName) => {
       try {
-        // This would save the rating to a 'ratings' collection
-        // await setDoc(doc(db, 'ratings', orderId), {
-        //   orderId: orderId,
-        //   rating: rating,
-        //   timestamp: new Date(),
-        //   customerType: 'anonymous'
-        // });
-        console.log('Rating saved to Firebase:', { orderId, rating });
+        // Save the rating to a 'ratings' collection in Firestore
+        await setDoc(doc(db, 'ratings', orderId), {
+          orderId: orderId,
+          rating: rating,
+          customerName: customerName || 'Anonymous',
+          timestamp: new Date(),
+          createdAt: new Date().toISOString(),
+          reviewText: null // Can be expanded later for text reviews
+        });
+        console.log('Rating saved to Firebase:', { orderId, rating, customerName: customerName || 'Anonymous' });
       } catch (error) {
         console.error('Failed to save rating:', error);
       }
