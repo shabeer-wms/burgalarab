@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import { Search, Plus, Clock, Edit, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { CheckCircle, XCircle } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 import { ImageUpload } from "./ImageUpload";
 import Snackbar, { SnackbarType } from "../../SnackBar";
@@ -205,9 +204,11 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
         setMenuItemToDelete(null);
         setShowDeleteMenuModal(false);
         setShowUndo(true);
-        showSnackbar("Menu item deleted. Undo?");
-        // Hide undo after 5 seconds
-        setTimeout(() => setShowUndo(false), 5000);
+        // Hide undo after 10 seconds and show confirmation
+        setTimeout(() => {
+          setShowUndo(false);
+          showSnackbar("Menu item permanently deleted");
+        }, 10000);
       } catch (error) {
         console.error("Error deleting menu item:", error);
         showSnackbar("Failed to delete menu item. Please try again.", "error");
@@ -359,7 +360,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                       {item.name}
                     </h3>
                     <span className="text-xs sm:text-sm font-bold text-purple-600 flex-shrink-0">
-                      ${item.price}
+                      {item.price} OMR
                     </span>
                   </div>
 
@@ -595,7 +596,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price ($)
+                    Price (OMR)
                   </label>
                   <input
                     type="number"
@@ -783,7 +784,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price ($)
+                    Price (OMR)
                   </label>
                   <input
                     type="number"
@@ -840,16 +841,33 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
       {/* Snackbar */}
       {/* Undo Snackbar */}
       {showUndo && lastDeletedMenuItem.current && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-300 shadow-lg rounded-lg px-4 py-2 flex items-center space-x-2">
-          <span>Menu item deleted.</span>
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-200 shadow-xl rounded-xl px-6 py-4 flex items-center space-x-4 animate-slide-down backdrop-blur-sm max-w-md">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-sm">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <div>
+              <span className="font-semibold text-gray-800 text-sm">Item deleted</span>
+              <p className="text-xs text-gray-500 mt-0.5">Click undo to restore</p>
+            </div>
+          </div>
           <button
-            className="text-purple-600 font-semibold hover:underline"
+            className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
             onClick={async () => {
               await addMenuItem(lastDeletedMenuItem.current);
               setShowUndo(false);
               showSnackbar("Menu item restored!");
             }}
-          >Undo</button>
+          >
+            <span className="flex items-center space-x-1">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+              <span>Undo</span>
+            </span>
+          </button>
         </div>
       )}
       <Snackbar
