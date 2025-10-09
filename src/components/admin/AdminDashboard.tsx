@@ -7,7 +7,7 @@ import { AdminOverview } from "./components/AdminOverview";
 import { AdminOrders } from "./components/AdminOrders";
 import { AdminStaff } from "./components/AdminStaff";
 import { AdminMenu } from "./components/AdminMenu";
-import { TrendingUp, Users, Plus, LogOut, Settings, User } from "lucide-react";
+import { TrendingUp, Users, Plus, Settings } from "lucide-react";
 import AdminSettings from "./AdminSettings";
 
 const AdminDashboard: React.FC = () => {
@@ -67,9 +67,9 @@ const AdminDashboard: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 p-3 md:p-4 ml-0 lg:ml-64 overflow-auto">
-        <div className="w-full">
-          {/* Dynamic Header */}
-          <header className="bg-white p-6 rounded-2xl shadow-md mb-4">
+        <div className="w-full pt-4 md:pt-0">
+          {/* Dynamic Header - Hidden on mobile */}
+          <header className="bg-white p-6 rounded-2xl shadow-md mb-4 hidden md:block">
             <div className="flex items-center justify-between">
               <div className="flex items-center flex-1 min-w-0">
                 <div className="bg-purple-100 p-3 rounded-xl mr-3 flex-shrink-0">
