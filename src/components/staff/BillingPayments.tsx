@@ -204,12 +204,11 @@ const BillingPayments: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-6">
-  {/* Section */}
+        {/* Section */}
         <div className="space-y-4">
           {/* Header and Filters */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-title-large"></h2>
-            <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="flex items-start lg:items-center">
+            <div className="overflow-x-auto pb-2 flex-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
               <div className="flex space-x-2 min-w-max">
                 <button
@@ -244,6 +243,7 @@ const BillingPayments: React.FC = () => {
                 </button>
               </div>
             </div>
+            <h2 className="text-title-large"></h2>
           </div>
           
           {/* Grid */}
@@ -265,7 +265,7 @@ const BillingPayments: React.FC = () => {
                     <div className="flex-1 p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="text-title-medium text-primary-900">Order #{order.id.slice(-6)}</h3>
+                          <h3 className="text-title-medium text-primary-900"> {order.id.slice(-6)}</h3>
                           <p className="text-body-medium text-surface-700">
                             {order.customerName}
                             {order.tableNumber && ` • Table ${order.tableNumber}`}
@@ -402,7 +402,7 @@ const BillingPayments: React.FC = () => {
             <div className="p-6 space-y-4">
               {/* Order Details */}
               <div>
-                <h4 className="text-title-medium mb-2">Order #{billingOrder.id.slice(-6)}</h4>
+                <h4 className="text-title-medium mb-2"> {billingOrder.id.slice(-6)}</h4>
                 <p className="text-body-medium text-surface-600">
                   {billingOrder.customerName} • {billingOrder.customerPhone}
                 </p>

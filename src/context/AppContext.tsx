@@ -257,7 +257,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         orderId: string;
       } = {
         orderId: newOrderId,
-        orderNumber: `#${newOrderId}`,
+        orderNumber: `${newOrderId}`,
         customerName: orderData.customerName,
         items: orderData.items,
         orderTime,
