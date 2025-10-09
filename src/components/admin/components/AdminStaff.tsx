@@ -1,16 +1,14 @@
 import React, { useState } from "react";
-import { Plus, Search, Edit, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Edit, X, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 import Snackbar, { SnackbarType } from "../../SnackBar";
 
 export const AdminStaff: React.FC = () => {
-  const { staff, addStaff, updateStaff, deleteStaff } = useApp();
+  const { staff, addStaff, updateStaff } = useApp();
   const [staffSearchTerm, setStaffSearchTerm] = useState("");
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [showEditStaffModal, setShowEditStaffModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
-  const [showDeleteStaffModal, setShowDeleteStaffModal] = useState(false);
-  const [staffToDelete, setStaffToDelete] = useState<any>(null);
   
   // Snackbar state
   const [snackbar, setSnackbar] = useState<{
@@ -22,7 +20,6 @@ export const AdminStaff: React.FC = () => {
   // Loading states
   const [isAddingStaff, setIsAddingStaff] = useState(false);
   const [isEditingStaff, setIsEditingStaff] = useState(false);
-  const [isDeletingStaff, setIsDeletingStaff] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,6 +56,7 @@ export const AdminStaff: React.FC = () => {
     isFrozen: false,
     dateJoined: new Date().toISOString().split("T")[0],
   });
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
 
   // Staff management functions
   const filteredStaff = staff
@@ -171,32 +169,6 @@ export const AdminStaff: React.FC = () => {
     }
   };
 
-  const handleDeleteStaff = (staffId: string) => {
-    setStaffToDelete(staffId);
-    setShowDeleteStaffModal(true);
-  };
-
-  const confirmDeleteStaff = async () => {
-    if (staffToDelete) {
-      try {
-        setIsDeletingStaff(true);
-        await deleteStaff(staffToDelete);
-        setStaffToDelete(null);
-        setShowDeleteStaffModal(false);
-        showSnackbar("Staff member deleted successfully!");
-      } catch (error) {
-        console.error("Error deleting staff:", error);
-        showSnackbar("Failed to delete staff member. Please try again.", "error");
-      } finally {
-        setIsDeletingStaff(false);
-      }
-    }
-  };
-
-  const cancelDeleteStaff = () => {
-    setStaffToDelete(null);
-    setShowDeleteStaffModal(false);
-  };
 
   const toggleFrozenStatus = async (staffId: string) => {
     try {
@@ -230,10 +202,10 @@ export const AdminStaff: React.FC = () => {
           </div>
           <button
             onClick={() => setShowAddStaffModal(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 flex-shrink-0"
+            className="bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center h-10 flex-shrink-0 px-3 sm:px-4"
           >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm">Add Staff</span>
+            <Plus className="w-5 h-5" />
+            <span className="text-sm hidden sm:inline ml-2">Add Staff</span>
           </button>
         </div>
 
@@ -307,13 +279,6 @@ export const AdminStaff: React.FC = () => {
                         >
                           <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDeleteStaff(member.id)}
-                          className="text-red-600 hover:text-red-900 p-1"
-                          title="Delete Staff"
-                        >
-                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -362,33 +327,6 @@ export const AdminStaff: React.FC = () => {
       </div>
 
       {/* Delete Staff Confirmation Modal */}
-      {showDeleteStaffModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">
-              Delete Staff
-            </h3>
-            <p className="mb-6 text-gray-700">
-              Are you sure you want to delete this staff member?
-            </p>
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={cancelDeleteStaff}
-                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteStaff}
-                disabled={isDeletingStaff}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isDeletingStaff ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Add Staff Modal */}
       {showAddStaffModal && (
@@ -460,14 +398,22 @@ export const AdminStaff: React.FC = () => {
                 </label>
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showStaffPassword ? "text" : "password"}
                     value={newStaff.password}
                     onChange={(e) =>
                       setNewStaff({ ...newStaff, password: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 pr-10"
                     placeholder="Enter password"
                   />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 focus:outline-none"
+                    onClick={() => setShowStaffPassword((prev) => !prev)}
+                    tabIndex={-1}
+                  >
+                    {showStaffPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 
@@ -565,25 +511,6 @@ export const AdminStaff: React.FC = () => {
                     setSelectedStaff({
                       ...selectedStaff,
                       name: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={selectedStaff.phoneNumber}
-                  onChange={(e) =>
-                    setSelectedStaff({
-                      ...selectedStaff,
-                      phoneNumber: e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"

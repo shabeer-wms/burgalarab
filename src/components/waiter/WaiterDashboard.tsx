@@ -4,6 +4,7 @@ import OrderStatusManagement from '../staff/OrderStatusManagement';
 import BillingPayments from '../staff/BillingPayments';
 import Snackbar from '../SnackBar';
 import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
+import WaiterSettings from './WaiterSettings';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { OrderItem, Order } from '../../types';
@@ -20,7 +21,7 @@ const WaiterDashboard: React.FC = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [readyOrdersSnapshot, setReadyOrdersSnapshot] = useState<Order[]>([]);
-  const [previousReadyOrderIds, setPreviousReadyOrderIds] = useState<string[]>([]);
+  const previousReadyOrderIdsRef = useRef<string[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showPaymentOptionsModal, setShowPaymentOptionsModal] = useState(false);
   const [showClearCartConfirmation, setShowClearCartConfirmation] = useState(false);
@@ -89,47 +90,25 @@ const WaiterDashboard: React.FC = () => {
   const preparingOrders = waiterOrders.filter(o => o.status === 'preparing');
   const readyOrders = waiterOrders.filter(o => o.status === 'ready');
   
-  // Debug logging to help troubleshoot notification issues (can be removed in production)
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Waiter Dashboard Debug:', {
-        userId: user?.id,
-        totalOrders: orders.length,
-        waiterOrders: waiterOrders.length,
-        readyOrders: readyOrders.length,
-        readyOrderIds: readyOrders.map(o => ({ id: o.id, status: o.status, waiterId: o.waiterId }))
-      });
-    }
-  }, [orders, waiterOrders, readyOrders, user?.id]);
+  // Debug logging removed to prevent console spam
   
   // Play sound and show notification when new ready order appears
   useEffect(() => {
     const currentReadyOrderIds = readyOrders.map(o => o.id);
-    const newReadyOrders = readyOrders.filter(order => !previousReadyOrderIds.includes(order.id));
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔔 Notification Effect Debug:', {
-        currentReadyOrderIds,
-        previousReadyOrderIds,
-        newReadyOrders: newReadyOrders.map(o => ({ id: o.id, status: o.status })),
-        shouldNotify: newReadyOrders.length > 0
-      });
-    }
-    
+    const newReadyOrders = readyOrders.filter(order => !previousReadyOrderIdsRef.current.includes(order.id));
+
     if (newReadyOrders.length > 0) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Triggering notification for orders:', newReadyOrders.map(o => o.id));
-      }
       setShowNotification(true);
       if (audioRef.current) {
-        audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+        audioRef.current.play().catch(() => {});
       }
       setTimeout(() => setShowNotification(false), 3000);
     }
-    
+
     // Update the previous ready orders list
-    setPreviousReadyOrderIds(currentReadyOrderIds);
-  }, [readyOrders, previousReadyOrderIds]);
+    previousReadyOrderIdsRef.current = currentReadyOrderIds;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readyOrders]);
   
   // Billing-specific counts (only for this waiter) - match what's shown in billing page
   const paidOrdersCount = waiterOrders.filter(order => order.status === 'completed').length;
@@ -467,53 +446,7 @@ const WaiterDashboard: React.FC = () => {
               {activeTab === 'status' && <OrderStatusManagement />}
               {activeTab === 'billing' && <BillingPayments />}
               {activeTab === 'settings' && (
-                <div className="bg-white rounded-2xl shadow-md p-6">
-                  <h2 className="text-xl font-bold text-gray-800 mb-6">Settings</h2>
-                  
-                  {/* User Details Section */}
-                  <div className="mb-8">
-                    <h3 className="text-lg font-semibold text-gray-700 mb-4">User Details</h3>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center">
-                          <User className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div>
-                          <p className="text-lg font-semibold text-gray-800">
-                            {user?.name || 'Waiter'}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Waiter'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {user?.email && (
-                        <div className="flex items-center space-x-3 pt-2 border-t border-gray-200">
-                          <div className="w-5 h-5" />
-                          <div>
-                            <p className="text-sm text-gray-600">Email</p>
-                            <p className="text-sm font-medium text-gray-800">{user.email}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions Section */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Actions</h3>
-                    <div className="space-y-3">
-                      <button
-                        onClick={logout}
-                        className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-colors"
-                      >
-                        <LogOut className="w-5 h-5" />
-                        <span className="font-medium">Logout</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <WaiterSettings user={user} logout={logout} />
               )}
             </div>
           </div>
@@ -573,6 +506,8 @@ const WaiterDashboard: React.FC = () => {
                       </div>
                       <input
                         type="text"
+                        id={`special-instructions-${item.id}`}
+                        name={`specialInstructions-${item.id}`}
                         placeholder="Special instructions (optional)"
                         value={item.specialInstructions || ''}
                         onChange={(e) => cartFunctions?.updateSpecialInstructions && cartFunctions.updateSpecialInstructions(item.id, e.target.value)}

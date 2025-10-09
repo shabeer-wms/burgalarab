@@ -76,6 +76,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     | "completed"
     | "cancelled"
   >("all");
+  const [orderSearchTerm, setOrderSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showCancelOrderModal, setShowCancelOrderModal] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<any>(null);
@@ -118,9 +119,17 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
   }, []);
 
   const filteredOrders =
-    orderFilter === "all"
+    (orderFilter === "all"
       ? orders
-      : orders.filter((order) => order.status === orderFilter);
+      : orders.filter((order) => order.status === orderFilter)
+    ).filter((order) => {
+      const term = orderSearchTerm.toLowerCase();
+      return (
+        order.customerName?.toLowerCase().includes(term) ||
+        order.id?.toLowerCase().includes(term) ||
+        order.customerPhone?.toLowerCase().includes(term)
+      );
+    });
 
   // Pagination logic
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
@@ -327,15 +336,28 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-12">
         <div className="flex flex-col space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">Order Filters</h3>
-            <button
-              onClick={handleExportOrders}
-              className="flex items-center justify-center text-gray-700 hover:text-gray-900 p-2 transition-colors duration-150 h-10 w-10 hover:bg-gray-100 rounded-lg"
-              title="Export Orders"
-            >
-              <Download size={18} />
-            </button>
+          {/* Search Bar */}
+          <div className="flex justify-between items-center gap-4">
+            <div className="relative flex-1 max-w-xs sm:max-w-none">
+              {/* Use Lucide Search icon if available */}
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input
+                type="text"
+                placeholder="Search orders..."
+                value={orderSearchTerm}
+                onChange={(e) => setOrderSearchTerm(e.target.value)}
+                className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
+              />
+            </div>
+            <div className="flex items-center">
+              <button
+                onClick={handleExportOrders}
+                className="flex items-center justify-center text-gray-700 hover:text-gray-900 p-2 transition-colors duration-150 h-10 w-10 hover:bg-gray-100 rounded-lg"
+                title="Export Orders"
+              >
+                <Download size={18} />
+              </button>
+            </div>
           </div>
           
           {/* Filter chips with horizontal scroll on mobile */}

@@ -54,10 +54,10 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       const width = window.innerWidth;
       // Tablet devices and iPad Pro: 768px to 1279px (md to lg breakpoints)
       if (width >= 768 && width < 1280) {
-        return 8;
+        return 9;
       }
-      // Desktop and larger: 1280px and above - New Order page shows 8 cards
-      return 8;
+      // Desktop and larger: 1280px and above - New Order page shows 10 cards
+      return 10;
     }
     return 8;
   };
@@ -753,7 +753,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               const isOutOfStock = !item.available;
               
               return (
-                <button 
+                <div 
                   key={item.id} 
                   className={`card transition-all duration-200 text-left p-0 flex flex-col h-full ${
                     isOutOfStock 
@@ -763,7 +763,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                         : 'hover:shadow-elevation-4'
                   }`}
                   onClick={() => item.available && addToOrder(item)}
-                  disabled={!item.available}
+                  style={{ cursor: item.available ? 'pointer' : 'not-allowed' }}
                 >
                 {/* Card Content - Main body */}
                 <div className="flex-1 p-4 lg:p-3">
@@ -805,6 +805,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   updateQuantity(existingItem!.id, -1);
@@ -817,6 +818,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                                 {quantity}
                               </span>
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   addToOrder(item);
@@ -830,6 +832,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                         } else {
                           return (
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 addToOrder(item);
@@ -845,7 +848,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                     </div>
                   </div>
                 </div>
-              </button>
+                </div>
               );
             })}
             </div>

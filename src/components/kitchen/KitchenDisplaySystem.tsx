@@ -16,8 +16,14 @@ import { kitchenColors } from "./theme/colors";
 import { kitchenLayout } from "./theme/layout";
 
 const KitchenDisplaySystem: React.FC = () => {
-  const { kitchenOrders, updateKitchenOrderStatus, updateOrderItemStatus, menuItems, updateMenuItem, showNotification } =
-    useApp();
+  const {
+    kitchenOrders,
+    updateKitchenOrderStatus,
+    updateOrderItemStatus,
+    menuItems,
+    updateMenuItem,
+    showNotification,
+  } = useApp();
   const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -79,15 +85,31 @@ const KitchenDisplaySystem: React.FC = () => {
     let message = "";
     if (newStatus === "in-progress") {
       // e.g. "Order for Alice started" or "#1234 started"
-      message = customer ? `Order for ${customer} started` : orderNum ? `Order ${orderNum} started` : `${orderId} started`;
+      message = customer
+        ? `Order for ${customer} started`
+        : orderNum
+        ? `Order ${orderNum} started`
+        : `${orderId} started`;
     } else if (newStatus === "pending") {
       // e.g. "Order for Alice paused"
       message = paused
-        ? (customer ? `Order for ${customer} paused` : orderNum ? `Order ${orderNum} paused` : `${orderId} paused`)
-        : (customer ? `Order for ${customer} moved to pending` : orderNum ? `Order ${orderNum} moved to pending` : `${orderId} moved to pending`);
+        ? customer
+          ? `Order for ${customer} paused`
+          : orderNum
+          ? `Order ${orderNum} paused`
+          : `${orderId} paused`
+        : customer
+        ? `Order for ${customer} moved to pending`
+        : orderNum
+        ? `Order ${orderNum} moved to pending`
+        : `${orderId} moved to pending`;
     } else if (newStatus === "ready") {
       // e.g. "Alice's order is ready" or "Order #1234 is ready"
-      message = customer ? `${customer}'s order is ready` : orderNum ? `Order ${orderNum} is ready` : `${orderId} is ready`;
+      message = customer
+        ? `${customer}'s order is ready`
+        : orderNum
+        ? `Order ${orderNum} is ready`
+        : `${orderId} is ready`;
     }
 
     // Show a brief success notification in the global snackbar
@@ -121,9 +143,73 @@ const KitchenDisplaySystem: React.FC = () => {
   const readyOrders = kitchenOrders.filter((order) => order.status === "ready");
 
   // UI filter state for navigation
+  // On small screens (tailwind "lg" breakpoint is 1024px) we don't show "All"
+  // so default to "pending". On larger screens default to "all".
+  const getInitialFilter = () => {
+    if (typeof window === "undefined") return "all" as const;
+    return window.innerWidth < 1024 ? ("pending" as const) : ("all" as const);
+  };
+
   const [selectedFilter, setSelectedFilter] = useState<
     "all" | "pending" | "in-progress" | "ready" | "menu" | "settings"
-  >("all");
+  >(getInitialFilter);
+
+  // Keep behaviour consistent when resizing: if the viewport becomes small
+  // and the current filter is "all", switch to "pending" because "all"
+  // is not available on small screens.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq: MediaQueryList = window.matchMedia("(min-width: 1024px)");
+
+    // Augment MediaQueryList with legacy methods for older browsers
+    type MQAugmented = MediaQueryList & {
+      addListener?: (listener: (e: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (e: MediaQueryListEvent) => void) => void;
+      addEventListener?: (
+        type: string,
+        listener: (e: MediaQueryListEvent) => void
+      ) => void;
+      removeEventListener?: (
+        type: string,
+        listener: (e: MediaQueryListEvent) => void
+      ) => void;
+    };
+
+    const mqAug = mq as MQAugmented;
+
+    const onChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      // e.matches === true means viewport is >= 1024px (large)
+      if (!e.matches) {
+        // now small screen: if currently "all", switch to "pending"
+        setSelectedFilter((prev) => (prev === "all" ? "pending" : prev));
+      }
+    };
+
+    // Run once to enforce correct state on mount
+    onChange(mq);
+
+    // Attach listener in a cross-browser way
+    if (typeof mqAug.addEventListener === "function") {
+      mqAug.addEventListener(
+        "change",
+        onChange as (e: MediaQueryListEvent) => void
+      );
+    } else if (typeof mqAug.addListener === "function") {
+      // Safari and older browsers
+      mqAug.addListener(onChange as (e: MediaQueryListEvent) => void);
+    }
+
+    return () => {
+      if (typeof mqAug.removeEventListener === "function") {
+        mqAug.removeEventListener(
+          "change",
+          onChange as (e: MediaQueryListEvent) => void
+        );
+      } else if (typeof mqAug.removeListener === "function") {
+        mqAug.removeListener(onChange as (e: MediaQueryListEvent) => void);
+      }
+    };
+  }, []);
 
   const handleFilterClick = (
     e: React.MouseEvent,
@@ -174,7 +260,13 @@ const KitchenDisplaySystem: React.FC = () => {
               inProgressCount={inProgressOrders.length}
               readyCount={readyOrders.length}
               onLogout={logout}
-              title={selectedFilter === "menu" ? "Menu Management" : selectedFilter === "settings" ? "Settings" : "Kitchen Display System"}
+              title={
+                selectedFilter === "menu"
+                  ? "Menu Management"
+                  : selectedFilter === "settings"
+                  ? "Settings"
+                  : "Kitchen Display System"
+              }
               isSettings={selectedFilter === "settings"}
             />
           </div>
@@ -192,14 +284,11 @@ const KitchenDisplaySystem: React.FC = () => {
               {/* Order Sections */}
               <div
                 className={
-                  selectedFilter === "all"
-                    ? kitchenLayout.grid.main
-                    : "w-full"
+                  selectedFilter === "all" ? kitchenLayout.grid.main : "w-full"
                 }
               >
                 {/* Pending Orders Section */}
-                {(selectedFilter === "all" ||
-                  selectedFilter === "pending") && (
+                {(selectedFilter === "all" || selectedFilter === "pending") && (
                   <OrderSection
                     title="Pending"
                     icon="hourglass_top"
@@ -213,7 +302,8 @@ const KitchenDisplaySystem: React.FC = () => {
                     viewAllButtonColor={kitchenColors.status.pending.button}
                   />
                 )}
-                {(selectedFilter === "all" || selectedFilter === "in-progress") && (
+                {(selectedFilter === "all" ||
+                  selectedFilter === "in-progress") && (
                   <OrderSection
                     title="In Progress"
                     icon="autorenew"
@@ -225,9 +315,7 @@ const KitchenDisplaySystem: React.FC = () => {
                     selectedFilter={selectedFilter}
                     onViewAllClick={() => setSelectedFilter("in-progress")}
                     inProgress={true}
-                    viewAllButtonColor={
-                      kitchenColors.status.inProgress.button
-                    }
+                    viewAllButtonColor={kitchenColors.status.inProgress.button}
                     viewAllButtonHover={kitchenColors.status.inProgress.hover}
                   />
                 )}
