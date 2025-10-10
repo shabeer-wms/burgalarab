@@ -184,7 +184,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Bill - Order ${order.id.slice(-4)}</title>
+        <title>Bill - Order ${order.id}</title>
         <style>
           body { font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; }
           .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
@@ -196,7 +196,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       <body>
         <div class="header">
           <h2>Hotel Management</h2>
-          <p>Order No: ${order.id.slice(-4)}</p>
+          <p>Order No: ${order.id}</p>
           <p>Date: ${formatDate(order.orderTime)}</p>
           <p>Time: ${formatTime(order.orderTime)}</p>
         </div>
@@ -511,7 +511,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {order.id.slice(-4)}
+                          {order.id}
                         </div>
                         <div className="text-sm text-gray-500">
                           {formatDate(order.orderTime)}
@@ -626,7 +626,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {order.id.slice(-6)}
+                      {order.id}
                     </h3>
                     <p className="text-sm text-gray-600">
                       {order.customerName} • {order.type}
@@ -800,7 +800,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       {/* Cancel Order Confirmation Modal */}
       {showCancelOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
               Cancel Order
             </h3>
@@ -867,7 +867,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
     <div className="space-y-6">
       {/* Order Info */}
       <div>
-        <h4 className="text-title-medium mb-2">Order {order.id.slice(-6)}</h4>
+        <h4 className="text-title-medium mb-2">Order {order.id}</h4>
         <div className="space-y-1 text-body-medium">
           <p>
             <strong>Customer:</strong> {order.customerName}

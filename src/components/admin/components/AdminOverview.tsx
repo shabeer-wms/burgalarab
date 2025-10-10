@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Order, MenuItem, Staff, Rating } from "../../../types";
 import {
   PieChart,
@@ -29,6 +29,19 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
   ratings,
 }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<FilterPeriod>("this_week");
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Handle responsive design for pie chart
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   // Helper function to safely get order date
   const getOrderDate = (order: Order): Date | null => {
@@ -270,21 +283,21 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
       .toUpperCase()
       .slice(0, 2);
       
-    // Generate a color based on the name using purple theme variations
-    const colors = [
-      "bg-purple-500",
-      "bg-purple-600",
-      "bg-violet-500",
-      "bg-indigo-500",
-      "bg-purple-400",
-      "bg-violet-600",
-      "bg-indigo-600",
-      "bg-purple-700"
+    // Generate a gradient color based on the name using purple theme variations
+    const gradients = [
+      "bg-gradient-to-br from-purple-500 to-purple-600",
+      "bg-gradient-to-br from-purple-600 to-violet-600",
+      "bg-gradient-to-br from-violet-500 to-purple-500",
+      "bg-gradient-to-br from-indigo-500 to-purple-500",
+      "bg-gradient-to-br from-purple-400 to-purple-600",
+      "bg-gradient-to-br from-violet-600 to-indigo-600",
+      "bg-gradient-to-br from-indigo-600 to-purple-700",
+      "bg-gradient-to-br from-purple-700 to-violet-800"
     ];
-    const colorIndex = name.length % colors.length;
+    const gradientIndex = name.length % gradients.length;
     
     return (
-      <div className={`w-12 h-12 ${colors[colorIndex]} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
+      <div className={`w-10 h-10 ${gradients[gradientIndex]} text-white rounded-full flex items-center justify-center font-bold text-xs shadow-lg ring-2 ring-white/20`}>
         {initials}
       </div>
     );
@@ -398,7 +411,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
         </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {/* Revenue Trend Chart */}
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">{getChartTitle()}</h3>
@@ -438,6 +451,23 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                     color: "#7c3aed"
                   }}
                   cursor={{ stroke: "rgba(139, 92, 246, 0.3)", strokeWidth: 2 }}
+                  formatter={(value: any, name: string, props: any) => {
+                    if (name === 'revenue') {
+                      const orders = props.payload?.orders || 0;
+                      return [
+                        <div key="tooltip-content" className="space-y-1">
+                          <div className="font-semibold text-purple-700">
+                            Revenue: {Number(value).toFixed(2)} OMR
+                          </div>
+                          <div className="text-purple-600">
+                            Orders: {orders}
+                          </div>
+                        </div>
+                      ];
+                    }
+                    return [value, name];
+                  }}
+                  labelStyle={{ color: "#7c3aed", fontWeight: "600" }}
                 />
                 <Area
                   type="monotone"
@@ -462,12 +492,12 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
         </div>
 
         {/* Top Menu Items Pie Chart */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Top 5 Menu Items</h3>
-            <span className="text-sm text-gray-500">By order frequency</span>
+        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-200">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Top 5 Menu Items</h3>
+            <span className="text-xs sm:text-sm text-gray-500">By order frequency</span>
           </div>
-          <div className="relative h-80">
+          <div className="relative h-64 sm:h-80">
             <div className="h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -475,8 +505,8 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                     data={topMenuItemsData}
                     cx="40%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={120}
+                    innerRadius={isMobile ? 35 : 60}
+                    outerRadius={isMobile ? 70 : 120}
                     paddingAngle={1}
                     dataKey="value"
                     label={({ cx, cy, midAngle, innerRadius, outerRadius, value }: any) => {
@@ -492,7 +522,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                           fill="white" 
                           textAnchor={x > cx ? 'start' : 'end'} 
                           dominantBaseline="central"
-                          fontSize="12"
+                          fontSize={isMobile ? "10" : "12"}
                           fontWeight="600"
                         >
                           {value}
@@ -526,7 +556,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                     style={{ backgroundColor: item.color }}
                   ></div>
                   <div className="text-purple-600 font-medium min-w-0">
-                    <div className="truncate max-w-12 sm:max-w-20 text-xs sm:text-xs">{item.name}</div>
+                    <div className="text-xs sm:text-xs whitespace-nowrap">{item.name}</div>
                   </div>
                 </div>
               ))}
@@ -550,23 +580,30 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
               return (
                 <div
                   key={review.id}
-                  className="bg-white rounded-2xl shadow-sm p-5 border border-gray-200 flex-shrink-0 min-w-[280px] hover:shadow-md transition-shadow duration-200"
+                  className="bg-gradient-to-br from-white to-purple-50/30 rounded-3xl shadow-sm p-6 border border-purple-100 flex-shrink-0 min-w-[220px] max-w-[220px] h-36 hover:shadow-lg hover:border-purple-200 transition-all duration-300 hover:scale-[1.02] relative overflow-hidden"
                 >
-                  <div className="flex items-start space-x-4">
-                    {generateAvatar(review.customerName || "Anonymous")}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900 truncate">
+                  {/* Decorative background element */}
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-100/50 to-transparent rounded-full -translate-y-6 translate-x-6"></div>
+                  <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-purple-50/30 to-transparent rounded-full translate-y-4 -translate-x-4"></div>
+                  
+                  <div className="relative z-10 h-full flex flex-col">
+                    {/* Header with avatar and rating */}
+                    <div className="flex items-center space-x-3 mb-6">
+                      {generateAvatar(review.customerName || "Anonymous")}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-gray-900 truncate text-sm">
                           {review.customerName || "Anonymous"}
                         </h4>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center mt-1">
                           {renderStars(review.rating)}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-                        <span>Order #{review.orderId.slice(-6)}</span>
-                        <span>•</span>
-                        <span>
+                    </div>
+                    
+                    {/* Date and time at bottom */}
+                    <div className="mt-auto">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="text-gray-600 font-medium">
                           {reviewDate
                             ? reviewDate.toLocaleDateString("en-US", {
                                 month: "short",
@@ -574,10 +611,8 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                                 year: reviewDate.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
                               })
                             : "Recent"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-end">
-                        <div className="text-xs text-gray-400">
+                        </div>
+                        <div className="text-gray-500">
                           {reviewDate
                             ? reviewDate.toLocaleTimeString("en-US", {
                                 hour: "2-digit",
