@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { Search, Plus, Clock, Edit, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Search, Plus, Clock, Edit, Trash2, X, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 import { ImageUpload } from "./ImageUpload";
 import Snackbar, { SnackbarType } from "../../SnackBar";
@@ -14,6 +14,9 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
   // For undo delete
   const lastDeletedMenuItem = useRef<any>(null);
   const [showUndo, setShowUndo] = useState(false);
+  const [undoTimeLeft, setUndoTimeLeft] = useState(10);
+  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const permanentDeleteTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { menuItems, addMenuItem, updateMenuItem, deleteMenuItem } = useApp();
   const [menuSearchTerm, setMenuSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -56,9 +59,9 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
       else if (width >= 768) {
         return 9;
       }
-      // grid-cols-2 (2 items per row) -> 6 items per page for mobile
+      // grid-cols-2 (2 items per row) -> 2 items per page for mobile
       else {
-        return 6;
+        return 4;
       }
     }
     return 10; // Default fallback
@@ -204,8 +207,13 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
         setMenuItemToDelete(null);
         setShowDeleteMenuModal(false);
         setShowUndo(true);
-        // Hide undo after 10 seconds and show confirmation
-        setTimeout(() => {
+        setUndoTimeLeft(10);
+        
+        // Start countdown timer
+        startUndoCountdown();
+        
+        // Set permanent delete timer
+        permanentDeleteTimerRef.current = setTimeout(() => {
           setShowUndo(false);
           showSnackbar("Menu item permanently deleted");
         }, 10000);
@@ -223,6 +231,49 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
     setMenuItemToDelete(null);
     setShowDeleteMenuModal(false);
   };
+
+  const startUndoCountdown = () => {
+    undoTimerRef.current = setInterval(() => {
+      setUndoTimeLeft((prev) => {
+        if (prev <= 1) {
+          if (undoTimerRef.current) {
+            clearInterval(undoTimerRef.current);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleUndoDelete = async () => {
+    if (lastDeletedMenuItem.current) {
+      // Clear all timers
+      if (undoTimerRef.current) {
+        clearInterval(undoTimerRef.current);
+      }
+      if (permanentDeleteTimerRef.current) {
+        clearTimeout(permanentDeleteTimerRef.current);
+      }
+      
+      await addMenuItem(lastDeletedMenuItem.current);
+      setShowUndo(false);
+      showSnackbar("Menu item restored!");
+      lastDeletedMenuItem.current = null;
+    }
+  };
+
+  // Cleanup timers on component unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) {
+        clearInterval(undoTimerRef.current);
+      }
+      if (permanentDeleteTimerRef.current) {
+        clearTimeout(permanentDeleteTimerRef.current);
+      }
+    };
+  }, []);
 
   const openEditMenuModal = (item: any) => {
     setSelectedMenuItem({
@@ -462,7 +513,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
       {/* Delete Menu Item Confirmation Modal */}
       {showDeleteMenuModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
               Delete Menu Item
             </h3>
@@ -839,34 +890,53 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
       )}
       
       {/* Snackbar */}
-      {/* Undo Snackbar */}
+      {/* Simple Undo Snackbar */}
       {showUndo && lastDeletedMenuItem.current && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-200 shadow-xl rounded-xl px-6 py-4 flex items-center space-x-4 animate-slide-down backdrop-blur-sm max-w-md">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-sm">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </div>
-            <div>
-              <span className="font-semibold text-gray-800 text-sm">Item deleted</span>
-              <p className="text-xs text-gray-500 mt-0.5">Click undo to restore</p>
-            </div>
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-300 shadow-lg rounded-lg px-4 py-3 flex items-center space-x-3 max-w-sm">
+          {/* Animated Timer Clock */}
+          <div className="flex items-center justify-center w-8 h-8 relative">
+            {/* SVG Circular Progress */}
+            <svg className="w-8 h-8 absolute inset-0 transform -rotate-90" viewBox="0 0 32 32">
+              {/* Background circle */}
+              <circle
+                cx="16"
+                cy="16"
+                r="14"
+                fill="none"
+                stroke="#e5e7eb"
+                strokeWidth="2"
+              />
+              {/* Progress circle */}
+              <circle
+                cx="16"
+                cy="16"
+                r="14"
+                fill="none"
+                stroke="#8b5cf6"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 14}`}
+                strokeDashoffset={`${2 * Math.PI * 14 * (1 - undoTimeLeft / 10)}`}
+                className="transition-all duration-1000 ease-linear"
+              />
+            </svg>
+            
+            {/* Clock icon in center */}
+            <Clock className="w-4 h-4 text-violet-500 relative z-10" />
           </div>
+          
+          {/* Message */}
+          <div className="flex-1">
+            <span className="text-sm text-gray-800">Item deleted</span>
+          </div>
+          
+          {/* Purple Undo Button */}
           <button
-            className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-            onClick={async () => {
-              await addMenuItem(lastDeletedMenuItem.current);
-              setShowUndo(false);
-              showSnackbar("Menu item restored!");
-            }}
+            onClick={handleUndoDelete}
+            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center space-x-1"
           >
-            <span className="flex items-center space-x-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-              </svg>
-              <span>Undo</span>
-            </span>
+            <RotateCcw className="w-3 h-3" />
+            <span>Undo</span>
           </button>
         </div>
       )}
