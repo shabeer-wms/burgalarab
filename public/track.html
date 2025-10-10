@@ -601,10 +601,10 @@
         document.getElementById('thank-you-content').style.display = 'block';
       }, 800);
       
-      // Auto-close after 4 seconds
+      // Auto-close after 10 seconds
       setTimeout(() => {
         closeRatingDialog();
-      }, 4000);
+      }, 10000);
     };
     
     const closeRatingDialog = () => {
@@ -622,6 +622,29 @@
         star.style.pointerEvents = 'auto';
         star.style.cursor = 'pointer';
       });
+      
+      // Exit the order tracking page and make URL inactive
+      // Show a brief goodbye message before redirect
+      document.body.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; background: #f6f7f9; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;">
+          <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); max-width: 400px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">👋</div>
+            <h2 style="color: #1f2937; margin-bottom: 12px;">Thank you for dining with us!</h2>
+            <p style="color: #6b7280; margin-bottom: 24px;">Your feedback helps us serve you better.</p>
+            <p style="color: #9ca3af; font-size: 14px;">This tracking link is now inactive.</p>
+          </div>
+        </div>
+      `;
+      
+      // Replace the current URL in browser history to prevent going back
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', '/');
+      }
+      
+      // Disable any further Firebase listeners or page functionality
+      if (window.unsubscribeOrderListener) {
+        window.unsubscribeOrderListener();
+      }
     };
 
     // Function to start order tracking after authentication
@@ -640,7 +663,8 @@
         console.log('🔐 User anonymous:', auth.currentUser?.isAnonymous);
         console.log('🔐 Auth state ready:', !!auth.currentUser);
 
-        const unsubscribe = onSnapshot(
+        // Store unsubscribe function globally for cleanup
+        window.unsubscribeOrderListener = onSnapshot(
           doc(db, 'orders', orderId), 
           (snap) => {
             try {
