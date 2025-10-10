@@ -6,7 +6,8 @@ import {
   Category,
   Bill,
   KitchenDisplayItem,
-  Staff
+  Staff,
+  Rating
 } from "../types";
 import { db, auth } from "../firebase";
 import {
@@ -31,6 +32,7 @@ interface AppContextType {
   orders: Order[];
   bills: Bill[];
   kitchenOrders: KitchenDisplayItem[];
+  ratings: Rating[];
   
   // Notification system
   notification: { message: string; type: "success" | "error" } | null;
@@ -108,6 +110,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [orders, setOrders] = useState<Order[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [kitchenOrders, setKitchenOrders] = useState<KitchenDisplayItem[]>([]);
+  const [ratings, setRatings] = useState<Rating[]>([]);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   // Real-time Firestore listeners
@@ -213,12 +216,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         );
       }
     );
+
+    // Ratings listener
+    const unsubRatings = onSnapshot(collection(db, "ratings"), (snapshot) => {
+      setRatings(
+        snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+            timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : 
+                      typeof data.timestamp === 'string' ? new Date(data.timestamp) : new Date(),
+          } as Rating;
+        })
+      );
+    });
+
     return () => {
       unsubMenuItems();
       unsubStaff();
       unsubOrders();
       unsubBills();
       unsubKitchen();
+      unsubRatings();
     };
   }, []);
 
@@ -666,6 +686,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         orders,
         bills,
         kitchenOrders,
+        ratings,
         notification,
         showNotification,
         hideNotification,

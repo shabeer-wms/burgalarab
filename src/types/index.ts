@@ -118,3 +118,13 @@ export interface Staff {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface Rating {
+  id: string;
+  orderId: string;
+  rating: number; // 1-5 stars
+  customerName: string;
+  timestamp: Date | string | { toDate: () => Date };
+  createdAt: string;
+  reviewText?: string | null; // For future expansion
+}

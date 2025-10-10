@@ -1,9 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { DollarSign, TrendingUp, Clock, ShoppingBag } from "lucide-react";
-import { Order } from "../../../types";
+import { Order, MenuItem, Staff, Rating } from "../../../types";
 import {
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -12,19 +9,26 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
+  Area,
+  AreaChart,
 } from "recharts";
 
 interface AdminOverviewProps {
   orders: Order[];
+  menuItems: MenuItem[];
+  staff: Staff[];
+  ratings: Rating[];
 }
 
-type FilterPeriod = "today" | "this_week" | "this_month" | "this_year" | "total";
+type FilterPeriod = "this_week" | "this_month" | "this_year" | "total";
 
 export const AdminOverview: React.FC<AdminOverviewProps> = ({
   orders,
+  menuItems,
+  staff,
+  ratings,
 }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<FilterPeriod>("today");
+  const [selectedPeriod, setSelectedPeriod] = useState<FilterPeriod>("this_week");
 
   // Helper function to safely get order date
   const getOrderDate = (order: Order): Date | null => {
@@ -38,6 +42,24 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
         return order.orderTime.toDate();
       } else {
         return new Date(order.orderTime as string);
+      }
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper function to safely get rating date
+  const getRatingDate = (rating: Rating): Date | null => {
+    try {
+      if (rating.timestamp instanceof Date) {
+        return rating.timestamp;
+      } else if (
+        typeof rating.timestamp === "object" &&
+        rating.timestamp.toDate
+      ) {
+        return rating.timestamp.toDate();
+      } else {
+        return new Date(rating.timestamp as string);
       }
     } catch {
       return null;
@@ -58,8 +80,6 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
       if (!orderDate) return false;
 
       switch (selectedPeriod) {
-        case "today":
-          return orderDate >= today;
         case "this_week":
           return orderDate >= thisWeekStart;
         case "this_month":
@@ -73,51 +93,35 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
     });
   }, [orders, selectedPeriod]);
 
-  // Calculate metrics based on filtered orders
-  const metrics = useMemo(() => {
-    const paidOrders = filteredOrders.filter((order) => order.paymentStatus === "paid");
-    const totalRevenue = paidOrders.reduce((sum, order) => sum + (order.grandTotal || order.total || 0), 0);
-    const activeOrders = filteredOrders.filter((order) =>
-      ["pending", "confirmed", "preparing", "ready"].includes(order.status)
-    ).length;
+  // Calculate today's metrics for cards (always show today's data regardless of filter)
+  const todayMetrics = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    const averageOrderValue = paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
+    const todayOrders = orders.filter((order) => {
+      const orderDate = getOrderDate(order);
+      return orderDate && orderDate >= today;
+    });
+    
+    const todayPaidOrders = todayOrders.filter((order) => order.paymentStatus === "paid");
+    const todayRevenue = todayPaidOrders.reduce((sum, order) => sum + (order.grandTotal || order.total || 0), 0);
     
     return {
-      totalOrders: filteredOrders.length,
-      totalRevenue,
-      activeOrders,
-      completedOrders: filteredOrders.filter((order) => order.status === "completed").length,
-      averageOrderValue,
-      paidOrders: paidOrders.length,
+      revenueToday: todayRevenue,
+      ordersToday: todayOrders.length,
+      totalMenu: menuItems.length,
+      totalStaff: staff.length,
     };
-  }, [filteredOrders]);
+  }, [orders, menuItems, staff]);
+
+
 
   // Generate chart data for revenue trends based on selected period
   const revenueChartData = useMemo(() => {
     const data = [];
     const now = new Date();
     
-    if (selectedPeriod === "today") {
-      // Show hourly data for today
-      for (let i = 0; i < 24; i++) {
-        const hour = i;
-        const hourOrders = filteredOrders.filter((order) => {
-          const orderDate = getOrderDate(order);
-          return orderDate && orderDate.getHours() === hour && order.paymentStatus === "paid";
-        });
-        
-        const revenue = hourOrders.reduce((sum, order) => sum + (order.grandTotal || order.total || 0), 0);
-        
-        if (revenue > 0 || i >= 6) { // Show only from 6 AM or if there's revenue
-          data.push({
-            date: `${hour.toString().padStart(2, '0')}:00`,
-            revenue: revenue,
-            orders: hourOrders.length,
-          });
-        }
-      }
-    } else if (selectedPeriod === "this_week") {
+    if (selectedPeriod === "this_week") {
       // Show last 7 days
       for (let i = 6; i >= 0; i--) {
         const date = new Date(now);
@@ -217,7 +221,8 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
       return acc;
     }, {} as Record<string, number>);
 
-    const colors = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
+    // Different shades of purple from dark to light
+    const purpleShades = ["#7c3aed", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ddd6fe"];
 
     return Object.entries(itemCounts)
       .sort(([, a], [, b]) => b - a)
@@ -225,12 +230,67 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
       .map(([name, count], index) => ({
         name,
         value: count,
-        color: colors[index] || "#6b7280",
+        color: purpleShades[index] || "#e5e7eb",
       }));
   }, [filteredOrders]);
 
+  // Recent customer reviews (latest 10 ratings)
+  const recentReviews = useMemo(() => {
+    return ratings
+      .slice()
+      .sort((a, b) => {
+        const dateA = getRatingDate(a);
+        const dateB = getRatingDate(b);
+        if (!dateA || !dateB) return 0;
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 10);
+  }, [ratings]);
+
+  // Generate star rating display
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, index) => (
+      <span
+        key={index}
+        className={`text-lg ${
+          index < rating ? "text-yellow-400" : "text-gray-300"
+        }`}
+      >
+        ★
+      </span>
+    ));
+  };
+
+  // Generate avatar with initials
+  const generateAvatar = (name: string) => {
+    const initials = name
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+      
+    // Generate a color based on the name using purple theme variations
+    const colors = [
+      "bg-purple-500",
+      "bg-purple-600",
+      "bg-violet-500",
+      "bg-indigo-500",
+      "bg-purple-400",
+      "bg-violet-600",
+      "bg-indigo-600",
+      "bg-purple-700"
+    ];
+    const colorIndex = name.length % colors.length;
+    
+    return (
+      <div className={`w-12 h-12 ${colors[colorIndex]} text-white rounded-full flex items-center justify-center font-semibold text-sm`}>
+        {initials}
+      </div>
+    );
+  };
+
   const periodLabels = {
-    today: "Today",
     this_week: "This Week",
     this_month: "This Month",
     this_year: "This Year",
@@ -239,8 +299,6 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 
   const getChartTitle = () => {
     switch (selectedPeriod) {
-      case "today":
-        return "Revenue Trend (Hourly - Today)";
       case "this_week":
         return "Revenue Trend (Last 7 Days)";
       case "this_month":
@@ -254,8 +312,73 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 
   return (
     <div className="space-y-6 pb-20 sm:pb-6 md:pb-24 lg:pb-6">
-      {/* Filter and Key Metrics */}
+      {/* Today's Orders Heading and Cards */}
       <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-gray-900 sm:hidden">Overview</h2>
+        
+        {/* Key Metrics Cards */}
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 sm:grid sm:grid-cols-2 xl:grid-cols-5 sm:gap-4 sm:overflow-x-visible sm:pb-0">
+        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-200 flex-shrink-0 min-w-[140px] sm:min-w-0">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{todayMetrics.revenueToday.toFixed(2)} <span className="text-sm font-normal text-gray-600">(OMR)</span></p>
+              <p className="text-xs font-medium text-gray-600">Revenue Today</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-200 flex-shrink-0 min-w-[140px] sm:min-w-0">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{todayMetrics.ordersToday}</p>
+              <p className="text-xs font-medium text-gray-600">Orders Today</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-200 flex-shrink-0 min-w-[140px] sm:min-w-0">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{todayMetrics.totalMenu}</p>
+              <p className="text-xs font-medium text-gray-600">Total Menu</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-200 flex-shrink-0 min-w-[140px] sm:min-w-0">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m3 5.197v1M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{todayMetrics.totalStaff}</p>
+              <p className="text-xs font-medium text-gray-600">Total Staff</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      
+      {/* Filter Controls */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900">Analytics</h3>
         <div className="w-full">
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
             {Object.entries(periodLabels).map(([value, label]) => (
@@ -273,69 +396,6 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             ))}
           </div>
         </div>
-        
-        {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">${metrics.totalRevenue.toFixed(2)}</p>
-              <p className="text-xs text-green-600 mt-1">
-                {metrics.paidOrders} paid orders
-              </p>
-            </div>
-            <div className="bg-green-100 rounded-xl p-2 sm:p-3 flex-shrink-0">
-              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Total Orders</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{metrics.totalOrders}</p>
-              <p className="text-xs text-blue-600 mt-1">
-                {metrics.completedOrders} completed
-              </p>
-            </div>
-            <div className="bg-blue-100 rounded-xl p-2 sm:p-3 flex-shrink-0">
-              <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Active Orders</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{metrics.activeOrders}</p>
-              <p className="text-xs text-orange-600 mt-1">
-                In progress
-              </p>
-            </div>
-            <div className="bg-orange-100 rounded-xl p-2 sm:p-3 flex-shrink-0">
-              <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">${metrics.averageOrderValue.toFixed(2)}</p>
-              <p className="text-xs text-purple-600 mt-1">
-                Per order
-              </p>
-            </div>
-            <div className="bg-purple-100 rounded-xl p-2 sm:p-3 flex-shrink-0">
-              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -344,44 +404,59 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           <h3 className="text-lg font-semibold text-gray-900 mb-4">{getChartTitle()}</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <AreaChart data={revenueChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                 <defs>
-                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                    <stop offset="100%" stopColor="#1d4ed8" stopOpacity={1}/>
+                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.4}/>
+                    <stop offset="50%" stopColor="#8b5cf6" stopOpacity={0.2}/>
+                    <stop offset="100%" stopColor="#faf5ff" stopOpacity={0.1}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis 
                   dataKey="date" 
-                  stroke="#64748b" 
+                  stroke="#7c3aed" 
                   fontSize={12}
                   axisLine={false}
                   tickLine={false}
+                  className="text-purple-600"
                 />
                 <YAxis 
-                  stroke="#64748b" 
+                  stroke="#7c3aed" 
                   fontSize={12}
                   axisLine={false}
                   tickLine={false}
+                  className="text-purple-600"
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: "white", 
-                    border: "1px solid #e2e8f0", 
+                    backgroundColor: "#faf5ff", 
+                    border: "1px solid #c4b5fd", 
                     borderRadius: "12px",
                     fontSize: "12px",
-                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)"
+                    boxShadow: "0 10px 15px -3px rgb(139 92 246 / 0.1)",
+                    color: "#7c3aed"
                   }}
-                  cursor={{ fill: "rgba(59, 130, 246, 0.1)" }}
+                  cursor={{ stroke: "rgba(139, 92, 246, 0.3)", strokeWidth: 2 }}
                 />
-                <Bar
+                <Area
+                  type="monotone"
                   dataKey="revenue"
-                  fill="url(#barGradient)"
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={60}
+                  stroke="#8b5cf6"
+                  strokeWidth={3}
+                  fill="url(#areaGradient)"
+                  dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: "#8b5cf6", strokeWidth: 2, fill: "#faf5ff" }}
+                  label={({ payload, x, y }: any) => {
+                    const orders = payload?.orders || payload?.payload?.orders || 0;
+                    return orders > 0 ? (
+                      <text x={x} y={y - 5} fill="#7c3aed" fontSize="9" textAnchor="middle" fontWeight="500">
+                        {orders} orders
+                      </text>
+                    ) : null;
+                  }}
                 />
-              </BarChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -392,29 +467,142 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <h3 className="text-lg font-semibold text-gray-900">Top 5 Menu Items</h3>
             <span className="text-sm text-gray-500">By order frequency</span>
           </div>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={topMenuItemsData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {topMenuItemsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="relative h-80">
+            <div className="h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={topMenuItemsData}
+                    cx="40%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={120}
+                    paddingAngle={1}
+                    dataKey="value"
+                    label={({ cx, cy, midAngle, innerRadius, outerRadius, value }: any) => {
+                      const RADIAN = Math.PI / 180;
+                      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                      return (
+                        <text 
+                          x={x} 
+                          y={y} 
+                          fill="white" 
+                          textAnchor={x > cx ? 'start' : 'end'} 
+                          dominantBaseline="central"
+                          fontSize="12"
+                          fontWeight="600"
+                        >
+                          {value}
+                        </text>
+                      );
+                    }}
+                    labelLine={false}
+                  >
+                    {topMenuItemsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: "#faf5ff",
+                      border: "1px solid #c4b5fd",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Custom Legend - Bottom Right */}
+            <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 space-y-0.5 sm:space-y-1">
+              {topMenuItemsData.map((item, index) => (
+                <div key={index} className="flex items-center space-x-0.5 sm:space-x-1 text-xs sm:text-xs">
+                  <div 
+                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0" 
+                    style={{ backgroundColor: item.color }}
+                  ></div>
+                  <div className="text-purple-600 font-medium min-w-0">
+                    <div className="truncate max-w-12 sm:max-w-20 text-xs sm:text-xs">{item.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
+      </div>
+
+      {/* Customer Reviews Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Customer Reviews</h3>
+          <span className="text-sm text-gray-500">Recent feedback</span>
+        </div>
+        
+        {recentReviews.length > 0 ? (
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+            {recentReviews.map((review) => {
+              const reviewDate = getRatingDate(review);
+              return (
+                <div
+                  key={review.id}
+                  className="bg-white rounded-2xl shadow-sm p-5 border border-gray-200 flex-shrink-0 min-w-[280px] hover:shadow-md transition-shadow duration-200"
+                >
+                  <div className="flex items-start space-x-4">
+                    {generateAvatar(review.customerName || "Anonymous")}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900 truncate">
+                          {review.customerName || "Anonymous"}
+                        </h4>
+                        <div className="flex items-center space-x-1">
+                          {renderStars(review.rating)}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+                        <span>Order #{review.orderId.slice(-6)}</span>
+                        <span>•</span>
+                        <span>
+                          {reviewDate
+                            ? reviewDate.toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: reviewDate.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+                              })
+                            : "Recent"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <div className="text-xs text-gray-400">
+                          {reviewDate
+                            ? reviewDate.toLocaleTimeString("en-US", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : ""}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-200 text-center">
+            <div className="w-16 h-16 bg-purple-50 text-purple-300 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-900 mb-2">No Reviews Yet</h4>
+            <p className="text-gray-500 text-sm">Customer reviews will appear here once customers start rating their experience.</p>
+          </div>
+        )}
       </div>
     </div>
   );

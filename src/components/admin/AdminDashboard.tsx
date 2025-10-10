@@ -11,7 +11,7 @@ import { TrendingUp, Users, Plus, Settings } from "lucide-react";
 import AdminSettings from "./AdminSettings";
 
 const AdminDashboard: React.FC = () => {
-  const { orders, updateOrder, menuItems, staff } = useApp();
+  const { orders, updateOrder, menuItems, staff, ratings } = useApp();
   const { user, logout } = useAuth();
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -121,6 +121,7 @@ const AdminDashboard: React.FC = () => {
               orders={orders}
               menuItems={menuItems}
               staff={staff}
+              ratings={ratings}
             />
           )}
 
