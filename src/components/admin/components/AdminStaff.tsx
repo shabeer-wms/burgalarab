@@ -249,7 +249,7 @@ export const AdminStaff: React.FC = () => {
                     {member.name}
                   </h3>
                   <p className="text-sm text-gray-500 truncate">
-                    ID: #{member.id}
+                    ID: {member.id}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
                     Phone: {member.phoneNumber}
@@ -332,7 +332,7 @@ export const AdminStaff: React.FC = () => {
                   <tr key={member.id} className="hover:bg-gray-50">
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        #{member.id}
+                        {member.id}
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
