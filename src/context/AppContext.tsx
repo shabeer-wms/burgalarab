@@ -119,16 +119,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubMenuItems = onSnapshot(collection(db, "menuItems"), async (snapshot) => {
       const items = snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as MenuItem));
       setMenuItems(items);
-      
-      // If no menu items exist, seed with sample data
-      if (items.length === 0) {
-        console.log("No menu items found, seeding with sample data...");
-        try {
-          await seedMenuItems();
-        } catch (error) {
-          console.error("Error seeding menu items:", error);
-        }
-      }
+      // Removed auto-seeding logic. Menu will stay empty if all items are deleted.
     });
 
     // Staff listener
