@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import SnackBar from "../SnackBar";
-import { LogOut, User, Eye, EyeOff, Trash2 } from "lucide-react";
+import { LogOut, User, Trash2 } from "lucide-react";
 import { updatePassword } from "firebase/auth";
 import { auth, db } from "../../firebase";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
@@ -86,14 +86,34 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ user, logout }) => {
     <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-full ml-0 relative">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-800">Settings</h2>
-        {/* Logout icon for small screens */}
-        <button
-          onClick={logout}
-          className="block md:hidden p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-          title="Logout"
-        >
-          <LogOut className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Clear Database button: desktop full, mobile icon */}
+          <button
+            className="md:flex hidden items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-xl text-base font-semibold hover:bg-red-700 transition-colors"
+            onClick={() => setShowConfirmDialog(true)}
+            disabled={clearLoading}
+            title="Clear Database"
+          >
+            <Trash2 className="w-5 h-5" />
+            <span>{clearLoading ? "Clearing..." : "Clear Database"}</span>
+          </button>
+          <button
+            className="md:hidden p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors"
+            onClick={() => setShowConfirmDialog(true)}
+            disabled={clearLoading}
+            title="Clear Database"
+          >
+            <Trash2 className="w-6 h-6" />
+          </button>
+          {/* Logout icon for small screens */}
+          <button
+            onClick={logout}
+            className="block md:hidden p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+            title="Logout"
+          >
+            <LogOut className="w-6 h-6" />
+          </button>
+        </div>
       </div>
       {/* User Details Section */}
       <div className="mb-8">
@@ -124,51 +144,45 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ user, logout }) => {
         <h3 className="text-lg font-semibold text-gray-700 mb-4">Update Password</h3>
         <form onSubmit={handlePasswordUpdate} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                className="w-full px-5 py-3 text-lg border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 pr-12"
-                placeholder="New Password"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                minLength={6}
-                required
-                disabled={loading}
-              />
-              <button
-                type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                tabIndex={-1}
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+              <div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full px-5 py-3 text-lg border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="New Password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  minLength={6}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="w-full px-5 py-3 text-lg border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  minLength={6}
+                  required
+                  disabled={loading}
+                />
+              </div>
             </div>
-            <div className="relative">
+            <div className="flex items-center mt-2">
               <input
-                type={showPassword ? "text" : "password"}
-                className="w-full px-5 py-3 text-lg border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 pr-12"
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                minLength={6}
-                required
-                disabled={loading}
+                id="show-password-checkbox"
+                type="checkbox"
+                checked={showPassword}
+                onChange={e => setShowPassword(e.target.checked)}
+                className="mr-2"
               />
-              <button
-                type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                tabIndex={-1}
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
+              <label htmlFor="show-password-checkbox" className="text-sm text-gray-700">Show password</label>
           </div>
           <div className="flex justify-end mt-4">
             <button
               type="submit"
-              className="w-full md:w-auto flex items-center justify-center space-x-3 px-6 py-4 bg-purple-600 text-white rounded-xl text-lg font-semibold hover:bg-purple-700 transition-colors"
+              className="w-full md:w-auto flex items-center justify-center space-x-3 px-4 py-2 bg-purple-600 text-white rounded-xl text-base font-semibold hover:bg-purple-700 transition-colors"
               disabled={loading || !newPassword || !confirmPassword}
             >
               {loading ? "Confirming..." : "Confirm"}
@@ -184,50 +198,41 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ user, logout }) => {
         />
       </div>
       {/* Clear Database Section */}
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold text-red-700 mb-4">Danger Zone</h3>
-        <button
-          className="flex items-center space-x-2 px-6 py-4 bg-red-600 text-white rounded-xl text-lg font-semibold hover:bg-red-700 transition-colors"
-          onClick={() => setShowConfirmDialog(true)}
-          disabled={clearLoading}
-        >
-          <Trash2 className="w-6 h-6" />
-          <span>{clearLoading ? "Clearing..." : "Clear Database"}</span>
-        </button>
-        {/* Confirmation Dialog */}
-        {showConfirmDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-8 shadow-lg max-w-sm w-full">
-              <h4 className="text-xl font-bold text-red-700 mb-4">Are you sure?</h4>
-              <p className="mb-6 text-gray-700">This will permanently delete all data in the database. This action cannot be undone.</p>
-              <div className="flex justify-end space-x-4">
-                <button
-                  className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300"
-                  onClick={() => setShowConfirmDialog(false)}
-                  disabled={clearLoading}
-                >Cancel</button>
-                <button
-                  className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 flex items-center justify-center"
-                  onClick={handleClearDatabase}
-                  disabled={clearLoading}
-                >
-                  {clearLoading ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                      </svg>
-                      Deleting...
-                    </span>
-                  ) : (
-                    "Yes, Delete All"
-                  )}
-                </button>
-              </div>
+      {/* Mobile: Clear Database icon below logout */}
+      {/* Removed mobile clear database button below logout, now next to Settings */}
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 shadow-lg max-w-sm w-full">
+            <h4 className="text-xl font-bold text-red-700 mb-4">Are you sure?</h4>
+            <p className="mb-6 text-gray-700">This will permanently delete all data in the database. This action cannot be undone.</p>
+            <div className="flex justify-end space-x-4">
+              <button
+                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300"
+                onClick={() => setShowConfirmDialog(false)}
+                disabled={clearLoading}
+              >Cancel</button>
+              <button
+                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 flex items-center justify-center"
+                onClick={handleClearDatabase}
+                disabled={clearLoading}
+              >
+                {clearLoading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    Deleting...
+                  </span>
+                ) : (
+                  "Yes, Delete All"
+                )}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

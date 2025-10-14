@@ -373,12 +373,11 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
             return (
               <div
                 key={item.id}
-                className={`${cardBg} rounded-lg shadow-sm border border-gray-200 overflow-hidden`}
+                className={`${cardBg} rounded-lg shadow-sm border border-gray-200 overflow-hidden ${!item.available ? 'md:opacity-100 opacity-30' : ''}`}
               >
-                {/* Mobile: category and dot above image */}
+                {/* Mobile: category above image, dot removed */}
                 <div className="block md:hidden px-2 pt-2 flex items-center justify-between">
                   <span className="text-xs font-semibold text-gray-700">{item.category}</span>
-                  <span className={`inline-block w-3 h-3 rounded-full ${item.available ? 'bg-green-500' : 'bg-red-500'}`}></span>
                 </div>
                 <div className="relative">
                   <img
@@ -568,10 +567,10 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
             </div>
 
             <div className="p-4 sm:p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name
-                </label>
+              <div
+                key={item.id}
+                className={`${cardBg} rounded-lg shadow-sm border border-gray-200 overflow-hidden ${!item.available ? 'opacity-50' : ''}`}
+              >
                 <input
                   type="text"
                   value={newMenuItem.name}
