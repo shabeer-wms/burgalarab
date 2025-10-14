@@ -290,7 +290,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
         <div className="flex flex-col space-y-4">
           {/* Search Bar */}
           <div className="flex justify-between items-center gap-4">
-            <div className="relative flex-1 max-w-xs sm:max-w-none">
+            <div className="relative flex-1 max-w-md sm:max-w-none">
               <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
@@ -567,20 +567,32 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
             </div>
 
             <div className="p-4 sm:p-6 space-y-4">
-              <div
-                key={item.id}
-                className={`${cardBg} rounded-lg shadow-sm border border-gray-200 overflow-hidden ${!item.available ? 'opacity-50' : ''}`}
-              >
-                <input
-                  type="text"
-                  value={newMenuItem.name}
-                  onChange={(e) =>
-                    setNewMenuItem({ ...newMenuItem, name: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter item name"
-                />
-              </div>
+              {(() => {
+                // Category color theme map for modal
+                const categoryColors: Record<string, string> = {
+                  Beverage: 'bg-blue-50',
+                  Dessert: 'bg-pink-50',
+                  Main: 'bg-yellow-50',
+                  Appetizer: 'bg-green-50',
+                  // Add more as needed
+                };
+                const cardBg = categoryColors[newMenuItem.category] || 'bg-white';
+                return (
+                  <div
+                    className={`${cardBg} rounded-lg shadow-sm border border-gray-200 overflow-hidden ${!newMenuItem.available ? 'opacity-50' : ''}`}
+                  >
+                    <input
+                      type="text"
+                      value={newMenuItem.name}
+                      onChange={(e) =>
+                        setNewMenuItem({ ...newMenuItem, name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Enter item name"
+                    />
+                  </div>
+                );
+              })()}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

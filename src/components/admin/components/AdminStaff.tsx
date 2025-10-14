@@ -217,7 +217,7 @@ export const AdminStaff: React.FC = () => {
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-12">
         <div className="flex justify-between items-center gap-4">
-          <div className="relative flex-1 max-w-xs sm:max-w-none">
+          <div className="relative flex-1 max-w-md sm:max-w-none">
             <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             <input
               type="text"

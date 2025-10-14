@@ -245,7 +245,7 @@ const OrderStatusManagement: React.FC = () => {
                         <span className="ml-1">{order.status.toUpperCase()}</span>
                       </div>
                       <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)}`}>
-                        <DollarSign className="w-3 h-3 inline mr-1" />
+                        <span className="inline mr-1 font-bold text-primary-700">OMR</span>
                         {order.paymentStatus.toUpperCase()}
                       </div>
                       {(order.status === 'ready' || order.status === 'completed') && order.deliveryStatus === 'delivered' && (
@@ -261,7 +261,7 @@ const OrderStatusManagement: React.FC = () => {
                     {order.items.slice(0, 2).map(item => (
                       <div key={item.id} className="flex justify-between text-body-small">
                         <span>{item.quantity}x {item.menuItem.name}</span>
-                        <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                        <span>OMR {(item.menuItem.price * item.quantity).toFixed(2)}</span>
                       </div>
                     ))}
                     {order.items.length > 2 && (
@@ -277,7 +277,7 @@ const OrderStatusManagement: React.FC = () => {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-4 min-w-0 flex-1">
                       <div className="text-title-medium font-semibold text-primary-600">
-                        ${order.grandTotal.toFixed(2)}
+                        OMR {order.grandTotal.toFixed(2)}
                       </div>
                       <div className="text-body-small text-surface-600 flex items-center">
                         <Clock className="w-3 h-3 mr-1" />
@@ -482,7 +482,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
                     {item.quantity}x {item.menuItem.name}
                   </p>
                   <p className="text-body-small text-surface-600">
-                    ${item.menuItem.price.toFixed(2)} each
+                    OMR {item.menuItem.price.toFixed(2)} each
                   </p>
                   {item.sugarPreference && (
                     <p className="text-body-small text-primary-700 mt-1">
@@ -497,7 +497,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
                 </div>
                 <div className="text-right">
                   <p className="text-body-medium font-medium">
-                    ${(item.menuItem.price * item.quantity).toFixed(2)}
+                    OMR {(item.menuItem.price * item.quantity).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -511,15 +511,15 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
           <div className="space-y-2 text-body-medium">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>${order.total.toFixed(2)}</span>
+              <span>OMR {order.total.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Tax:</span>
-              <span>${order.tax.toFixed(2)}</span>
+              <span>OMR {order.tax.toFixed(2)}</span>
             </div>
             <div className="border-t border-surface-200 pt-2 flex justify-between font-medium">
               <span>Total:</span>
-              <span>${order.grandTotal.toFixed(2)}</span>
+              <span>OMR {order.grandTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Payment Status:</span>

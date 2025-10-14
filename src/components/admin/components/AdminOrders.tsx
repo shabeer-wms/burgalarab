@@ -373,7 +373,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
         <div className="flex flex-col space-y-4">
           {/* Search Bar */}
           <div className="flex justify-between items-center gap-4">
-            <div className="relative flex-1 max-w-xs sm:max-w-none">
+            <div className="relative flex-1 max-w-md sm:max-w-none">
               {/* Use Lucide Search icon if available */}
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input
