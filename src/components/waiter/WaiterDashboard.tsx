@@ -15,7 +15,6 @@ const WaiterDashboard: React.FC = () => {
   const [selectedTable, setSelectedTable] = useState<string>('');
   const { user, logout } = useAuth();
   const { orders } = useApp();
-  const [currentTime, setCurrentTime] = useState(new Date());
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const [showCartModal, setShowCartModal] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
@@ -75,12 +74,6 @@ const WaiterDashboard: React.FC = () => {
         (el as HTMLElement).style.display = prev ?? "";
       });
     };
-  }, []);
-
-  // Update time every second
-  React.useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
   }, []);
 
   // Only show orders that belong to the logged-in waiter
@@ -215,7 +208,10 @@ const WaiterDashboard: React.FC = () => {
                         {tabs.find(tab => tab.id === activeTab)?.label || 'Waiter Dashboard'}
                       </h1>
                       <p className="text-gray-500 text-sm">
-                        {currentTime.toLocaleTimeString()}
+                        {activeTab === 'orders' ? 'Create and manage new customer orders' :
+                         activeTab === 'status' ? 'Track order preparation and delivery status' :
+                         activeTab === 'billing' ? 'Process payments and generate bills' :
+                         'Configure your preferences and settings'}
                       </p>
                     </div>
                   </div>
@@ -341,45 +337,11 @@ const WaiterDashboard: React.FC = () => {
                     >
                       {activeTab === 'billing' ? (
                         <>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-blue-600 w-8 text-center">
-                              {totalBillingOrdersCount}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Total</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-orange-500 w-8 text-center">
-                              {pendingOrdersCount}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Pending</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
-                              {paidOrdersCount}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Paid</p>
-                          </div>
+                          {/* Removed Total, Pending, Paid counters for mobile screens in billing tab as requested */}
                         </>
                       ) : (
                         <>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-blue-600 w-8 text-center">
-                              {confirmedOrders.length}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Confirmed</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-orange-500 w-8 text-center">
-                              {preparingOrders.length}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Preparing</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
-                              {readyOrders.length}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Ready</p>
-                          </div>
+                          {/* Removed Confirmed, Preparing, Ready counters for mobile screens as requested */}
                         </>
                       )}
                     </div>

@@ -489,7 +489,7 @@
         itemDiv.innerHTML = `
           <div class="item-details">
             <div class="item-name">${itemName}</div>
-            <div class="item-price">$${itemPrice} each</div>
+            <div class="item-price">OMR${itemPrice} each</div>
             ${preferencesHtml}
           </div>
           <div class="item-quantity">${quantity}x</div>
@@ -734,9 +734,9 @@
               const subtotal = (o.total || 0).toFixed(2);
               const tax = (o.tax || 0).toFixed(2);
               const total = (o.grandTotal || 0).toFixed(2);
-              document.getElementById('subtotal').textContent = `$${subtotal}`;
-              document.getElementById('tax').textContent = `$${tax}`;
-              document.getElementById('total').textContent = `$${total}`;
+              document.getElementById('subtotal').textContent = `OMR${subtotal}`;
+              document.getElementById('tax').textContent = `OMR${tax}`;
+              document.getElementById('total').textContent = `OMR${total}`;
               
               // Update payment information
               updatePaymentInfo(o.paymentStatus, o.paymentMethod);
