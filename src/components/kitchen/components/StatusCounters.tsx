@@ -15,49 +15,9 @@ export const StatusCounters: React.FC<StatusCountersProps> = ({
 }) => {
   return (
     <div className="w-full lg:w-96">
-      {/* Mobile counters */}
-      <div
-        className="grid gap-2 sm:gap-3 w-full md:hidden"
-        style={{
-          gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))",
-        }}
-      >
-        <div className="flex flex-col items-center">
-          <p
-            className={`${kitchenLayout.typography.header.counters.mobile} ${kitchenColors.status.pending.primary} ${kitchenLayout.sizing.counter.width} text-center`}
-          >
-            {pendingCount}
-          </p>
-          <p
-            className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.counters.mobile}`}
-          >
-            Pending
-          </p>
-        </div>
-        <div className="flex flex-col items-center">
-          <p
-            className={`${kitchenLayout.typography.header.counters.mobile} ${kitchenColors.status.inProgress.primary} ${kitchenLayout.sizing.counter.width} text-center`}
-          >
-            {inProgressCount}
-          </p>
-          <p
-            className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.counters.mobile} whitespace-nowrap`}
-          >
-            In Progress
-          </p>
-        </div>
-        <div className="flex flex-col items-center">
-          <p
-            className={`${kitchenLayout.typography.header.counters.mobile} ${kitchenColors.status.ready.primary} ${kitchenLayout.sizing.counter.width} text-center`}
-          >
-            {readyCount}
-          </p>
-          <p
-            className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.counters.mobile}`}
-          >
-            Ready
-          </p>
-        </div>
+      {/* Mobile counters - Hidden on mobile screens */}
+      <div className="hidden">
+        {/* Mobile counters removed from mobile view */}
       </div>
 
       {/* Tablet and Desktop counters */}
