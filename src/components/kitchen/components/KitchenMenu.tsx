@@ -113,7 +113,7 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
         {/* Menu Items Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
           {paginatedMenuItems.map((item) => (
-            <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div key={item.id} className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${!item.available ? 'md:opacity-100 opacity-30' : ''}`}>
               <div className="relative">
                 <img src={item.image} alt={item.name} className="w-full h-24 sm:h-28 md:h-32 object-cover" />
                 <div className="absolute top-1 right-1">
@@ -126,7 +126,7 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
               <div className="p-2 md:p-3">
                 <div className="flex justify-between items-start mb-1">
                   <h3 className="text-xs sm:text-sm font-semibold text-gray-900 truncate flex-1 pr-1">{item.name}</h3>
-                  <span className="text-xs sm:text-sm font-bold text-purple-600 flex-shrink-0">${item.price}</span>
+                  <span className="text-xs sm:text-sm font-bold text-purple-600 flex-shrink-0">OMR {item.price}</span>
                 </div>
                 <p className="text-gray-600 text-xs mb-2 line-clamp-2 leading-tight">{item.description}</p>
                 <div className="flex justify-start items-center text-xs text-gray-500 mb-2">

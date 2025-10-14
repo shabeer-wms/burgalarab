@@ -790,7 +790,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                 <div className="border-t border-surface-100 bg-surface-50 px-4 py-3 lg:px-3 lg:py-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-title-medium font-semibold text-primary-600 lg:text-sm">
-                      ${item.price.toFixed(2)}
+                      OMR {item.price.toFixed(2)}
                     </div>
                     <div className="flex items-center space-x-2 shrink-0">
                       {/* Quantity controls */}

@@ -3,7 +3,7 @@ import OrderManagement from '../staff/OrderManagement';
 import OrderStatusManagement from '../staff/OrderStatusManagement';
 import BillingPayments from '../staff/BillingPayments';
 import Snackbar from '../SnackBar';
-import { ShoppingCart, Eye, Receipt, User, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
+import { ShoppingCart, Eye, Receipt, UserCheck, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
 import WaiterSettings from './WaiterSettings';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -127,11 +127,6 @@ const WaiterDashboard: React.FC = () => {
     <div ref={rootRef} className="fixed inset-0 flex bg-gray-100">
       {/* Desktop sidebar (hidden on tablet and smaller screens) */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 flex-col z-40">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-lg font-bold text-gray-900">Hotel Management</h1>
-          <p className="text-sm text-gray-600 mt-1">Waiter Dashboard</p>
-        </div>
         <nav className="flex-1 px-4 py-4 space-y-2">
           {tabs.map(tab => (
             <button
@@ -153,7 +148,9 @@ const WaiterDashboard: React.FC = () => {
         </nav>
         <div className="p-4 border-t">
           <div className="mb-4 flex items-center">
-            <User className="w-6 h-6 mr-3 text-gray-500" />
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+              <UserCheck className="w-5 h-5 text-purple-600" />
+            </div>
             <div>
               <p className="text-sm font-semibold text-gray-800">
                 {user?.name || 'Waiter'}
@@ -486,7 +483,7 @@ const WaiterDashboard: React.FC = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="text-body-large font-medium">{item.menuItem.name}</h4>
-                          <p className="text-body-small text-surface-600">${item.menuItem.price.toFixed(2)} each</p>
+                          <p className="text-body-small text-surface-600">OMR {item.menuItem.price.toFixed(2)} each</p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <button
@@ -573,7 +570,7 @@ const WaiterDashboard: React.FC = () => {
                       )}
                       
                       <div className="text-right text-body-medium font-medium">
-                        ${(item.menuItem.price * item.quantity).toFixed(2)}
+                        OMR {(item.menuItem.price * item.quantity).toFixed(2)}
                       </div>
                     </div>
                   ))}

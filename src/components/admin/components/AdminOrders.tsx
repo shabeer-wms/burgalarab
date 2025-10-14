@@ -224,7 +224,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
               <span>${item.quantity || 0}x ${
                 item.menuItem?.name || "Unknown Item"
               }</span>
-              <span>$${(
+              <span>OMR ${(
                 (item.menuItem?.price || 0) * (item.quantity || 0)
               ).toFixed(2)}</span>
             </div>
@@ -236,15 +236,15 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
         <div class="total">
           <div class="item">
             <span>Subtotal:</span>
-            <span>$${(order.total || 0).toFixed(2)}</span>
+            <span>OMR ${(order.total || 0).toFixed(2)}</span>
           </div>
           <div class="item">
             <span>Tax (10%):</span>
-            <span>$${(order.tax || 0).toFixed(2)}</span>
+            <span>OMR ${(order.tax || 0).toFixed(2)}</span>
           </div>
           <div class="item" style="font-size: 18px;">
             <span>Total:</span>
-            <span>$${(order.grandTotal || 0).toFixed(2)}</span>
+            <span>OMR ${(order.grandTotal || 0).toFixed(2)}</span>
           </div>
           <div class="item">
             <span>Payment Method:</span>
@@ -539,7 +539,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${(order.grandTotal || 0).toFixed(2)}
+                      OMR {(order.grandTotal || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
