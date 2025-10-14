@@ -158,7 +158,7 @@ export const KitchenOrderCard: React.FC<KitchenOrderCardProps> = ({
           <h3
             className={`${kitchenLayout.typography.card.title} ${kitchenColors.ui.primary.text} truncate`}
           >
-            {getNumericOrderNumber(order.orderNumber)}
+            ORD{getNumericOrderNumber(order.orderNumber)}
           </h3>
           <p
             className={`${kitchenLayout.typography.card.subtitle} ${kitchenColors.ui.primary.textSecondary} truncate`}
