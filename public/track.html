@@ -27,6 +27,10 @@
     .timeline-step.completed .timeline-icon { background:#10b981; color: white; border-color: #10b981; }
     .timeline-step.completed .timeline-line { background:#10b981; }
     .timeline-step.completed .timeline-title { color: #065f46; }
+    .timeline-step.paused .timeline-icon { background:#f59e0b; color: white; border-color: #f59e0b; }
+    .timeline-step.paused .timeline-line { background:#fbbf24; }
+    .timeline-step.paused .timeline-title { color: #92400e; }
+    .timeline-step.paused .timeline-desc { color: #d97706; font-weight: 500; }
     .timeline-step:last-child .timeline-line { display: none; }
     .footer { text-align:center; color:#6b7280; font-size:12px; margin-top: 16px; }
     .link { word-break: break-all; font-size: 12px; color:#374151; }
@@ -192,10 +196,27 @@
                     <path d="M12 3c.552 0 1-.449 1-1s-.448-1-1-1-1 .449-1 1 .448 1 1 1z"></path>
                   </svg>
                 </div>
+                <div class="timeline-line"></div>
               </div>
               <div class="timeline-content">
                 <h4 class="timeline-title">Ready for Pickup</h4>
                 <p class="timeline-desc" id="ready-desc">Your order is ready and waiting for you!</p>
+              </div>
+            </div>
+            
+            <div class="timeline-step" id="step-delivered">
+              <div class="timeline-icon-container">
+                <div class="timeline-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 6v6l4 2"></path>
+                    <path d="M16 8l-4-4-4 4"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="timeline-content">
+                <h4 class="timeline-title">Payment Completed & Delivered</h4>
+                <p class="timeline-desc">Payment received and order delivered to customer</p>
               </div>
             </div>
           </div>
@@ -261,12 +282,12 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
     import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
     const params = new URLSearchParams(location.search);
     const orderId = params.get('order');
-    document.getElementById('orderId').textContent = orderId ? `#${orderId.slice(-6)}` : 'No order id';
+    document.getElementById('orderId').textContent = orderId ? `${orderId.slice(-6)}` : 'No order id';
     document.getElementById('share').textContent = location.href;
     
     // Show error immediately if no order ID
@@ -278,7 +299,9 @@
     
     // Track previous status for rating dialog trigger
     let previousOrderStatus = null;
+    let previousPaymentStatus = null;
     let ratingSubmitted = false;
+    let currentOrder = null; // Store order data for rating submission
 
     const firebaseConfig = {
       apiKey: "AIzaSyAlLz1bWFwiv3TTe7xqY6q2QU67jTZVRI8",
@@ -310,14 +333,15 @@
       }
     };
 
-    function setDots(status, orderType) {
+    function setDots(status, orderType, paymentStatus, deliveryStatus) {
       const s = String(status || '').toLowerCase();
       
-      // Reset all steps
+      // Reset all steps to default state
       document.getElementById('step-pending').className = 'timeline-step';
       document.getElementById('step-confirmed').className = 'timeline-step';
       document.getElementById('step-preparing').className = 'timeline-step';
       document.getElementById('step-ready').className = 'timeline-step';
+      document.getElementById('step-delivered').className = 'timeline-step';
       
       // Update ready step description based on order type
       const readyDesc = document.getElementById('ready-desc');
@@ -329,24 +353,40 @@
         readyDesc.textContent = 'Your order is ready and waiting at your table!';
       }
       
-      // Set completed steps based on current status
-      if (s === 'confirmed' || s === 'paused' || s === 'preparing' || s === 'ready' || s === 'completed') {
+      // Set completed steps based on current status (all previous steps completed)
+      if (s === 'confirmed' || s === 'paused' || s === 'preparing' || s === 'ready' || s === 'completed' || s === 'delivered') {
         document.getElementById('step-pending').className = 'timeline-step completed';
       }
       
-      if (s === 'confirmed' || s === 'paused' || s === 'preparing' || s === 'ready' || s === 'completed') {
+      if (s === 'preparing' || s === 'ready' || s === 'completed' || s === 'delivered') {
         document.getElementById('step-confirmed').className = 'timeline-step completed';
       }
       
-      if (s === 'preparing' || s === 'ready' || s === 'completed') {
+      if (s === 'ready' || s === 'completed' || s === 'delivered') {
         document.getElementById('step-preparing').className = 'timeline-step completed';
       }
       
-      if (s === 'ready' || s === 'completed') {
+      if (s === 'completed' || s === 'delivered') {
         document.getElementById('step-ready').className = 'timeline-step completed';
       }
       
-      // Set the current active step
+      // Final step logic - handle delivery status
+      if (s === 'delivered') {
+        // When fully delivered, mark as completed
+        document.getElementById('step-delivered').className = 'timeline-step completed';
+      } else if (s === 'completed' && paymentStatus === 'paid') {
+        if (deliveryStatus === 'delivered') {
+          // Fully completed - payment done and delivered
+          document.getElementById('step-delivered').className = 'timeline-step completed';
+        } else {
+          // Payment completed but waiting for delivery - show as paused
+          document.getElementById('step-delivered').className = 'timeline-step paused';
+          // Update description to show waiting for delivery
+          document.getElementById('step-delivered').querySelector('.timeline-desc').textContent = 'Payment completed, waiting for delivery';
+        }
+      }
+      
+      // Set the current active step (override completed status for current step)
       if (s === 'pending') {
         document.getElementById('step-pending').className = 'timeline-step active';
       } else if (s === 'confirmed') {
@@ -361,9 +401,17 @@
         document.getElementById('step-preparing').className = 'timeline-step active';
       } else if (s === 'ready') {
         document.getElementById('step-ready').className = 'timeline-step active';
-      } else if (s === 'completed') {
-        // All steps completed
-        document.getElementById('step-ready').className = 'timeline-step completed';
+      } else if (s === 'completed' && paymentStatus === 'paid') {
+        if (deliveryStatus === 'delivered') {
+          // If fully completed with delivery, show final step as active
+          document.getElementById('step-delivered').className = 'timeline-step active';
+        } else {
+          // Payment completed but delivery pending - show as paused
+          document.getElementById('step-delivered').className = 'timeline-step paused';
+        }
+      } else if (s === 'delivered') {
+        // When status is delivered, show final step as active
+        document.getElementById('step-delivered').className = 'timeline-step active';
       }
       
       // Update the status badge
@@ -374,7 +422,8 @@
         'paused':'#f97316',
         'preparing':'#8b5cf6',
         'ready':'#10b981',
-        'completed':'#059669'
+        'completed':'#059669',
+        'delivered':'#059669'
       };
       badge.style.background = statusMap[s] || '#6b7280';
       badge.style.color = '#fff';
@@ -387,7 +436,7 @@
         'ready': 'READY',
         'completed': 'COMPLETED'
       };
-      badge.textContent = statusText[s] || 'UNKNOWN';
+      badge.textContent = statusText[s] || 'DELIVERED';
     }
 
     // Helper function to format order time
@@ -440,7 +489,7 @@
         itemDiv.innerHTML = `
           <div class="item-details">
             <div class="item-name">${itemName}</div>
-            <div class="item-price">$${itemPrice} each</div>
+            <div class="item-price">OMR${itemPrice} each</div>
             ${preferencesHtml}
           </div>
           <div class="item-quantity">${quantity}x</div>
@@ -538,11 +587,11 @@
         }, index * 100); // Stagger the animation
       });
       
-      // Save rating to Firebase (optional - can be enabled for production)
+      // Save rating to Firebase
       console.log(`Customer rated: ${rating} stars for order: ${orderId}`);
       
-      // Uncomment below to save rating to Firebase
-      // saveRatingToFirebase(orderId, rating);
+      // Save rating to Firebase with customer information
+      saveRatingToFirebase(orderId, rating, currentOrder?.customerName);
       
       ratingSubmitted = true;
       
@@ -552,10 +601,10 @@
         document.getElementById('thank-you-content').style.display = 'block';
       }, 800);
       
-      // Auto-close after 4 seconds
+      // Auto-close after 10 seconds
       setTimeout(() => {
         closeRatingDialog();
-      }, 4000);
+      }, 10000);
     };
     
     const closeRatingDialog = () => {
@@ -573,6 +622,29 @@
         star.style.pointerEvents = 'auto';
         star.style.cursor = 'pointer';
       });
+      
+      // Exit the order tracking page and make URL inactive
+      // Show a brief goodbye message before redirect
+      document.body.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; background: #f6f7f9; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;">
+          <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); max-width: 400px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">👋</div>
+            <h2 style="color: #1f2937; margin-bottom: 12px;">Thank you for dining with us!</h2>
+            <p style="color: #6b7280; margin-bottom: 24px;">Your feedback helps us serve you better.</p>
+            <p style="color: #9ca3af; font-size: 14px;">This tracking link is now inactive.</p>
+          </div>
+        </div>
+      `;
+      
+      // Replace the current URL in browser history to prevent going back
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', '/');
+      }
+      
+      // Disable any further Firebase listeners or page functionality
+      if (window.unsubscribeOrderListener) {
+        window.unsubscribeOrderListener();
+      }
     };
 
     // Function to start order tracking after authentication
@@ -591,7 +663,8 @@
         console.log('🔐 User anonymous:', auth.currentUser?.isAnonymous);
         console.log('🔐 Auth state ready:', !!auth.currentUser);
 
-        const unsubscribe = onSnapshot(
+        // Store unsubscribe function globally for cleanup
+        window.unsubscribeOrderListener = onSnapshot(
           doc(db, 'orders', orderId), 
           (snap) => {
             try {
@@ -621,6 +694,9 @@
               document.getElementById('loading').style.display = 'none';
               document.getElementById('error').style.display = 'none';
               document.getElementById('order-content').style.display = 'block';
+              
+              // Store order data for rating submission
+              currentOrder = o;
               
               // Populate customer information
               document.getElementById('customer').textContent = o.customerName || '-';
@@ -658,20 +734,30 @@
               const subtotal = (o.total || 0).toFixed(2);
               const tax = (o.tax || 0).toFixed(2);
               const total = (o.grandTotal || 0).toFixed(2);
-              document.getElementById('subtotal').textContent = `$${subtotal}`;
-              document.getElementById('tax').textContent = `$${tax}`;
-              document.getElementById('total').textContent = `$${total}`;
+              document.getElementById('subtotal').textContent = `OMR${subtotal}`;
+              document.getElementById('tax').textContent = `OMR${tax}`;
+              document.getElementById('total').textContent = `OMR${total}`;
               
               // Update payment information
               updatePaymentInfo(o.paymentStatus, o.paymentMethod);
               
-              // Update timeline with main order status (handle paused state)
-              const displayStatus = (o.status === 'confirmed' && o.paused) ? 'paused' : o.status;
-              setDots(displayStatus, o.type);
+              // Update timeline with main order status (handle paused state and completed logic)
+              let displayStatus;
+              if (o.status === 'confirmed' && o.paused) {
+                displayStatus = 'paused';
+              } else if (o.status === 'completed' && o.paymentStatus === 'paid' && o.deliveryStatus === 'delivered') {
+                displayStatus = 'delivered'; // Show as delivered when fully complete
+              } else {
+                displayStatus = o.status; // Show regular status for all other cases
+              }
+              setDots(displayStatus, o.type, o.paymentStatus, o.deliveryStatus);
               
-              // Check if order just became ready and show rating dialog
-              if (displayStatus === 'ready' && previousOrderStatus !== 'ready' && !ratingSubmitted) {
-                // Add a subtle celebration effect when order becomes ready
+              // Check if order is fully delivered (Payment Completed & Delivered) and show rating dialog
+              const isFullyDelivered = (displayStatus === 'delivered');
+              const wasNotFullyDelivered = (previousOrderStatus !== 'delivered');
+              
+              if (isFullyDelivered && wasNotFullyDelivered && !ratingSubmitted) {
+                // Add a subtle celebration effect when order is fully completed
                 document.body.style.background = 'linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%)';
                 setTimeout(() => {
                   document.body.style.background = '#f6f7f9';
@@ -681,6 +767,7 @@
                 setTimeout(() => showRatingDialog(), 2000);
               }
               previousOrderStatus = displayStatus;
+              previousPaymentStatus = o.paymentStatus;
               
               // Update status message with more detail
               let statusMessage = `Order status: ${displayStatus.toUpperCase()}`;
@@ -692,6 +779,10 @@
                 statusMessage += ' - Kitchen is working on your order';
               } else if (displayStatus === 'ready') {
                 statusMessage += (o.type === 'delivery' ? ' - Order ready for delivery' : ' - Order ready at your table');
+              } else if (displayStatus === 'completed') {
+                statusMessage += ' - Payment completed, awaiting delivery';
+              } else if (displayStatus === 'delivered') {
+                statusMessage += ' - Order successfully delivered to customer';
               }
               
               updateConnectionStatus('connected', statusMessage);
@@ -763,17 +854,19 @@
       }
     };
 
-    // Optional: Function to save rating to Firebase
-    const saveRatingToFirebase = async (orderId, rating) => {
+    // Function to save rating to Firebase
+    const saveRatingToFirebase = async (orderId, rating, customerName) => {
       try {
-        // This would save the rating to a 'ratings' collection
-        // await setDoc(doc(db, 'ratings', orderId), {
-        //   orderId: orderId,
-        //   rating: rating,
-        //   timestamp: new Date(),
-        //   customerType: 'anonymous'
-        // });
-        console.log('Rating saved to Firebase:', { orderId, rating });
+        // Save the rating to a 'ratings' collection in Firestore
+        await setDoc(doc(db, 'ratings', orderId), {
+          orderId: orderId,
+          rating: rating,
+          customerName: customerName || 'Anonymous',
+          timestamp: new Date(),
+          createdAt: new Date().toISOString(),
+          reviewText: null // Can be expanded later for text reviews
+        });
+        console.log('Rating saved to Firebase:', { orderId, rating, customerName: customerName || 'Anonymous' });
       } catch (error) {
         console.error('Failed to save rating:', error);
       }

@@ -176,17 +176,17 @@ const BillingPayments: React.FC = () => {
                 <tr>
                   <td>${item.menuItem.name}</td>
                   <td>${item.quantity}</td>
-                  <td>$${item.menuItem.price.toFixed(2)}</td>
-                  <td>$${(item.quantity * item.menuItem.price).toFixed(2)}</td>
+                  <td>OMR ${item.menuItem.price.toFixed(2)}</td>
+                  <td>OMR ${(item.quantity * item.menuItem.price).toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
 
           <div class="total-section">
-            <div class="total-line">Subtotal: $${order.total.toFixed(2)}</div>
-            <div class="total-line">Tax: $${order.tax.toFixed(2)}</div>
-            <div class="total-line grand-total">Grand Total: $${order.grandTotal.toFixed(2)}</div>
+            <div class="total-line">Subtotal: OMR ${order.total.toFixed(2)}</div>
+            <div class="total-line">Tax: OMR ${order.tax.toFixed(2)}</div>
+            <div class="total-line grand-total">Grand Total: OMR ${order.grandTotal.toFixed(2)}</div>
           </div>
 
           <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
@@ -204,12 +204,11 @@ const BillingPayments: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-6">
-  {/* Section */}
+        {/* Section */}
         <div className="space-y-4">
-          {/* Header and Filters */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-title-large"></h2>
-            <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {/* Header and Filters - hidden on mobile, including Billing card */}
+          <div className="hidden sm:block sm:flex items-start lg:items-center">
+            <div className="overflow-x-auto pb-2 flex-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
               <div className="flex space-x-2 min-w-max">
                 <button
@@ -244,7 +243,9 @@ const BillingPayments: React.FC = () => {
                 </button>
               </div>
             </div>
+            <h2 className="text-title-large"></h2>
           </div>
+          {/* Header and Filters are now hidden on mobile (sm: and up) */}
           
           {/* Grid */}
           {filteredOrders.length === 0 ? (
@@ -265,14 +266,14 @@ const BillingPayments: React.FC = () => {
                     <div className="flex-1 p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="text-title-medium text-primary-900">Order #{order.id.slice(-6)}</h3>
+                          <h3 className="text-title-medium text-primary-900"> {order.id.slice(-6)}</h3>
                           <p className="text-body-medium text-surface-700">
                             {order.customerName}
                             {order.tableNumber && ` • Table ${order.tableNumber}`}
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-title-medium font-bold">${order.grandTotal.toFixed(2)}</div>
+                          <div className="text-title-medium font-bold">OMR {order.grandTotal.toFixed(2)}</div>
                           <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-1 ${
                             order.status === 'ready' ? 'bg-success-100 text-success-800' : 
                             order.status === 'completed' ? 'bg-primary-100 text-primary-800' : 
@@ -281,7 +282,7 @@ const BillingPayments: React.FC = () => {
                             {order.status.toUpperCase()}
                           </div>
                           <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)} flex items-center justify-end`}>
-                            <DollarSign className="w-3 h-3 mr-1" />
+                            <span className="inline mr-1 font-bold text-primary-700">OMR</span>
                             {order.paymentStatus.toUpperCase()}
                           </div>
                         </div>
@@ -291,7 +292,7 @@ const BillingPayments: React.FC = () => {
                         {order.items.slice(0, 2).map(item => (
                           <div key={item.id} className="flex justify-between text-body-small">
                             <span>{item.quantity}x {item.menuItem.name}</span>
-                            <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                            <span>OMR {(item.menuItem.price * item.quantity).toFixed(2)}</span>
                           </div>
                         ))}
                         {order.items.length > 2 && (
@@ -402,7 +403,7 @@ const BillingPayments: React.FC = () => {
             <div className="p-6 space-y-4">
               {/* Order Details */}
               <div>
-                <h4 className="text-title-medium mb-2">Order #{billingOrder.id.slice(-6)}</h4>
+                <h4 className="text-title-medium mb-2"> {billingOrder.id.slice(-6)}</h4>
                 <p className="text-body-medium text-surface-600">
                   {billingOrder.customerName} • {billingOrder.customerPhone}
                 </p>
@@ -426,7 +427,7 @@ const BillingPayments: React.FC = () => {
                           <div className="text-body-small text-warning-600">Note: {item.specialInstructions}</div>
                         )}
                       </div>
-                      <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                      <span>OMR {(item.menuItem.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -436,19 +437,19 @@ const BillingPayments: React.FC = () => {
               <div className="border-t border-surface-200 pt-4 space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>${billingOrder.total.toFixed(2)}</span>
+                  <span>OMR {billingOrder.total.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Service Charge (10%):</span>
-                  <span>${(billingOrder.total * 0.1).toFixed(2)}</span>
+                  <span>OMR {(billingOrder.total * 0.1).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax (18%):</span>
-                  <span>${billingOrder.tax.toFixed(2)}</span>
+                  <span>OMR {billingOrder.tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
                   <span>Total:</span>
-                  <span>${billingOrder.grandTotal.toFixed(2)}</span>
+                  <span>OMR {billingOrder.grandTotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Payment Status:</span>

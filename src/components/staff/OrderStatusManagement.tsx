@@ -4,14 +4,14 @@ import { useAuth } from '../../context/AuthContext';
 import { Order } from '../../types';
 import { 
   Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, ChefHat, 
-  Trash2, X, Receipt, CreditCard, Banknote, Smartphone, Globe 
+  Trash2, X, Receipt, CreditCard, Banknote, Smartphone, Globe, Truck 
 } from 'lucide-react';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 
 const OrderStatusManagement: React.FC = () => {
   const { orders, updateOrder, showNotification } = useApp();
   const { user } = useAuth();
-  const [selectedStatus, setSelectedStatus] = useState<'all' | Order['status']>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | Order['status'] | 'delivered'>('all');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
@@ -31,7 +31,11 @@ const OrderStatusManagement: React.FC = () => {
 
   const filteredOrders = (selectedStatus === 'all'
     ? baseOrders
-    : baseOrders.filter(order => order.status === selectedStatus)
+    : selectedStatus === 'delivered' 
+      ? baseOrders.filter(order => (order.status === 'ready' || order.status === 'completed') && order.deliveryStatus === 'delivered')
+      : selectedStatus === 'completed'
+        ? baseOrders.filter(order => order.status === 'completed' && order.paymentStatus === 'paid' && order.deliveryStatus !== 'delivered')
+        : baseOrders.filter(order => order.status === selectedStatus)
   ).sort((a, b) => {
     // Sort by order time in descending order (most recent first)
     const timeA = a.orderTime instanceof Date ? a.orderTime : 
@@ -113,6 +117,24 @@ const OrderStatusManagement: React.FC = () => {
     }
   };
 
+  const handleDeliveryStatusToggle = async (orderId: string, currentDeliveryStatus?: 'pending' | 'delivered') => {
+    try {
+      const newStatus = currentDeliveryStatus === 'delivered' ? 'pending' : 'delivered';
+      await updateOrder(orderId, { 
+        deliveryStatus: newStatus
+      });
+      showNotification(
+        newStatus === 'delivered' 
+          ? 'Order marked as delivered' 
+          : 'Order marked as pending delivery', 
+        'success'
+      );
+    } catch (error) {
+      console.error('Error updating delivery status:', error);
+      showNotification('Failed to update delivery status. Please try again.', 'error');
+    }
+  };
+
   const getTimeElapsed = (orderTime: Date) => {
     const now = new Date();
     const diff = Math.floor((now.getTime() - orderTime.getTime()) / 1000 / 60);
@@ -158,6 +180,12 @@ const OrderStatusManagement: React.FC = () => {
                 Completed
               </button>
               <button
+                onClick={() => setSelectedStatus('delivered')}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'delivered' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Delivered
+              </button>
+              <button
                 onClick={() => setSelectedStatus('cancelled')}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'cancelled' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
@@ -187,7 +215,7 @@ const OrderStatusManagement: React.FC = () => {
                 <div className="flex-1 p-4">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="text-title-medium">#{order.id.slice(-6)}</h3>
+                      <h3 className="text-title-medium">{order.id.slice(-6)}</h3>
                       <p className="text-body-medium text-surface-600">
                         {order.customerName} • {order.type}
                         {order.tableNumber && ` • Table ${order.tableNumber}`}
@@ -217,9 +245,15 @@ const OrderStatusManagement: React.FC = () => {
                         <span className="ml-1">{order.status.toUpperCase()}</span>
                       </div>
                       <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)}`}>
-                        <DollarSign className="w-3 h-3 inline mr-1" />
+                        <span className="inline mr-1 font-bold text-primary-700">OMR</span>
                         {order.paymentStatus.toUpperCase()}
                       </div>
+                      {(order.status === 'ready' || order.status === 'completed') && order.deliveryStatus === 'delivered' && (
+                        <div className="text-body-small text-green-600 mt-1">
+                          <Truck className="w-3 h-3 inline mr-1" />
+                          DELIVERED
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -227,7 +261,7 @@ const OrderStatusManagement: React.FC = () => {
                     {order.items.slice(0, 2).map(item => (
                       <div key={item.id} className="flex justify-between text-body-small">
                         <span>{item.quantity}x {item.menuItem.name}</span>
-                        <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                        <span>OMR {(item.menuItem.price * item.quantity).toFixed(2)}</span>
                       </div>
                     ))}
                     {order.items.length > 2 && (
@@ -243,7 +277,7 @@ const OrderStatusManagement: React.FC = () => {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-4 min-w-0 flex-1">
                       <div className="text-title-medium font-semibold text-primary-600">
-                        ${order.grandTotal.toFixed(2)}
+                        OMR {order.grandTotal.toFixed(2)}
                       </div>
                       <div className="text-body-small text-surface-600 flex items-center">
                         <Clock className="w-3 h-3 mr-1" />
@@ -276,6 +310,19 @@ const OrderStatusManagement: React.FC = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
+                      {(order.status === 'ready' || order.status === 'completed') && selectedStatus !== 'ready' && (
+                        <button
+                          onClick={() => handleDeliveryStatusToggle(order.id, order.deliveryStatus)}
+                          className={`p-2 rounded-lg transition-colors border ${
+                            order.deliveryStatus === 'delivered' 
+                              ? 'bg-green-100 text-green-600 border-green-200 hover:bg-green-200' 
+                              : 'bg-blue-100 text-blue-600 border-blue-200 hover:bg-blue-200'
+                          }`}
+                          title={order.deliveryStatus === 'delivered' ? 'Mark as pending' : 'Mark as delivered'}
+                        >
+                          <Truck className="w-4 h-4" />
+                        </button>
+                      )}
                       {order.status !== 'completed' && order.status !== 'cancelled' && (
                         <button
                           onClick={() => handleCancelOrder(order.id)}
@@ -387,7 +434,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
         {/* Order Info */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-title-medium">Order #{order.id.slice(-6)}</h4>
+            <h4 className="text-title-medium">Order {order.id.slice(-6)}</h4>
             {order.draft && (
               <span className="chip chip-secondary">DRAFT</span>
             )}
@@ -435,7 +482,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
                     {item.quantity}x {item.menuItem.name}
                   </p>
                   <p className="text-body-small text-surface-600">
-                    ${item.menuItem.price.toFixed(2)} each
+                    OMR {item.menuItem.price.toFixed(2)} each
                   </p>
                   {item.sugarPreference && (
                     <p className="text-body-small text-primary-700 mt-1">
@@ -450,7 +497,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
                 </div>
                 <div className="text-right">
                   <p className="text-body-medium font-medium">
-                    ${(item.menuItem.price * item.quantity).toFixed(2)}
+                    OMR {(item.menuItem.price * item.quantity).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -464,15 +511,15 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
           <div className="space-y-2 text-body-medium">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>${order.total.toFixed(2)}</span>
+              <span>OMR {order.total.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Tax:</span>
-              <span>${order.tax.toFixed(2)}</span>
+              <span>OMR {order.tax.toFixed(2)}</span>
             </div>
             <div className="border-t border-surface-200 pt-2 flex justify-between font-medium">
               <span>Total:</span>
-              <span>${order.grandTotal.toFixed(2)}</span>
+              <span>OMR {order.grandTotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span>Payment Status:</span>
@@ -550,6 +597,12 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus
       label: 'Ready',
       icon: Package,
       description: 'Order is ready for pickup/delivery'
+    },
+    {
+      id: 'delivered',
+      label: 'Payment Completed & Delivered',
+      icon: DollarSign,
+      description: 'Payment received and order delivered to customer'
     }
   ];
 
@@ -557,6 +610,17 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus
     // Handle draft orders specially
     if (currentStatus === 'pending' && order?.draft) {
       return stepId === 'pending' ? 'draft' : 'pending';
+    }
+    
+    // If final step (delivered), handle based on completion and delivery status
+    if (stepId === 'delivered') {
+      if (currentStatus === 'completed' && order?.paymentStatus === 'paid' && order?.deliveryStatus === 'delivered') {
+        return 'completed';
+      }
+      if (currentStatus === 'completed' && order?.paymentStatus === 'paid' && order?.deliveryStatus !== 'delivered') {
+        return 'paused'; // Payment completed but waiting for delivery
+      }
+      return 'pending';
     }
     
     const currentIndex = timelineSteps.findIndex(step => step.id === currentStatus);
@@ -584,6 +648,12 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus
           container: 'text-primary-600',
           icon: 'bg-primary-600 text-white',
           line: 'bg-surface-300'
+        };
+      case 'paused':
+        return {
+          container: 'text-amber-600',
+          icon: 'bg-amber-500 text-white',
+          line: 'bg-amber-300'
         };
       case 'cancelled':
         return {
@@ -629,11 +699,22 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus
             {/* Content */}
             <div className={`ml-4 pb-6 ${styles.container}`}>
               <h5 className="text-body-large font-medium">{step.label}</h5>
-              <p className="text-body-small mt-1">{step.description}</p>
+              <p className="text-body-small mt-1">
+                {status === 'paused' && step.id === 'delivered' 
+                  ? 'Payment completed, waiting for delivery' 
+                  : step.description}
+              </p>
               {status === 'current' && (
                 <div className="mt-2">
                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                     Current Status
+                  </span>
+                </div>
+              )}
+              {status === 'paused' && (
+                <div className="mt-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    Awaiting Delivery
                   </span>
                 </div>
               )}
@@ -648,7 +729,6 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus
           </div>
         );
       })}
-      
       {currentStatus === 'cancelled' && (
         <div className="flex items-start">
           <div className="flex flex-col items-center">
@@ -662,25 +742,6 @@ const OrderStatusTimeline: React.FC<OrderStatusTimelineProps> = ({ currentStatus
             <div className="mt-2">
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-error-100 text-error-800">
                 Cancelled
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {currentStatus === 'completed' && (
-        <div className="flex items-start">
-          <div className="flex flex-col items-center">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-success-600 text-white">
-              <CheckCircle className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="ml-4 text-success-600">
-            <h5 className="text-body-large font-medium">Order Completed</h5>
-            <p className="text-body-small mt-1">Order has been delivered/picked up</p>
-            <div className="mt-2">
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
-                Completed
               </span>
             </div>
           </div>

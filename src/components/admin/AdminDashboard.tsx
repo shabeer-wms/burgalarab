@@ -7,11 +7,11 @@ import { AdminOverview } from "./components/AdminOverview";
 import { AdminOrders } from "./components/AdminOrders";
 import { AdminStaff } from "./components/AdminStaff";
 import { AdminMenu } from "./components/AdminMenu";
-import { TrendingUp, Users, Plus, LogOut, Settings, User } from "lucide-react";
+import { TrendingUp, Users, Plus, Settings } from "lucide-react";
 import AdminSettings from "./AdminSettings";
 
 const AdminDashboard: React.FC = () => {
-  const { orders, updateOrder, menuItems, staff } = useApp();
+  const { orders, updateOrder, menuItems, staff, ratings } = useApp();
   const { user, logout } = useAuth();
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -67,26 +67,26 @@ const AdminDashboard: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 p-3 md:p-4 ml-0 lg:ml-64 overflow-auto">
-        <div className="w-full">
-          {/* Dynamic Header */}
-          <header className="bg-white p-6 rounded-2xl shadow-md mb-4">
+        <div className="w-full pt-4 md:pt-0">
+          {/* Dynamic Header - Now visible on all screen sizes */}
+          <header className="bg-white p-4 md:p-6 rounded-2xl shadow-md mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center flex-1 min-w-0">
-                <div className="bg-purple-100 p-3 rounded-xl mr-3 flex-shrink-0">
+                <div className="bg-purple-100 w-10 h-10 md:w-12 md:h-12 rounded-xl mr-3 flex-shrink-0 flex items-center justify-center">
                   {activeTab === "overview" && (
-                    <TrendingUp className="w-7 h-7 text-purple-600" />
+                    <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
                   )}
                   {activeTab === "orders" && (
-                    <Users className="w-7 h-7 text-purple-600" />
+                    <Users className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
                   )}
                   {activeTab === "menu" && (
-                    <Plus className="w-7 h-7 text-purple-600" />
+                    <Plus className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
                   )}
                   {activeTab === "staff" && (
-                    <Users className="w-7 h-7 text-purple-600" />
+                    <Users className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
                   )}
                   {activeTab === "settings" && (
-                    <Settings className="w-7 h-7 text-purple-600" />
+                    <Settings className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
                   )}
                 </div>
 
@@ -121,6 +121,7 @@ const AdminDashboard: React.FC = () => {
               orders={orders}
               menuItems={menuItems}
               staff={staff}
+              ratings={ratings}
             />
           )}
 

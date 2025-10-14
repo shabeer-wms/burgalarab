@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import SnackBar from "../../SnackBar";
-import { LogOut, User, Eye, EyeOff } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { auth } from "../../../firebase";
 import { updatePassword } from "firebase/auth";
@@ -35,8 +35,12 @@ const KitchenSettingsPage: React.FC = () => {
 					setSnackbarMsg("No authenticated user.");
 					setShowSnackbar(true);
 				}
-			} catch (error: any) {
-				setSnackbarMsg(error.message || "Failed to update password.");
+			} catch (error) {
+				let errorMsg = "Failed to update password.";
+				if (typeof error === "object" && error !== null && "message" in error) {
+					errorMsg = String((error as { message?: string }).message) || errorMsg;
+				}
+				setSnackbarMsg(errorMsg);
 				setShowSnackbar(true);
 			} finally {
 				setLoading(false);
@@ -85,51 +89,45 @@ const KitchenSettingsPage: React.FC = () => {
 				<h3 className="text-lg font-semibold text-gray-700 mb-4">Update Password</h3>
 				<form onSubmit={handlePasswordUpdate} className="space-y-4">
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<div className="relative">
-							<input
-								type={showPassword ? "text" : "password"}
-								className="w-full px-5 py-3 text-lg border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 pr-12"
-								placeholder="New Password"
-								value={newPassword}
-								onChange={e => setNewPassword(e.target.value)}
-								minLength={6}
-								required
-								disabled={loading}
-							/>
-							<button
-								type="button"
-								className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-								tabIndex={-1}
-								onClick={() => setShowPassword(!showPassword)}
-							>
-								{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-							</button>
-						</div>
-						<div className="relative">
-							<input
-								type={showPassword ? "text" : "password"}
-								className="w-full px-5 py-3 text-lg border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 pr-12"
-								placeholder="Confirm Password"
-								value={confirmPassword}
-								onChange={e => setConfirmPassword(e.target.value)}
-								minLength={6}
-								required
-								disabled={loading}
-							/>
-							<button
-								type="button"
-								className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-								tabIndex={-1}
-								onClick={() => setShowPassword(!showPassword)}
-							>
-								{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-							</button>
-						</div>
+					<div>
+						<input
+							type={showPassword ? "text" : "password"}
+							className="w-full px-5 py-3 text-lg border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+							placeholder="New Password"
+							value={newPassword}
+							onChange={e => setNewPassword(e.target.value)}
+							minLength={6}
+							required
+							disabled={loading}
+						/>
+					</div>
+					<div>
+						<input
+							type={showPassword ? "text" : "password"}
+							className="w-full px-5 py-3 text-lg border rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+							placeholder="Confirm Password"
+							value={confirmPassword}
+							onChange={e => setConfirmPassword(e.target.value)}
+							minLength={6}
+							required
+							disabled={loading}
+						/>
+					</div>
+				  </div>
+				  <div className="flex items-center mt-2">
+					<input
+					  id="show-password-checkbox"
+					  type="checkbox"
+					  checked={showPassword}
+					  onChange={e => setShowPassword(e.target.checked)}
+					  className="mr-2"
+					/>
+					<label htmlFor="show-password-checkbox" className="text-sm text-gray-700">Show password</label>
 					</div>
 					<div className="flex justify-end mt-4">
 						<button
 							type="submit"
-							className="w-full md:w-auto flex items-center justify-center space-x-3 px-6 py-4 bg-purple-600 text-white rounded-xl text-lg font-semibold hover:bg-purple-700 transition-colors"
+							className="w-full md:w-auto flex items-center justify-center space-x-3 px-4 py-2 bg-purple-600 text-white rounded-xl text-base font-semibold hover:bg-purple-700 transition-colors"
 							disabled={loading || !newPassword || !confirmPassword}
 						>
 							{loading ? "Confirming..." : "Confirm"}

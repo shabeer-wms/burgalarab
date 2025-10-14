@@ -3,7 +3,7 @@ import OrderManagement from '../staff/OrderManagement';
 import OrderStatusManagement from '../staff/OrderStatusManagement';
 import BillingPayments from '../staff/BillingPayments';
 import Snackbar from '../SnackBar';
-import { ShoppingCart, Eye, Receipt, User, LogOut, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
+import { ShoppingCart, Eye, Receipt, UserCheck, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
 import WaiterSettings from './WaiterSettings';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -15,7 +15,6 @@ const WaiterDashboard: React.FC = () => {
   const [selectedTable, setSelectedTable] = useState<string>('');
   const { user, logout } = useAuth();
   const { orders } = useApp();
-  const [currentTime, setCurrentTime] = useState(new Date());
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const [showCartModal, setShowCartModal] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
@@ -75,12 +74,6 @@ const WaiterDashboard: React.FC = () => {
         (el as HTMLElement).style.display = prev ?? "";
       });
     };
-  }, []);
-
-  // Update time every second
-  React.useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
   }, []);
 
   // Only show orders that belong to the logged-in waiter
@@ -153,7 +146,9 @@ const WaiterDashboard: React.FC = () => {
         </nav>
         <div className="p-4 border-t">
           <div className="mb-4 flex items-center">
-            <User className="w-6 h-6 mr-3 text-gray-500" />
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+              <UserCheck className="w-5 h-5 text-purple-600" />
+            </div>
             <div>
               <p className="text-sm font-semibold text-gray-800">
                 {user?.name || 'Waiter'}
@@ -213,7 +208,10 @@ const WaiterDashboard: React.FC = () => {
                         {tabs.find(tab => tab.id === activeTab)?.label || 'Waiter Dashboard'}
                       </h1>
                       <p className="text-gray-500 text-sm">
-                        {currentTime.toLocaleTimeString()}
+                        {activeTab === 'orders' ? 'Create and manage new customer orders' :
+                         activeTab === 'status' ? 'Track order preparation and delivery status' :
+                         activeTab === 'billing' ? 'Process payments and generate bills' :
+                         'Configure your preferences and settings'}
                       </p>
                     </div>
                   </div>
@@ -309,7 +307,7 @@ const WaiterDashboard: React.FC = () => {
                             <span className="font-semibold text-yellow-800">Latest Ready Order</span>
                           </div>
                           <div className="p-4">
-                            <div className="text-gray-800 font-medium">Order #{readyOrders[readyOrders.length-1]?.id || 'N/A'}</div>
+                            <div className="text-gray-800 font-medium">Order {readyOrders[readyOrders.length-1]?.id || 'N/A'}</div>
                             <div className="text-gray-600 text-sm">Table: {readyOrders[readyOrders.length-1]?.tableNumber || 'N/A'}</div>
                             <div className="text-gray-600 text-sm">Items: {readyOrders[readyOrders.length-1]?.items?.map(i => i.menuItem.name).join(', ') || 'N/A'}</div>
                             <div className="text-green-600 text-xs mt-2">Status: Ready</div>
@@ -339,45 +337,11 @@ const WaiterDashboard: React.FC = () => {
                     >
                       {activeTab === 'billing' ? (
                         <>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-blue-600 w-8 text-center">
-                              {totalBillingOrdersCount}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Total</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-orange-500 w-8 text-center">
-                              {pendingOrdersCount}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Pending</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
-                              {paidOrdersCount}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Paid</p>
-                          </div>
+                          {/* Removed Total, Pending, Paid counters for mobile screens in billing tab as requested */}
                         </>
                       ) : (
                         <>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-blue-600 w-8 text-center">
-                              {confirmedOrders.length}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Confirmed</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-orange-500 w-8 text-center">
-                              {preparingOrders.length}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Preparing</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-base sm:text-lg font-bold text-green-500 w-8 text-center">
-                              {readyOrders.length}
-                            </p>
-                            <p className="text-gray-500 text-[11px] sm:text-xs">Ready</p>
-                          </div>
+                          {/* Removed Confirmed, Preparing, Ready counters for mobile screens as requested */}
                         </>
                       )}
                     </div>
@@ -486,7 +450,7 @@ const WaiterDashboard: React.FC = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="text-body-large font-medium">{item.menuItem.name}</h4>
-                          <p className="text-body-small text-surface-600">${item.menuItem.price.toFixed(2)} each</p>
+                          <p className="text-body-small text-surface-600">OMR {item.menuItem.price.toFixed(2)} each</p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <button
@@ -573,7 +537,7 @@ const WaiterDashboard: React.FC = () => {
                       )}
                       
                       <div className="text-right text-body-medium font-medium">
-                        ${(item.menuItem.price * item.quantity).toFixed(2)}
+                        OMR {(item.menuItem.price * item.quantity).toFixed(2)}
                       </div>
                     </div>
                   ))}

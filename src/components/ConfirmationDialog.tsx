@@ -53,7 +53,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       onClick={onCancel}
     >
       <div 
-        className="bg-white rounded-lg shadow-xl max-w-md w-full animate-scale-in"
+        className="bg-white rounded-lg shadow-xl max-w-xs w-full animate-scale-in"
         onClick={handleDialogClick}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-200">

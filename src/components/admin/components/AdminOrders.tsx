@@ -76,6 +76,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     | "completed"
     | "cancelled"
   >("all");
+  const [orderSearchTerm, setOrderSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showCancelOrderModal, setShowCancelOrderModal] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<any>(null);
@@ -118,9 +119,36 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
   }, []);
 
   const filteredOrders =
-    orderFilter === "all"
+    (orderFilter === "all"
       ? orders
-      : orders.filter((order) => order.status === orderFilter);
+      : orders.filter((order) => order.status === orderFilter)
+    ).filter((order) => {
+      const term = orderSearchTerm.toLowerCase();
+      // Handle search with hash symbol prefix for order ID
+      const isHashSearch = term.startsWith('#');
+      const cleanTerm = isHashSearch ? term.substring(1) : term;
+      
+      return (
+        order.customerName?.toLowerCase().includes(term) ||
+        order.id?.toLowerCase().includes(cleanTerm) ||
+        order.customerPhone?.toLowerCase().includes(term) ||
+        // Additional check for hash prefixed search specifically for order ID
+        (isHashSearch && order.id?.toLowerCase().includes(cleanTerm))
+      );
+    }).sort((a, b) => {
+      // Sort by orderTime in descending order (latest first)
+      const getOrderTime = (order: Order) => {
+        if (order.orderTime instanceof Date) {
+          return order.orderTime.getTime();
+        } else if (typeof order.orderTime === "object" && order.orderTime.toDate) {
+          return order.orderTime.toDate().getTime();
+        } else {
+          return new Date(order.orderTime as string).getTime();
+        }
+      };
+      
+      return getOrderTime(b) - getOrderTime(a);
+    });
 
   // Pagination logic
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
@@ -156,7 +184,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Bill - Order #${order.id.slice(-4)}</title>
+        <title>Bill - Order ${order.id}</title>
         <style>
           body { font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; }
           .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
@@ -168,7 +196,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       <body>
         <div class="header">
           <h2>Hotel Management</h2>
-          <p>Order No: #${order.id.slice(-4)}</p>
+          <p>Order No: ${order.id}</p>
           <p>Date: ${formatDate(order.orderTime)}</p>
           <p>Time: ${formatTime(order.orderTime)}</p>
         </div>
@@ -196,7 +224,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
               <span>${item.quantity || 0}x ${
                 item.menuItem?.name || "Unknown Item"
               }</span>
-              <span>$${(
+              <span>OMR ${(
                 (item.menuItem?.price || 0) * (item.quantity || 0)
               ).toFixed(2)}</span>
             </div>
@@ -208,15 +236,15 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
         <div class="total">
           <div class="item">
             <span>Subtotal:</span>
-            <span>$${(order.total || 0).toFixed(2)}</span>
+            <span>OMR ${(order.total || 0).toFixed(2)}</span>
           </div>
           <div class="item">
             <span>Tax (10%):</span>
-            <span>$${(order.tax || 0).toFixed(2)}</span>
+            <span>OMR ${(order.tax || 0).toFixed(2)}</span>
           </div>
           <div class="item" style="font-size: 18px;">
             <span>Total:</span>
-            <span>$${(order.grandTotal || 0).toFixed(2)}</span>
+            <span>OMR ${(order.grandTotal || 0).toFixed(2)}</span>
           </div>
           <div class="item">
             <span>Payment Method:</span>
@@ -277,16 +305,20 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       // Prepare data for export
       const exportData = filteredOrders.map((order) => ({
         "Order ID": order.id,
-        "Customer Name": order.customerName || "N/A",
-        "Table Number": order.tableNumber || "N/A",
-        Status: order.status,
         "Order Date": formatDateTime(order.orderTime),
+        "Customer Name": order.customerName || "N/A",
+        "Phone Number": order.customerPhone ? `="${order.customerPhone}"` : "N/A",
+        "Type": order.type || "N/A",
+        "Table Number/Vehicle No": order.type === "dine-in" 
+          ? (order.tableNumber || "N/A") 
+          : (order.customerAddress || "N/A"),
+        "Status": order.status,
+        "Payment Status": order.paymentStatus || "pending",
         "Total Amount": `$${order.grandTotal?.toFixed(2) || "0.00"}`,
-        Items:
+        "Items":
           order.items
             ?.map((item) => `${item.menuItem.name} x${item.quantity}`)
             .join(", ") || "No items",
-        "Payment Method": order.paymentMethod || "N/A",
       }));
 
       // Convert to CSV
@@ -323,19 +355,44 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending': return <Clock className="w-4 h-4" />;
+      case 'confirmed': return <CheckCircle className="w-4 h-4" />;
+      case 'preparing': return <ChefHat className="w-4 h-4" />;
+      case 'ready': return <Package className="w-4 h-4" />;
+      case 'completed': return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled': return <AlertCircle className="w-4 h-4" />;
+      default: return <Clock className="w-4 h-4" />;
+    }
+  };
+
   return (
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-12">
         <div className="flex flex-col space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-900">Order Filters</h3>
-            <button
-              onClick={handleExportOrders}
-              className="flex items-center justify-center text-gray-700 hover:text-gray-900 p-2 transition-colors duration-150 h-10 w-10 hover:bg-gray-100 rounded-lg"
-              title="Export Orders"
-            >
-              <Download size={18} />
-            </button>
+          {/* Search Bar */}
+          <div className="flex justify-between items-center gap-4">
+            <div className="relative flex-1 max-w-md sm:max-w-none">
+              {/* Use Lucide Search icon if available */}
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input
+                type="text"
+                placeholder="Search orders..."
+                value={orderSearchTerm}
+                onChange={(e) => setOrderSearchTerm(e.target.value)}
+                className="pl-8 sm:pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-purple-500 focus:border-purple-500 h-10"
+              />
+            </div>
+            <div className="flex items-center">
+              <button
+                onClick={handleExportOrders}
+                className="flex items-center justify-center text-gray-700 hover:text-gray-900 p-2 transition-colors duration-150 h-10 w-10 hover:bg-gray-100 rounded-lg"
+                title="Export Orders"
+              >
+                <Download size={18} />
+              </button>
+            </div>
           </div>
           
           {/* Filter chips with horizontal scroll on mobile */}
@@ -415,30 +472,31 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {/* Desktop Table View - Hidden on mobile */}
+        <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Order
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Customer
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Total
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Payment
                   </th>
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -450,41 +508,40 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                     className="hover:bg-gray-50 cursor-pointer"
                     onClick={() => setSelectedOrder(order)}
                   >
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          #{order.id.slice(-4)}
+                          {order.id}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-500">
+                        <div className="text-sm text-gray-500">
                           {formatDate(order.orderTime)}
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900 truncate max-w-[120px] sm:max-w-none">
+                        <div className="text-sm font-medium text-gray-900">
                           {order.customerName}
                         </div>
-                        <div className="text-xs sm:text-sm text-gray-500 truncate max-w-[120px] sm:max-w-none">
-                          {order.tableNumber || order.customerPhone}
+                        <div className="text-sm text-gray-500">
+                          {order.customerPhone}
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          order.type === "dine-in"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {order.type}
-                      </span>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {order.type === "dine-in" ? "dine in" : "delivery"}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {order.type === "dine-in" ? order.tableNumber : order.customerAddress}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${(order.grandTotal || 0).toFixed(2)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      OMR {(order.grandTotal || 0).toFixed(2)}
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                           order.status === "pending"
@@ -503,7 +560,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                         {order.status}
                       </span>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                           order.paymentStatus === "paid"
@@ -514,8 +571,8 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                         {order.paymentStatus}
                       </span>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-1 sm:space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -524,7 +581,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                           className="text-purple-600 hover:text-purple-900 p-1"
                           title="Print Bill"
                         >
-                          <Printer className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <Printer className="w-4 h-4" />
                         </button>
                         {order.status === "cancelled" ? (
                           <button
@@ -532,7 +589,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                             className="text-green-600 hover:text-green-900 p-1"
                             title="Uncancel Order"
                           >
-                            <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <RotateCcw className="w-4 h-4" />
                           </button>
                         ) : (
                           order.paymentStatus !== "paid" && (
@@ -541,7 +598,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                               className="text-red-600 hover:text-red-900 p-1"
                               title="Cancel Order"
                             >
-                              <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <X className="w-4 h-4" />
                             </button>
                           )
                         )}
@@ -552,6 +609,154 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Mobile Card View - Visible only on mobile */}
+        <div className="md:hidden space-y-4">
+          {paginatedOrders.map((order) => (
+            <div
+              key={order.id}
+              className="bg-white border border-gray-200 rounded-lg p-0 hover:shadow-lg transition-all duration-200 flex flex-col h-full"
+            >
+              {/* Card Content - Main body */}
+              <div
+                className="flex-1 p-4 cursor-pointer"
+                onClick={() => setSelectedOrder(order)}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {order.id}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {order.customerName} • {order.type}
+                      {order.tableNumber && ` • Table ${order.tableNumber}`}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatDateTime(order.orderTime)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div
+                      className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full mb-2 ${
+                        order.status === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : order.status === "confirmed"
+                          ? "bg-blue-100 text-blue-800"
+                          : order.status === "preparing"
+                          ? "bg-orange-100 text-orange-800"
+                          : order.status === "ready"
+                          ? "bg-green-100 text-green-800"
+                          : order.status === "completed"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {getStatusIcon(order.status)}
+                      <span className="ml-1">{order.status.toUpperCase()}</span>
+                    </div>
+                    <div
+                      className={`text-sm flex items-center ${
+                        order.paymentStatus === "paid"
+                          ? "text-green-600"
+                          : "text-yellow-600"
+                      }`}
+                    >
+                      <Package className="w-3 h-3 mr-1" />
+                      {order.paymentStatus.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  {order.items.slice(0, 2).map((item) => (
+                    <div key={item.id} className="flex justify-between text-sm">
+                      <span>
+                        {item.quantity}x {item.menuItem.name}
+                      </span>
+                      <span>
+                        ${(item.menuItem.price * item.quantity).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                  {order.items.length > 2 && (
+                    <p className="text-sm text-gray-600">
+                      +{order.items.length - 2} more items
+                    </p>
+                  )}
+                </div>
+
+                {/* Order Type Badge */}
+                <div className="mb-4">
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                      order.type === "dine-in"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {order.type}
+                  </span>
+                </div>
+
+                {/* Total Amount, Time and Actions - All in white card area */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className="text-xl font-bold text-purple-600">
+                      ${(order.grandTotal || 0).toFixed(2)}
+                    </div>
+                    <div className="text-sm text-gray-600 flex items-center">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {(() => {
+                        const now = new Date();
+                        let orderDate: Date;
+                        if (order.orderTime instanceof Date) {
+                          orderDate = order.orderTime;
+                        } else if (typeof order.orderTime === "object" && order.orderTime.toDate) {
+                          orderDate = order.orderTime.toDate();
+                        } else {
+                          orderDate = new Date(order.orderTime as string);
+                        }
+                        const diffMinutes = Math.floor((now.getTime() - orderDate.getTime()) / 1000 / 60);
+                        return diffMinutes;
+                      })()}min ago
+                    </div>
+                  </div>
+                  <div className="flex space-x-2 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        printBill(order);
+                      }}
+                      className="p-2 hover:bg-purple-100 text-purple-600 rounded-lg transition-colors border border-purple-200"
+                      title="Print Bill"
+                    >
+                      <Printer className="w-4 h-4" />
+                    </button>
+                    {order.status === "cancelled" ? (
+                      <button
+                        onClick={(e) => handleUncancelOrder(order, e)}
+                        className="p-2 hover:bg-green-100 text-green-600 rounded-lg transition-colors border border-green-200"
+                        title="Uncancel Order"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      order.paymentStatus !== "paid" && (
+                        <button
+                          onClick={(e) => handleCancelOrder(order, e)}
+                          className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors border border-red-200"
+                          title="Cancel Order"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Pagination Controls */}
@@ -595,7 +800,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       {/* Cancel Order Confirmation Modal */}
       {showCancelOrderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs">
             <h3 className="text-lg font-semibold mb-4 text-gray-800">
               Cancel Order
             </h3>
@@ -662,7 +867,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
     <div className="space-y-6">
       {/* Order Info */}
       <div>
-        <h4 className="text-title-medium mb-2">Order #{order.id.slice(-6)}</h4>
+        <h4 className="text-title-medium mb-2">Order {order.id}</h4>
         <div className="space-y-1 text-body-medium">
           <p>
             <strong>Customer:</strong> {order.customerName}
