@@ -140,27 +140,27 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
           ${bill.items.map((item: any) => `
             <div class="item">
               <span>${item.quantity} x ${item.menuItem.name}</span>
-              <span>$${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+              <span>OMR ${(item.menuItem.price * item.quantity).toFixed(2)}</span>
             </div>
           `).join('')}
           
           <div style="border-top: 1px solid #ddd; margin-top: 10px; padding-top: 10px;">
             <div class="item">
               <span>Subtotal</span>
-              <span>$${bill.subtotal.toFixed(2)}</span>
+              <span>OMR ${bill.subtotal.toFixed(2)}</span>
             </div>
             ${bill.serviceCharge ? `
             <div class="item">
               <span>Service Charge (10%)</span>
-              <span>$${bill.serviceCharge.toFixed(2)}</span>
+              <span>OMR ${bill.serviceCharge.toFixed(2)}</span>
             </div>` : ''}
             <div class="item">
               <span>Tax (18%)</span>
-              <span>$${bill.taxAmount.toFixed(2)}</span>
+              <span>OMR ${bill.taxAmount.toFixed(2)}</span>
             </div>
             <div class="total">
               <span>Total</span>
-              <span>$${bill.total.toFixed(2)}</span>
+              <span>OMR ${bill.total.toFixed(2)}</span>
             </div>
             <div class="item" style="margin-top: 10px;">
               <span>Payment Method</span>
@@ -1037,7 +1037,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                   {orderItems.map(item => (
                     <div key={item.id} className="flex justify-between text-body-medium">
                       <span>{item.quantity}x {item.menuItem.name}</span>
-                      <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                      <span>OMR {(item.menuItem.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -1047,19 +1047,19 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               <div className="border-t border-surface-200 pt-4 space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>${calculateTotal().subtotal.toFixed(2)}</span>
+                  <span>OMR {calculateTotal().subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Service Charge (10%):</span>
-                  <span>${(calculateTotal().subtotal * 0.1).toFixed(2)}</span>
+                  <span>OMR {(calculateTotal().subtotal * 0.1).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax (18%):</span>
-                  <span>${calculateTotal().tax.toFixed(2)}</span>
+                  <span>OMR {calculateTotal().tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
                   <span>Total:</span>
-                  <span>${calculateTotal().total.toFixed(2)}</span>
+                  <span>OMR {calculateTotal().total.toFixed(2)}</span>
                 </div>
               </div>
 
