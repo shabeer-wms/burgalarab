@@ -127,6 +127,11 @@ const WaiterDashboard: React.FC = () => {
     <div ref={rootRef} className="fixed inset-0 flex bg-gray-100">
       {/* Desktop sidebar (hidden on tablet and smaller screens) */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 flex-col z-40">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <h1 className="text-lg font-bold text-gray-900">Hotel Management</h1>
+          <p className="text-sm text-gray-600 mt-1">Waiter Dashboard</p>
+        </div>
         <nav className="flex-1 px-4 py-4 space-y-2">
           {tabs.map(tab => (
             <button
