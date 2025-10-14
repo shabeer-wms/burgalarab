@@ -35,8 +35,12 @@ const KitchenSettingsPage: React.FC = () => {
 					setSnackbarMsg("No authenticated user.");
 					setShowSnackbar(true);
 				}
-			} catch (error: any) {
-				setSnackbarMsg(error.message || "Failed to update password.");
+			} catch (error) {
+				let errorMsg = "Failed to update password.";
+				if (typeof error === "object" && error !== null && "message" in error) {
+					errorMsg = String((error as { message?: string }).message) || errorMsg;
+				}
+				setSnackbarMsg(errorMsg);
 				setShowSnackbar(true);
 			} finally {
 				setLoading(false);
