@@ -1,12 +1,19 @@
 import React from "react";
 import { kitchenColors } from "../theme/colors";
 import { kitchenLayout } from "../theme/layout";
-import { Settings } from "lucide-react";
+import {
+  List,
+  Hourglass,
+  RotateCcw,
+  CheckCircle2,
+  BookOpen,
+  Settings,
+} from "lucide-react";
 
 interface NavigationItem {
   id: "all" | "pending" | "in-progress" | "ready" | "menu" | "settings";
   label: string;
-  icon: string;
+  icon: React.ElementType;
 }
 
 interface BottomNavigationProps {
@@ -24,12 +31,12 @@ interface BottomNavigationProps {
 }
 
 const navigationItems: NavigationItem[] = [
-  { id: "all", label: "All", icon: "apps" },
-  { id: "pending", label: "Pending", icon: "hourglass_top" },
-  { id: "in-progress", label: "In Progress", icon: "autorenew" },
-  { id: "ready", label: "Ready", icon: "check_circle_outline" },
-  { id: "menu", label: "Menu", icon: "menu_book" },
-  { id: "settings", label: "Settings", icon: "settings" },
+  { id: "all", label: "All", icon: List },
+  { id: "pending", label: "Pending", icon: Hourglass },
+  { id: "in-progress", label: "In Progress", icon: RotateCcw },
+  { id: "ready", label: "Ready", icon: CheckCircle2 },
+  { id: "menu", label: "Menu", icon: BookOpen },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 const getButtonClasses = (isSelected: boolean) => {
@@ -68,17 +75,9 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               getButtonClasses(selectedFilter === item.id) + " flex-1 min-w-0"
             }
           >
-            {item.id === "settings" ? (
-              <Settings
-                className={`w-5 h-5 ${kitchenLayout.typography.navigation.bottom} text-purple-600`}
-              />
-            ) : (
-              <span
-                className={`material-icons ${kitchenLayout.typography.navigation.bottom}`}
-              >
-                {item.icon}
-              </span>
-            )}
+            <item.icon
+              className={`w-5 h-5 ${kitchenLayout.typography.navigation.bottom}`}
+            />
             <span className={`text-xs md:text-sm font-medium truncate`}>
               {item.label}
             </span>
