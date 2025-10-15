@@ -41,7 +41,12 @@ export const KitchenHeader: React.FC<KitchenHeaderProps> = ({
               {isSettings ? (
                 <Settings className="w-7 h-7 text-purple-600" />
               ) : isMenu ? (
-                <span className={`material-icons ${kitchenColors.ui.layout.headerIcon}`} style={{ fontSize: 18 }}>menu_book</span>
+                <span
+                  className={`material-icons ${kitchenColors.ui.layout.headerIcon}`}
+                  style={{ fontSize: 18 }}
+                >
+                  menu_book
+                </span>
               ) : (
                 <span
                   className={`material-icons ${kitchenColors.ui.layout.headerIcon}`}
@@ -59,18 +64,23 @@ export const KitchenHeader: React.FC<KitchenHeaderProps> = ({
                 {title || "Kitchen Display System"}
               </h1>
               {isSettings ? (
-                <p className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.header.subtitle} truncate`}>
+                <p
+                  className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.header.subtitle} truncate`}
+                >
                   Manage your account and preferences
                 </p>
               ) : isMenu ? (
-                <p className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.header.subtitle} truncate`}>
+                <p
+                  className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.header.subtitle} truncate`}
+                >
                   Manage kitchen orders
                 </p>
               ) : (
                 <p
                   className={`${kitchenColors.ui.primary.textSecondary} ${kitchenLayout.typography.header.subtitle} tabular-nums truncate`}
                 >
-                  {currentTime.toLocaleTimeString()} | {totalOrders} Active Orders
+                  {currentTime.toLocaleTimeString()} | {totalOrders} Active
+                  Orders
                 </p>
               )}
             </div>
@@ -89,7 +99,7 @@ export const KitchenHeader: React.FC<KitchenHeaderProps> = ({
             {/* Logout button for tablet and desktop - positioned at the right */}
             <button
               onClick={onLogout}
-              className={`hidden md:flex lg:hidden p-2 rounded-md ${kitchenColors.ui.button.danger} items-center flex-shrink-0`}
+              className={`hidden p-2 rounded-md ${kitchenColors.ui.button.danger} items-center flex-shrink-0`}
               aria-label="Logout"
             >
               <LogOut className="w-4 h-4" />
