@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import OrderManagement from '../staff/OrderManagement';
-import OrderStatusManagement from '../staff/OrderStatusManagement';
-import BillingPayments from '../staff/BillingPayments';
+import WaiterOrderStatusPage from './WaiterOrderStatusPage';
+import WaiterBillingPage from './WaiterBillingPage';
 import Snackbar from '../SnackBar';
 import { ShoppingCart, Eye, Receipt, UserCheck, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
 import WaiterSettings from './WaiterSettings';
@@ -81,7 +81,8 @@ const WaiterDashboard: React.FC = () => {
 
   const confirmedOrders = waiterOrders.filter(o => o.status === 'confirmed');
   const preparingOrders = waiterOrders.filter(o => o.status === 'preparing');
-  const readyOrders = waiterOrders.filter(o => o.status === 'ready');
+  const [viewedOrderIds, setViewedOrderIds] = useState<string[]>([]);
+  const readyOrders = waiterOrders.filter(o => o.status === 'ready' && !viewedOrderIds.includes(o.id));
   
   // Debug logging removed to prevent console spam
   
@@ -92,7 +93,9 @@ const WaiterDashboard: React.FC = () => {
 
     if (newReadyOrders.length > 0) {
       setShowNotification(true);
+      // Play notification sound
       if (audioRef.current) {
+        audioRef.current.currentTime = 0;
         audioRef.current.play().catch(() => {});
       }
       setTimeout(() => setShowNotification(false), 3000);
@@ -253,7 +256,12 @@ const WaiterDashboard: React.FC = () => {
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-4 sm:p-6 relative mx-2 sm:mx-0" style={{width: '100%', maxWidth: '400px'}}>
                   <button
                     className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-                    onClick={() => setShowNotificationModal(false)}
+                    onClick={() => {
+                      // Mark all viewed notifications as viewed
+                      setViewedOrderIds(prev => [...prev, ...readyOrdersSnapshot.map(o => o.id)]);
+                      setReadyOrdersSnapshot([]);
+                      setShowNotificationModal(false);
+                    }}
                     aria-label="Close"
                   >
                     <X className="w-6 h-6" />
@@ -407,8 +415,8 @@ const WaiterDashboard: React.FC = () => {
                   onFunctionsUpdate={setCartFunctions}
                 />
               )}
-              {activeTab === 'status' && <OrderStatusManagement />}
-              {activeTab === 'billing' && <BillingPayments />}
+              {activeTab === 'status' && <WaiterOrderStatusPage />}
+              {activeTab === 'billing' && <WaiterBillingPage />}
               {activeTab === 'settings' && (
                 <WaiterSettings user={user} logout={logout} />
               )}
