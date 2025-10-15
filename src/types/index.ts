@@ -55,6 +55,7 @@ export interface Order {
   grandTotal: number;
   paymentMethod?: "cash" | "card" | "online" | "upi";
   paymentStatus: "pending" | "paid" | "partial" | "refunded";
+  deliveryStatus?: "pending" | "delivered"; // Track if order has been delivered to customer
   orderTime: Date | string | { toDate: () => Date };
   completedTime?: Date;
   waiterId?: string;
@@ -116,4 +117,14 @@ export interface Staff {
   uid?: string; // Firebase Auth UID
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface Rating {
+  id: string;
+  orderId: string;
+  rating: number; // 1-5 stars
+  customerName: string;
+  timestamp: Date | string | { toDate: () => Date };
+  createdAt: string;
+  reviewText?: string | null; // For future expansion
 }

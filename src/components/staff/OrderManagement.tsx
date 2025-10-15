@@ -68,6 +68,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showPaymentMethodDialog, setShowPaymentMethodDialog] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'upi' | 'online'>('cash');
+  const [showUpiQrModal, setShowUpiQrModal] = useState(false);
   
   // Function to get payment icon
   const getPaymentIcon = (method: 'cash' | 'card' | 'upi' | 'online') => {
@@ -140,27 +141,27 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
           ${bill.items.map((item: any) => `
             <div class="item">
               <span>${item.quantity} x ${item.menuItem.name}</span>
-              <span>$${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+              <span>OMR ${(item.menuItem.price * item.quantity).toFixed(2)}</span>
             </div>
           `).join('')}
           
           <div style="border-top: 1px solid #ddd; margin-top: 10px; padding-top: 10px;">
             <div class="item">
               <span>Subtotal</span>
-              <span>$${bill.subtotal.toFixed(2)}</span>
+              <span>OMR ${bill.subtotal.toFixed(2)}</span>
             </div>
             ${bill.serviceCharge ? `
             <div class="item">
               <span>Service Charge (10%)</span>
-              <span>$${bill.serviceCharge.toFixed(2)}</span>
+              <span>OMR ${bill.serviceCharge.toFixed(2)}</span>
             </div>` : ''}
             <div class="item">
               <span>Tax (18%)</span>
-              <span>$${bill.taxAmount.toFixed(2)}</span>
+              <span>OMR ${bill.taxAmount.toFixed(2)}</span>
             </div>
             <div class="total">
               <span>Total</span>
-              <span>$${bill.total.toFixed(2)}</span>
+              <span>OMR ${bill.total.toFixed(2)}</span>
             </div>
             <div class="item" style="margin-top: 10px;">
               <span>Payment Method</span>
@@ -790,7 +791,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                 <div className="border-t border-surface-100 bg-surface-50 px-4 py-3 lg:px-3 lg:py-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-title-medium font-semibold text-primary-600 lg:text-sm">
-                      ${item.price.toFixed(2)}
+                      OMR {item.price.toFixed(2)}
                     </div>
                     <div className="flex items-center space-x-2 shrink-0">
                       {/* Quantity controls */}
@@ -891,7 +892,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
       {/* QR Code Modal */}
       {qrForOrderId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
             <div className="p-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white flex items-center justify-between">
               <h3 className="text-title-large">Track Your Order</h3>
@@ -1037,7 +1038,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                   {orderItems.map(item => (
                     <div key={item.id} className="flex justify-between text-body-medium">
                       <span>{item.quantity}x {item.menuItem.name}</span>
-                      <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                      <span>OMR {(item.menuItem.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -1047,19 +1048,19 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               <div className="border-t border-surface-200 pt-4 space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>${calculateTotal().subtotal.toFixed(2)}</span>
+                  <span>OMR {calculateTotal().subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Service Charge (10%):</span>
-                  <span>${(calculateTotal().subtotal * 0.1).toFixed(2)}</span>
+                  <span>OMR {(calculateTotal().subtotal * 0.1).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax (18%):</span>
-                  <span>${calculateTotal().tax.toFixed(2)}</span>
+                  <span>OMR {calculateTotal().tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
                   <span>Total:</span>
-                  <span>${calculateTotal().total.toFixed(2)}</span>
+                  <span>OMR {calculateTotal().total.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -1088,7 +1089,13 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               {/* Action Buttons */}
               <div className="space-y-3">
                 <button
-                  onClick={() => processPayment(selectedPaymentMethod)}
+                  onClick={() => {
+                    if (selectedPaymentMethod === 'upi') {
+                      setShowUpiQrModal(true);
+                    } else {
+                      processPayment(selectedPaymentMethod);
+                    }
+                  }}
                   disabled={isProcessingPayment || !selectedPaymentMethod}
                   className={`w-full flex items-center justify-center space-x-2 min-h-[48px] ${
                     isProcessingPayment || !selectedPaymentMethod
@@ -1131,6 +1138,95 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                 >
                   <Printer className="w-4 h-4" />
                   <span>Print Invoice</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* UPI QR Code Modal */}
+      {showUpiQrModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-title-large">Pay with UPI</h3>
+              <button
+                onClick={() => setShowUpiQrModal(false)}
+                className="p-2 rounded-lg hover:bg-surface-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="text-center space-y-4">
+              {/* QR Code */}
+              <div className="bg-white p-4 rounded-lg border-2 border-surface-200 inline-block">
+                <img 
+                  src="/upi-qr-code.jpg" 
+                  alt="UPI QR Code" 
+                  className="w-64 h-64 object-contain"
+                  onError={(e) => {
+                    // Fallback to generated QR code if image not found
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <div className="hidden">
+                  <QRCodeCanvas 
+                    value="upi://pay?pa=sayedshahloobp-1@oksbi&pn=Restaurant&cu=OMR" 
+                    size={256}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+              </div>
+              
+              {/* UPI ID */}
+              <div className="space-y-2">
+                <p className="text-body-large font-semibold text-surface-700">UPI ID</p>
+                <div className="bg-surface-50 p-3 rounded-lg border border-surface-200">
+                  <p className="text-body-large font-mono text-primary-600">sayedshahloobp-1@oksbi</p>
+                </div>
+              </div>
+              
+              {/* Amount */}
+              <div className="bg-primary-50 p-4 rounded-lg border border-primary-200">
+                <p className="text-body-small text-surface-600 mb-1">Amount to Pay</p>
+                <p className="text-headline-large font-bold text-primary-700">OMR {calculateTotal().total.toFixed(2)}</p>
+              </div>
+              
+              {/* Instructions */}
+              <div className="text-left bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-body-medium text-surface-700 font-semibold mb-2">Instructions:</p>
+                <ol className="text-body-small text-surface-600 space-y-1 list-decimal list-inside">
+                  <li>Scan the QR code with any UPI app</li>
+                  <li>Or manually enter the UPI ID</li>
+                  <li>Verify the amount</li>
+                  <li>Complete the payment</li>
+                  <li>Click "Payment Completed" below</li>
+                </ol>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-2">
+                <button
+                  onClick={async () => {
+                    setShowUpiQrModal(false);
+                    await processPayment('upi');
+                  }}
+                  className="w-full btn-primary flex items-center justify-center space-x-2"
+                >
+                  <Receipt className="w-4 h-4" />
+                  <span>Payment Completed</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowUpiQrModal(false)}
+                  className="w-full btn-secondary"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

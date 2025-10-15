@@ -6,7 +6,8 @@ import {
   Category,
   Bill,
   KitchenDisplayItem,
-  Staff
+  Staff,
+  Rating
 } from "../types";
 import { db, auth } from "../firebase";
 import {
@@ -31,6 +32,7 @@ interface AppContextType {
   orders: Order[];
   bills: Bill[];
   kitchenOrders: KitchenDisplayItem[];
+  ratings: Rating[];
   
   // Notification system
   notification: { message: string; type: "success" | "error" } | null;
@@ -108,6 +110,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [orders, setOrders] = useState<Order[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [kitchenOrders, setKitchenOrders] = useState<KitchenDisplayItem[]>([]);
+  const [ratings, setRatings] = useState<Rating[]>([]);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   // Real-time Firestore listeners
@@ -116,16 +119,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubMenuItems = onSnapshot(collection(db, "menuItems"), async (snapshot) => {
       const items = snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as MenuItem));
       setMenuItems(items);
-      
-      // If no menu items exist, seed with sample data
-      if (items.length === 0) {
-        console.log("No menu items found, seeding with sample data...");
-        try {
-          await seedMenuItems();
-        } catch (error) {
-          console.error("Error seeding menu items:", error);
-        }
-      }
+      // Removed auto-seeding logic. Menu will stay empty if all items are deleted.
     });
 
     // Staff listener
@@ -213,12 +207,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         );
       }
     );
+
+    // Ratings listener
+    const unsubRatings = onSnapshot(collection(db, "ratings"), (snapshot) => {
+      setRatings(
+        snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+            timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : 
+                      typeof data.timestamp === 'string' ? new Date(data.timestamp) : new Date(),
+          } as Rating;
+        })
+      );
+    });
+
     return () => {
       unsubMenuItems();
       unsubStaff();
       unsubOrders();
       unsubBills();
       unsubKitchen();
+      unsubRatings();
     };
   }, []);
 
@@ -257,7 +268,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         orderId: string;
       } = {
         orderId: newOrderId,
-        orderNumber: `#${newOrderId}`,
+        orderNumber: `${newOrderId}`,
         customerName: orderData.customerName,
         items: orderData.items,
         orderTime,
@@ -475,6 +486,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Staff management functions
   const addStaff = async (staffData: Omit<Staff, "id" | "uid"> & { password: string }): Promise<void> => {
     try {
+      // Check if phone number already exists in staff collection
+      const existingStaffQuery = query(
+        collection(db, "staff"),
+        where("phoneNumber", "==", staffData.phoneNumber)
+      );
+      const existingStaffSnapshot = await getDocs(existingStaffQuery);
+      
+      if (!existingStaffSnapshot.empty) {
+        throw new Error("PHONE_NUMBER_EXISTS");
+      }
+
+      // Generate custom staff ID with EMP prefix for all roles
+      const prefix = 'EMP';
+      
+      // Get all existing staff to determine next number
+      const staffSnapshot = await getDocs(collection(db, "staff"));
+      let maxStaffNum = 0;
+      
+      staffSnapshot.forEach(docSnap => {
+        const id = docSnap.id;
+        if (id.startsWith(prefix)) {
+          const match = id.match(/^EMP(\d{3,})$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxStaffNum) maxStaffNum = num;
+          }
+        }
+      });
+      
+      const nextStaffNum = maxStaffNum + 1;
+      const newStaffId = `${prefix}${nextStaffNum.toString().padStart(3, "0")}`;
+
       // Create Firebase Auth user with the generated email
       const userCredential = await createUserWithEmailAndPassword(auth, staffData.email, staffData.password);
       const uid = userCredential.user.uid;
@@ -488,12 +531,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updatedAt: new Date(),
       };
 
-      // Save staff to Firestore
-      await addDoc(collection(db, "staff"), staffDoc);
+      // Save staff to Firestore with custom ID
+      await setDoc(doc(db, "staff", newStaffId), staffDoc);
       
-      console.log("Staff member created successfully with auto-generated email:", staffData.email);
-    } catch (error) {
+      console.log("Staff member created successfully with custom ID:", newStaffId, "and email:", staffData.email);
+    } catch (error: any) {
       console.error("Error adding staff:", error);
+      
+      // Check for specific error types
+      if (error.message === "PHONE_NUMBER_EXISTS") {
+        throw new Error("PHONE_NUMBER_EXISTS");
+      }
+      
+      // Handle Firebase Auth errors
+      if (error.code === "auth/email-already-in-use") {
+        throw new Error("PHONE_NUMBER_EXISTS");
+      }
+      
+      if (error.code === "auth/invalid-email") {
+        throw new Error("Invalid phone number format");
+      }
+      
+      if (error.code === "auth/weak-password") {
+        throw new Error("Password is too weak. Please use at least 6 characters.");
+      }
+      
       throw error;
     }
   };
@@ -615,6 +677,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         orders,
         bills,
         kitchenOrders,
+        ratings,
         notification,
         showNotification,
         hideNotification,

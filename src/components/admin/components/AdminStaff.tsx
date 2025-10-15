@@ -1,16 +1,14 @@
 import React, { useState } from "react";
-import { Plus, Search, Edit, Trash2, X, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Plus, Search, Edit, X, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 import Snackbar, { SnackbarType } from "../../SnackBar";
 
 export const AdminStaff: React.FC = () => {
-  const { staff, addStaff, updateStaff, deleteStaff } = useApp();
+  const { staff, addStaff, updateStaff } = useApp();
   const [staffSearchTerm, setStaffSearchTerm] = useState("");
   const [showAddStaffModal, setShowAddStaffModal] = useState(false);
   const [showEditStaffModal, setShowEditStaffModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
-  const [showDeleteStaffModal, setShowDeleteStaffModal] = useState(false);
-  const [staffToDelete, setStaffToDelete] = useState<any>(null);
   
   // Snackbar state
   const [snackbar, setSnackbar] = useState<{
@@ -22,7 +20,6 @@ export const AdminStaff: React.FC = () => {
   // Loading states
   const [isAddingStaff, setIsAddingStaff] = useState(false);
   const [isEditingStaff, setIsEditingStaff] = useState(false);
-  const [isDeletingStaff, setIsDeletingStaff] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -111,6 +108,23 @@ export const AdminStaff: React.FC = () => {
   const handleAddStaff = async () => {
     try {
       setIsAddingStaff(true);
+      
+      // Basic validation
+      if (!newStaff.name.trim()) {
+        showSnackbar("Please enter a valid name.", "error");
+        return;
+      }
+      
+      if (!newStaff.phoneNumber.trim()) {
+        showSnackbar("Please enter a phone number.", "error");
+        return;
+      }
+      
+      if (!newStaff.password.trim()) {
+        showSnackbar("Please enter a password.", "error");
+        return;
+      }
+      
       // Auto-generate email from phone number
       const generatedEmail = `${newStaff.phoneNumber}@gmail.com`;
       const staffWithEmail = {
@@ -130,9 +144,19 @@ export const AdminStaff: React.FC = () => {
       });
       setShowAddStaffModal(false);
       showSnackbar("Staff member added successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding staff:", error);
-      showSnackbar("Failed to add staff member. Please try again.", "error");
+      
+      // Handle specific error messages
+      if (error.message === "PHONE_NUMBER_EXISTS") {
+        showSnackbar("Phone number already exists. Please use a different phone number.", "error");
+      } else if (error.message.includes("Password is too weak")) {
+        showSnackbar(error.message, "error");
+      } else if (error.message.includes("Invalid phone number")) {
+        showSnackbar(error.message, "error");
+      } else {
+        showSnackbar("Failed to add staff member. Please try again.", "error");
+      }
     } finally {
       setIsAddingStaff(false);
     }
@@ -172,32 +196,6 @@ export const AdminStaff: React.FC = () => {
     }
   };
 
-  const handleDeleteStaff = (staffId: string) => {
-    setStaffToDelete(staffId);
-    setShowDeleteStaffModal(true);
-  };
-
-  const confirmDeleteStaff = async () => {
-    if (staffToDelete) {
-      try {
-        setIsDeletingStaff(true);
-        await deleteStaff(staffToDelete);
-        setStaffToDelete(null);
-        setShowDeleteStaffModal(false);
-        showSnackbar("Staff member deleted successfully!");
-      } catch (error) {
-        console.error("Error deleting staff:", error);
-        showSnackbar("Failed to delete staff member. Please try again.", "error");
-      } finally {
-        setIsDeletingStaff(false);
-      }
-    }
-  };
-
-  const cancelDeleteStaff = () => {
-    setStaffToDelete(null);
-    setShowDeleteStaffModal(false);
-  };
 
   const toggleFrozenStatus = async (staffId: string) => {
     try {
@@ -219,7 +217,7 @@ export const AdminStaff: React.FC = () => {
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-12">
         <div className="flex justify-between items-center gap-4">
-          <div className="relative flex-1 max-w-xs sm:max-w-none">
+          <div className="relative flex-1 max-w-md sm:max-w-none">
             <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             <input
               type="text"
@@ -231,14 +229,80 @@ export const AdminStaff: React.FC = () => {
           </div>
           <button
             onClick={() => setShowAddStaffModal(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 h-10 flex-shrink-0"
+            className="bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center h-10 flex-shrink-0 px-3 sm:px-4"
           >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm">Add Staff</span>
+            <Plus className="w-5 h-5" />
+            <span className="text-sm hidden sm:inline ml-2">Add Staff</span>
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+          {paginatedStaff.map((member) => (
+            <div
+              key={member.id}
+              className="bg-white shadow-lg rounded-2xl p-4 flex flex-col min-h-[200px] justify-between"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className="min-w-0 flex-1 mr-3">
+                  <h3 className="text-lg font-bold text-gray-800 truncate">
+                    {member.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 truncate">
+                    ID: {member.id}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Phone: {member.phoneNumber}
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-600 capitalize">
+                    {member.role}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mb-3 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Status:</span>
+                  <button
+                    onClick={() => toggleFrozenStatus(member.id)}
+                    className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-md active:scale-95 ${
+                      !member.isFrozen
+                        ? "bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 shadow-green-200/50"
+                        : "bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900 shadow-red-200/50"
+                    }`}
+                    title={`Click to ${!member.isFrozen ? 'freeze' : 'activate'} user`}
+                  >
+                    {!member.isFrozen ? "Active" : "Frozen"}
+                  </button>
+                </div>
+                
+                {member.dateJoined && (
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm font-medium text-gray-700">Joined:</span>
+                    <span className="text-sm text-gray-600">
+                      {new Date(member.dateJoined).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3">
+                <button
+                  onClick={() => openEditModal(member)}
+                  className="w-full bg-purple-600 text-white hover:bg-purple-700 py-2 px-4 rounded-lg font-semibold transition duration-300 flex items-center justify-center text-sm"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Staff
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -268,7 +332,7 @@ export const AdminStaff: React.FC = () => {
                   <tr key={member.id} className="hover:bg-gray-50">
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        #{member.id}
+                        {member.id}
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
@@ -307,13 +371,6 @@ export const AdminStaff: React.FC = () => {
                           title="Edit Staff"
                         >
                           <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteStaff(member.id)}
-                          className="text-red-600 hover:text-red-900 p-1"
-                          title="Delete Staff"
-                        >
-                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       </div>
                     </td>
@@ -363,33 +420,6 @@ export const AdminStaff: React.FC = () => {
       </div>
 
       {/* Delete Staff Confirmation Modal */}
-      {showDeleteStaffModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">
-              Delete Staff
-            </h3>
-            <p className="mb-6 text-gray-700">
-              Are you sure you want to delete this staff member?
-            </p>
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={cancelDeleteStaff}
-                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteStaff}
-                disabled={isDeletingStaff}
-                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isDeletingStaff ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Add Staff Modal */}
       {showAddStaffModal && (
@@ -574,25 +604,6 @@ export const AdminStaff: React.FC = () => {
                     setSelectedStaff({
                       ...selectedStaff,
                       name: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-
-
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={selectedStaff.phoneNumber}
-                  onChange={(e) =>
-                    setSelectedStaff({
-                      ...selectedStaff,
-                      phoneNumber: e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"

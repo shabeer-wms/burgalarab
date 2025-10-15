@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order, Bill } from '../../types';
-import { Receipt, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2, Printer } from 'lucide-react';
+import { Receipt, CreditCard, Banknote, Smartphone, Globe, X, Loader2, Printer } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const BillingPayments: React.FC = () => {
   const { orders, generateBill, showNotification } = useApp();
@@ -12,6 +13,7 @@ const BillingPayments: React.FC = () => {
   const [showBillingDialog, setShowBillingDialog] = useState(false);
   const [billingOrder, setBillingOrder] = useState<Order | null>(null);
   const [isGeneratingBill, setIsGeneratingBill] = useState(false);
+  const [showUpiQrModal, setShowUpiQrModal] = useState(false);
   
   // Pagination states for orders
   const [currentOrderPage, setCurrentOrderPage] = useState(1);
@@ -176,17 +178,17 @@ const BillingPayments: React.FC = () => {
                 <tr>
                   <td>${item.menuItem.name}</td>
                   <td>${item.quantity}</td>
-                  <td>$${item.menuItem.price.toFixed(2)}</td>
-                  <td>$${(item.quantity * item.menuItem.price).toFixed(2)}</td>
+                  <td>OMR ${item.menuItem.price.toFixed(2)}</td>
+                  <td>OMR ${(item.quantity * item.menuItem.price).toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
 
           <div class="total-section">
-            <div class="total-line">Subtotal: $${order.total.toFixed(2)}</div>
-            <div class="total-line">Tax: $${order.tax.toFixed(2)}</div>
-            <div class="total-line grand-total">Grand Total: $${order.grandTotal.toFixed(2)}</div>
+            <div class="total-line">Subtotal: OMR ${order.total.toFixed(2)}</div>
+            <div class="total-line">Tax: OMR ${order.tax.toFixed(2)}</div>
+            <div class="total-line grand-total">Grand Total: OMR ${order.grandTotal.toFixed(2)}</div>
           </div>
 
           <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
@@ -204,12 +206,11 @@ const BillingPayments: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-6">
-  {/* Section */}
+        {/* Section */}
         <div className="space-y-4">
-          {/* Header and Filters */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-title-large"></h2>
-            <div className="overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {/* Header and Filters - hidden on mobile, including Billing card */}
+          <div className="hidden sm:block sm:flex items-start lg:items-center">
+            <div className="overflow-x-auto pb-2 flex-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style dangerouslySetInnerHTML={{ __html: `.overflow-x-auto::-webkit-scrollbar { display: none; }` }} />
               <div className="flex space-x-2 min-w-max">
                 <button
@@ -244,7 +245,9 @@ const BillingPayments: React.FC = () => {
                 </button>
               </div>
             </div>
+            <h2 className="text-title-large"></h2>
           </div>
+          {/* Header and Filters are now hidden on mobile (sm: and up) */}
           
           {/* Grid */}
           {filteredOrders.length === 0 ? (
@@ -265,14 +268,14 @@ const BillingPayments: React.FC = () => {
                     <div className="flex-1 p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="text-title-medium text-primary-900">Order #{order.id.slice(-6)}</h3>
+                          <h3 className="text-title-medium text-primary-900"> {order.id.slice(-6)}</h3>
                           <p className="text-body-medium text-surface-700">
                             {order.customerName}
                             {order.tableNumber && ` • Table ${order.tableNumber}`}
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="text-title-medium font-bold">${order.grandTotal.toFixed(2)}</div>
+                          <div className="text-title-medium font-bold">OMR {order.grandTotal.toFixed(2)}</div>
                           <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-1 ${
                             order.status === 'ready' ? 'bg-success-100 text-success-800' : 
                             order.status === 'completed' ? 'bg-primary-100 text-primary-800' : 
@@ -281,7 +284,7 @@ const BillingPayments: React.FC = () => {
                             {order.status.toUpperCase()}
                           </div>
                           <div className={`text-body-small ${getPaymentStatusColor(order.paymentStatus)} flex items-center justify-end`}>
-                            <DollarSign className="w-3 h-3 mr-1" />
+                            <span className="inline mr-1 font-bold text-primary-700">OMR</span>
                             {order.paymentStatus.toUpperCase()}
                           </div>
                         </div>
@@ -291,7 +294,7 @@ const BillingPayments: React.FC = () => {
                         {order.items.slice(0, 2).map(item => (
                           <div key={item.id} className="flex justify-between text-body-small">
                             <span>{item.quantity}x {item.menuItem.name}</span>
-                            <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                            <span>OMR {(item.menuItem.price * item.quantity).toFixed(2)}</span>
                           </div>
                         ))}
                         {order.items.length > 2 && (
@@ -402,7 +405,7 @@ const BillingPayments: React.FC = () => {
             <div className="p-6 space-y-4">
               {/* Order Details */}
               <div>
-                <h4 className="text-title-medium mb-2">Order #{billingOrder.id.slice(-6)}</h4>
+                <h4 className="text-title-medium mb-2"> {billingOrder.id.slice(-6)}</h4>
                 <p className="text-body-medium text-surface-600">
                   {billingOrder.customerName} • {billingOrder.customerPhone}
                 </p>
@@ -426,7 +429,7 @@ const BillingPayments: React.FC = () => {
                           <div className="text-body-small text-warning-600">Note: {item.specialInstructions}</div>
                         )}
                       </div>
-                      <span>${(item.menuItem.price * item.quantity).toFixed(2)}</span>
+                      <span>OMR {(item.menuItem.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -436,19 +439,19 @@ const BillingPayments: React.FC = () => {
               <div className="border-t border-surface-200 pt-4 space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>${billingOrder.total.toFixed(2)}</span>
+                  <span>OMR {billingOrder.total.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Service Charge (10%):</span>
-                  <span>${(billingOrder.total * 0.1).toFixed(2)}</span>
+                  <span>OMR {(billingOrder.total * 0.1).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax (18%):</span>
-                  <span>${billingOrder.tax.toFixed(2)}</span>
+                  <span>OMR {billingOrder.tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
                   <span>Total:</span>
-                  <span>${billingOrder.grandTotal.toFixed(2)}</span>
+                  <span>OMR {billingOrder.grandTotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Payment Status:</span>
@@ -485,18 +488,23 @@ const BillingPayments: React.FC = () => {
                 <button
                   onClick={async () => {
                     if (billingOrder && !isGeneratingBill) {
-                      try {
-                        setIsGeneratingBill(true);
-                        await generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
-                        showNotification('✅ Payment processed successfully! Marked as payment completed.', 'success');
-                        setShowBillingDialog(false);
-                        setBillingOrder(null);
-                      } catch (error) {
-                        console.error('Error generating bill:', error);
-                        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                        showNotification(`Failed to generate bill: ${errorMessage}`, 'error');
-                      } finally {
-                        setIsGeneratingBill(false);
+                      if (paymentMethod === 'upi') {
+                        // Show UPI QR modal instead of processing immediately
+                        setShowUpiQrModal(true);
+                      } else {
+                        try {
+                          setIsGeneratingBill(true);
+                          await generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
+                          showNotification('✅ Payment processed successfully! Marked as payment completed.', 'success');
+                          setShowBillingDialog(false);
+                          setBillingOrder(null);
+                        } catch (error) {
+                          console.error('Error generating bill:', error);
+                          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                          showNotification(`Failed to generate bill: ${errorMessage}`, 'error');
+                        } finally {
+                          setIsGeneratingBill(false);
+                        }
                       }
                     }
                   }}
@@ -516,6 +524,113 @@ const BillingPayments: React.FC = () => {
                 </button>
                 
                 {/* Print Invoice button removed along with All Bills section */}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* UPI QR Code Modal */}
+      {showUpiQrModal && billingOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-title-large">Pay with UPI</h3>
+              <button
+                onClick={() => setShowUpiQrModal(false)}
+                className="p-2 rounded-lg hover:bg-surface-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="text-center space-y-4">
+              {/* QR Code */}
+              <div className="bg-white p-4 rounded-lg border-2 border-surface-200 inline-block">
+                <img 
+                  src="/upi-qr-code.jpg" 
+                  alt="UPI QR Code" 
+                  className="w-64 h-64 object-contain"
+                  onError={(e) => {
+                    // Fallback to generated QR code if image not found
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <div className="hidden">
+                  <QRCodeCanvas 
+                    value="upi://pay?pa=sayedshahloobp-1@oksbi&pn=Restaurant&cu=OMR" 
+                    size={256}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+              </div>
+              
+              {/* UPI ID */}
+              <div className="space-y-2">
+                <p className="text-body-large font-semibold text-surface-700">UPI ID</p>
+                <div className="bg-surface-50 p-3 rounded-lg border border-surface-200">
+                  <p className="text-body-large font-mono text-primary-600">sayedshahloobp-1@oksbi</p>
+                </div>
+              </div>
+              
+              {/* Amount */}
+              <div className="bg-primary-50 p-4 rounded-lg border border-primary-200">
+                <p className="text-body-small text-surface-600 mb-1">Amount to Pay</p>
+                <p className="text-headline-large font-bold text-primary-700">OMR {billingOrder.grandTotal.toFixed(2)}</p>
+              </div>
+              
+              {/* Instructions */}
+              <div className="text-left bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-body-medium text-surface-700 font-semibold mb-2">Instructions:</p>
+                <ol className="text-body-small text-surface-600 space-y-1 list-decimal list-inside">
+                  <li>Scan the QR code with any UPI app</li>
+                  <li>Or manually enter the UPI ID</li>
+                  <li>Verify the amount</li>
+                  <li>Complete the payment</li>
+                  <li>Click "Payment Completed" below</li>
+                </ol>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      setShowUpiQrModal(false);
+                      setIsGeneratingBill(true);
+                      await generateBill(billingOrder.id, user?.name || 'Unknown', 'upi');
+                      showNotification('✅ Payment processed successfully! Marked as payment completed.', 'success');
+                      setShowBillingDialog(false);
+                      setBillingOrder(null);
+                    } catch (error) {
+                      console.error('Error generating bill:', error);
+                      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                      showNotification(`Failed to generate bill: ${errorMessage}`, 'error');
+                    } finally {
+                      setIsGeneratingBill(false);
+                    }
+                  }}
+                  disabled={isGeneratingBill}
+                  className="w-full btn-primary flex items-center justify-center space-x-2"
+                >
+                  {isGeneratingBill ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Receipt className="w-4 h-4" />
+                  )}
+                  <span>{isGeneratingBill ? 'Processing...' : 'Payment Completed'}</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowUpiQrModal(false)}
+                  disabled={isGeneratingBill}
+                  className="w-full btn-secondary"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
