@@ -919,7 +919,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
                   {item.quantity}x {item.menuItem.name}
                 </p>
                 <p className="text-body-small text-surface-600">
-                  ${item.menuItem.price.toFixed(2)} each
+                  OMR {item.menuItem.price.toFixed(2)} each
                 </p>
                 {item.specialInstructions && (
                   <p className="text-body-small text-warning-700 mt-1">
