@@ -410,7 +410,7 @@ export const AdminMenu: React.FC<AdminMenuProps> = ({
                       {item.name}
                     </h3>
                     <span className="text-xs sm:text-sm font-bold text-purple-600 flex-shrink-0">
-                      {item.price} OMR
+                      OMR {item.price} 
                     </span>
                   </div>
 
