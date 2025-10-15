@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
@@ -8,15 +9,23 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  // Removed showRoleOptions, not needed anymore
   const { login } = useAuth();
   const { staff } = useApp();
   const [buttonLoading, setButtonLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setButtonLoading(true);
-    // Check if staff member exists and is frozen before attempting login
+    // Main login check
+    if (phoneOrEmail === 'pro26@gmail.com' && password === 'pro26123') {
+      setButtonLoading(false);
+      navigate('/role-selection');
+      return;
+    }
+    // ...existing code...
     const isPhoneNumber = /^[\d\s-()+]+$/.test(phoneOrEmail.trim());
     let emailToCheck = phoneOrEmail;
     if (isPhoneNumber) {
@@ -57,6 +66,7 @@ const Login: React.FC = () => {
               value={phoneOrEmail}
               onChange={(e) => setPhoneOrEmail(e.target.value)}
               aria-required="true"
+              // ...no longer disabling input
             />
           </div>
           <div>
@@ -73,6 +83,7 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 aria-required="true"
+                // ...no longer disabling input
               />
               <button
                 type="button"
@@ -102,6 +113,7 @@ const Login: React.FC = () => {
             {buttonLoading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
+        {/* Role selection buttons are now on a separate page */}
       </div>
     </div>
   );

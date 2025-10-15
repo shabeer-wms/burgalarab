@@ -10,7 +10,12 @@ import { useApp } from '../../context/AppContext';
 import { OrderItem, Order } from '../../types';
 
 
-const WaiterDashboard: React.FC = () => {
+interface WaiterDashboardProps {
+  email?: string;
+  password?: string;
+}
+
+const WaiterDashboard: React.FC<WaiterDashboardProps> = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'status' | 'billing' | 'settings'>('orders');
   const [selectedTable, setSelectedTable] = useState<string>('');
   const { user, logout } = useAuth();
