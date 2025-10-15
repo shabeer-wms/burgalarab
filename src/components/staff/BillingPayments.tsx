@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { Order, Bill } from '../../types';
-import { Receipt, CreditCard, Banknote, Smartphone, Globe, DollarSign, X, Loader2, Printer } from 'lucide-react';
+import { Receipt, CreditCard, Banknote, Smartphone, Globe, X, Loader2, Printer } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const BillingPayments: React.FC = () => {
   const { orders, generateBill, showNotification } = useApp();
@@ -12,6 +13,7 @@ const BillingPayments: React.FC = () => {
   const [showBillingDialog, setShowBillingDialog] = useState(false);
   const [billingOrder, setBillingOrder] = useState<Order | null>(null);
   const [isGeneratingBill, setIsGeneratingBill] = useState(false);
+  const [showUpiQrModal, setShowUpiQrModal] = useState(false);
   
   // Pagination states for orders
   const [currentOrderPage, setCurrentOrderPage] = useState(1);
@@ -486,18 +488,23 @@ const BillingPayments: React.FC = () => {
                 <button
                   onClick={async () => {
                     if (billingOrder && !isGeneratingBill) {
-                      try {
-                        setIsGeneratingBill(true);
-                        await generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
-                        showNotification('✅ Payment processed successfully! Marked as payment completed.', 'success');
-                        setShowBillingDialog(false);
-                        setBillingOrder(null);
-                      } catch (error) {
-                        console.error('Error generating bill:', error);
-                        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                        showNotification(`Failed to generate bill: ${errorMessage}`, 'error');
-                      } finally {
-                        setIsGeneratingBill(false);
+                      if (paymentMethod === 'upi') {
+                        // Show UPI QR modal instead of processing immediately
+                        setShowUpiQrModal(true);
+                      } else {
+                        try {
+                          setIsGeneratingBill(true);
+                          await generateBill(billingOrder.id, user?.name || 'Unknown', paymentMethod);
+                          showNotification('✅ Payment processed successfully! Marked as payment completed.', 'success');
+                          setShowBillingDialog(false);
+                          setBillingOrder(null);
+                        } catch (error) {
+                          console.error('Error generating bill:', error);
+                          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                          showNotification(`Failed to generate bill: ${errorMessage}`, 'error');
+                        } finally {
+                          setIsGeneratingBill(false);
+                        }
                       }
                     }
                   }}
@@ -517,6 +524,113 @@ const BillingPayments: React.FC = () => {
                 </button>
                 
                 {/* Print Invoice button removed along with All Bills section */}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* UPI QR Code Modal */}
+      {showUpiQrModal && billingOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-title-large">Pay with UPI</h3>
+              <button
+                onClick={() => setShowUpiQrModal(false)}
+                className="p-2 rounded-lg hover:bg-surface-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="text-center space-y-4">
+              {/* QR Code */}
+              <div className="bg-white p-4 rounded-lg border-2 border-surface-200 inline-block">
+                <img 
+                  src="/upi-qr-code.jpg" 
+                  alt="UPI QR Code" 
+                  className="w-64 h-64 object-contain"
+                  onError={(e) => {
+                    // Fallback to generated QR code if image not found
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <div className="hidden">
+                  <QRCodeCanvas 
+                    value="upi://pay?pa=sayedshahloobp-1@oksbi&pn=Restaurant&cu=OMR" 
+                    size={256}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+              </div>
+              
+              {/* UPI ID */}
+              <div className="space-y-2">
+                <p className="text-body-large font-semibold text-surface-700">UPI ID</p>
+                <div className="bg-surface-50 p-3 rounded-lg border border-surface-200">
+                  <p className="text-body-large font-mono text-primary-600">sayedshahloobp-1@oksbi</p>
+                </div>
+              </div>
+              
+              {/* Amount */}
+              <div className="bg-primary-50 p-4 rounded-lg border border-primary-200">
+                <p className="text-body-small text-surface-600 mb-1">Amount to Pay</p>
+                <p className="text-headline-large font-bold text-primary-700">OMR {billingOrder.grandTotal.toFixed(2)}</p>
+              </div>
+              
+              {/* Instructions */}
+              <div className="text-left bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-body-medium text-surface-700 font-semibold mb-2">Instructions:</p>
+                <ol className="text-body-small text-surface-600 space-y-1 list-decimal list-inside">
+                  <li>Scan the QR code with any UPI app</li>
+                  <li>Or manually enter the UPI ID</li>
+                  <li>Verify the amount</li>
+                  <li>Complete the payment</li>
+                  <li>Click "Payment Completed" below</li>
+                </ol>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      setShowUpiQrModal(false);
+                      setIsGeneratingBill(true);
+                      await generateBill(billingOrder.id, user?.name || 'Unknown', 'upi');
+                      showNotification('✅ Payment processed successfully! Marked as payment completed.', 'success');
+                      setShowBillingDialog(false);
+                      setBillingOrder(null);
+                    } catch (error) {
+                      console.error('Error generating bill:', error);
+                      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                      showNotification(`Failed to generate bill: ${errorMessage}`, 'error');
+                    } finally {
+                      setIsGeneratingBill(false);
+                    }
+                  }}
+                  disabled={isGeneratingBill}
+                  className="w-full btn-primary flex items-center justify-center space-x-2"
+                >
+                  {isGeneratingBill ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Receipt className="w-4 h-4" />
+                  )}
+                  <span>{isGeneratingBill ? 'Processing...' : 'Payment Completed'}</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowUpiQrModal(false)}
+                  disabled={isGeneratingBill}
+                  className="w-full btn-secondary"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
