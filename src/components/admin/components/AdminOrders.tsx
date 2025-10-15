@@ -929,7 +929,7 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
               </div>
               <div className="text-right">
                 <p className="text-body-medium font-medium">
-                  ${(item.menuItem.price * item.quantity).toFixed(2)}
+                  OMR {(item.menuItem.price * item.quantity).toFixed(2)}
                 </p>
                 <div
                   className={`chip text-xs ${
@@ -956,15 +956,15 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
         <div className="space-y-2 text-body-medium">
           <div className="flex justify-between">
             <span>Subtotal:</span>
-            <span>${order.total.toFixed(2)}</span>
+            <span>OMR {order.total.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span>Tax:</span>
-            <span>${order.tax.toFixed(2)}</span>
+            <span>OMR {order.tax.toFixed(2)}</span>
           </div>
           <div className="border-t border-surface-200 pt-2 flex justify-between font-medium">
             <span>Total:</span>
-            <span>${order.grandTotal.toFixed(2)}</span>
+            <span>OMR {order.grandTotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span>Payment Status:</span>
