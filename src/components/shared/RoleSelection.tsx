@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clearDatabase } from '../../utils/clearDatabase';
+import ConfirmationDialog from './ConfirmationDialog';
 
 const RoleSelection: React.FC = () => {
 	const navigate = useNavigate();
@@ -38,8 +39,37 @@ const RoleSelection: React.FC = () => {
 					>
 						Admin
 					</button>
+						<button
+							className="w-full px-4 py-3 rounded-lg bg-yellow-100 text-yellow-800 font-semibold hover:bg-yellow-200"
+							onClick={() => navigate('/waiter', { state: { email: 'waiterpro26@gmail.com', password: 'waiter123' } })}
+						>
+							Waiter
+						</button>
+						<button
+							className="w-full px-4 py-3 rounded-lg bg-red-100 text-red-800 font-semibold hover:bg-red-200"
+							disabled={clearLoading}
+							onClick={() => setShowConfirm(true)}
+						>
+							{clearLoading ? 'Clearing...' : 'Clear Database'}
+						</button>
 					{/* ...existing code... */}
 				</div>
+					{showConfirm && (
+						<ConfirmationDialog
+							isOpen={showConfirm}
+							title="Confirm Database Clear"
+							message="Are you sure you want to clear the database? This action cannot be undone."
+							confirmText="Yes, Clear"
+							cancelText="Cancel"
+							onConfirm={handleClearDatabase}
+							onCancel={() => setShowConfirm(false)}
+							type="danger"
+							loading={clearLoading}
+						/>
+					)}
+					{clearMsg && (
+						<div className="text-center mt-4 text-sm text-gray-700">{clearMsg}</div>
+					)}
 			</div>
 		</div>
 	);
