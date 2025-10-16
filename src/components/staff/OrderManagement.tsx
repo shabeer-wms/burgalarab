@@ -150,15 +150,10 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               <span>Subtotal</span>
               <span>OMR ${bill.subtotal.toFixed(2)}</span>
             </div>
-            ${bill.serviceCharge ? `
-            <div class="item">
-              <span>Service Charge (10%)</span>
-              <span>OMR ${bill.serviceCharge.toFixed(2)}</span>
-            </div>` : ''}
-            <div class="item">
-              <span>Tax (18%)</span>
-              <span>OMR ${bill.taxAmount.toFixed(2)}</span>
-            </div>
+              <div class="item">
+                <span>Tax (5%)</span>
+                <span>OMR ${bill.taxAmount.toFixed(2)}</span>
+              </div>
             <div class="total">
               <span>Total</span>
               <span>OMR ${bill.total.toFixed(2)}</span>
@@ -358,9 +353,9 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
 
   const calculateTotal = () => {
-    const subtotal = orderItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
-    const tax = subtotal * 0.18; // 18% GST
-    return { subtotal, tax, total: subtotal + tax };
+  const subtotal = orderItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
+  const tax = subtotal * 0.05; // 5% GST
+  return { subtotal, tax, total: subtotal + tax };
   };
 
 
@@ -1051,12 +1046,8 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                   <span>OMR {calculateTotal().subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Service Charge (10%):</span>
-                  <span>OMR {(calculateTotal().subtotal * 0.1).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax (18%):</span>
-                  <span>OMR {calculateTotal().tax.toFixed(2)}</span>
+                  <span>Tax (5%):</span>
+                  <span>OMR {(calculateTotal().subtotal * 0.05).toFixed(2)}</span>
                 </div>
                 <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
                   <span>Total:</span>
@@ -1118,10 +1109,9 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                       orderId: `ORDER-${Date.now()}`,
                       items: orderItems,
                       subtotal: calculateTotal().subtotal,
-                      taxRate: 0.18,
-                      taxAmount: calculateTotal().tax,
-                      serviceCharge: calculateTotal().subtotal * 0.1,
-                      total: calculateTotal().total,
+                      taxRate: 0.05,
+                      taxAmount: calculateTotal().subtotal * 0.05,
+                      total: calculateTotal().subtotal + (calculateTotal().subtotal * 0.05),
                       generatedAt: new Date(),
                       generatedBy: user?.name || 'Unknown',
                       paymentMethod: selectedPaymentMethod,

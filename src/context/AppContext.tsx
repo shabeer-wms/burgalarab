@@ -413,10 +413,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log('Generating bill for order:', order);
 
       const subtotal = order.items.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
-      const taxRate = 0.18; // 18% GST
+      const taxRate = 0.05; // 5% GST
       const taxAmount = subtotal * taxRate;
-      const serviceCharge = subtotal * 0.1; // 10% service charge
-      const total = subtotal + taxAmount + serviceCharge;
+      const total = subtotal + taxAmount;
 
       const billData: Omit<Bill, 'id'> = {
         orderId,
@@ -424,7 +423,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         subtotal,
         taxRate,
         taxAmount,
-        serviceCharge,
         total,
         generatedAt: new Date(),
         generatedBy,
