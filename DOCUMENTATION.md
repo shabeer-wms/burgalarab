@@ -23,6 +23,22 @@
 ### Description
 A comprehensive, full-stack restaurant management system built with React, TypeScript, and Firebase. The application provides role-based dashboards for **Admin**, **Waiter**, and **Kitchen Staff** to streamline restaurant operations with real-time order processing, menu management, staff management, and billing capabilities.
 
+---
+
+## Team & Contributors
+
+| Role/Module           | Name(s)                   |
+|---------------------- |---------------------------|
+| Project Lead          | Sayed Shahloob P.         |
+| Frontend Lead         | Ayra Riyas                |
+| Backend Lead          | Minhaj                    |
+| Admin Module          | Ayra Riyas,Sharin         |
+| Kitchen Module        | Sahal, Nishana            |
+| Waiter Module         | Minhaj, Dishan            |
+| Login Module          | Archana                   |
+
+---
+
 ### Key Features
 - ✅ **Multi-role dashboard system** (Admin, Waiter, Kitchen)
 - ✅ **Real-time order management** with live updates
