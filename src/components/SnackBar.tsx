@@ -110,3 +110,4 @@ const Snackbar: React.FC<SnackbarProps> = ({
 };
 
 export default Snackbar;
+// Moved to shared/

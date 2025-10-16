@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Plus, Search, Edit, X, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
-import Snackbar, { SnackbarType } from "../../SnackBar";
+import Snackbar, { SnackbarType } from "../../shared/SnackBar";
 
 export const AdminStaff: React.FC = () => {
   const { staff, addStaff, updateStaff } = useApp();

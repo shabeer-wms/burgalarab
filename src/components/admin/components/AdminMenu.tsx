@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Search, Plus, Clock, Edit, Trash2, X, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useApp } from "../../../context/AppContext";
 import { ImageUpload } from "./ImageUpload";
-import Snackbar, { SnackbarType } from "../../SnackBar";
+import Snackbar, { SnackbarType } from "../../shared/SnackBar";
 
 interface AdminMenuProps {
   categories: string[];

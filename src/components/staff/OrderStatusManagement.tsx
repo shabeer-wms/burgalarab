@@ -6,7 +6,7 @@ import {
   Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, ChefHat, 
   Trash2, X, Receipt, CreditCard, Banknote, Smartphone, Globe, Truck 
 } from 'lucide-react';
-import ConfirmationDialog from '../../components/ConfirmationDialog';
+import ConfirmationDialog from '../../components/shared/ConfirmationDialog';
 
 const OrderStatusManagement: React.FC = () => {
   const { orders, updateOrder, showNotification } = useApp();

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import OrderManagement from '../staff/OrderManagement';
 import WaiterOrderStatusPage from './WaiterOrderStatusPage';
 import WaiterBillingPage from './WaiterBillingPage';
-import Snackbar from '../SnackBar';
+import Snackbar from '../shared/SnackBar';
 import { ShoppingCart, Eye, Receipt, UserCheck, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
 import WaiterSettings from './WaiterSettings';
 import { useAuth } from '../../context/AuthContext';

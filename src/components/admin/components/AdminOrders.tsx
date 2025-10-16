@@ -13,7 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import Snackbar, { SnackbarType } from "../../SnackBar";
+import Snackbar, { SnackbarType } from "../../shared/SnackBar";
 
 // Helper functions
 const formatDate = (dateValue: Date | string | { toDate: () => Date }) => {
@@ -675,7 +675,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                         {item.quantity}x {item.menuItem.name}
                       </span>
                       <span>
-                        ${(item.menuItem.price * item.quantity).toFixed(2)}
+                        OMR {(item.menuItem.price * item.quantity).toFixed(2)}
                       </span>
                     </div>
                   ))}
@@ -703,7 +703,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
                   <div className="flex items-center gap-4 min-w-0 flex-1">
                     <div className="text-xl font-bold text-purple-600">
-                      ${(order.grandTotal || 0).toFixed(2)}
+                      OMR {(order.grandTotal || 0).toFixed(2)}
                     </div>
                     <div className="text-sm text-gray-600 flex items-center">
                       <Clock className="w-3 h-3 mr-1" />

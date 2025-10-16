@@ -35,10 +35,10 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider, useApp } from './context/AppContext';
-import Login from './components/Login';
-import Layout from './components/Layout';
+import Login from './components/shared/Login';
+import Layout from './components/shared/Layout';
 import CustomerDashboard from './components/customer/CustomerDashboard';
-import RoleSelection from './components/RoleSelection';
+import RoleSelection from './components/shared/RoleSelection';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import WaiterDashboard from './components/waiter/WaiterDashboard';
 import KitchenDashboard from './components/kitchen/KitchenDashboard';
