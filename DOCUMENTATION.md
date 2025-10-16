@@ -29,7 +29,7 @@ A comprehensive, full-stack restaurant management system built with React, TypeS
 
 | Role/Module           | Name(s)                   |
 |---------------------- |---------------------------|
-| Project Lead          | Sayed Shahloob P.         |
+| Project Lead          | Sayed Shahloob P          |
 | Frontend Lead         | Ayra Riyas                |
 | Backend Lead          | Minhaj                    |
 | Admin Module          | Ayra Riyas,Sharin         |
