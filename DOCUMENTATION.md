@@ -1510,7 +1510,6 @@ service cloud.firestore {
 2. **Test Accounts**
    ```
    Admin: admin@pro.com / admin123
-   Demo: customer@demo.com / demo123
    Staff: Create via admin panel
    ```
 
