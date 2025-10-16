@@ -1,10 +1,10 @@
 
 import React, { useState } from "react";
 import SnackBar from "../SnackBar";
-import { LogOut, User, Trash2 } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { updatePassword } from "firebase/auth";
-import { auth, db } from "../../firebase";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { auth } from "../../firebase";
+// import { clearDatabase } from '../../utils/clearDatabase';
 
 interface AdminSettingsProps {
   user: {
@@ -23,8 +23,6 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ user, logout }) => {
 
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState("");
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [clearLoading, setClearLoading] = useState(false);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,56 +53,14 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ user, logout }) => {
   };
 
 
-  // Clear Database Logic
-  const handleClearDatabase = async () => {
-    setClearLoading(true);
-    try {
-      // List of collections to clear
-  const collections = ["menuItems", "orders", "staff", "users", "bills", "kitchenOrders", "ratings"];
-      for (const col of collections) {
-        const colRef = collection(db, col);
-        const snapshot = await getDocs(colRef);
-        for (const docSnap of snapshot.docs) {
-          try {
-            await deleteDoc(doc(db, col, docSnap.id));
-          } catch (err) {
-            console.error(`Failed to delete doc ${docSnap.id} in ${col}:`, err);
-          }
-        }
-      }
-      setSnackbarMsg("Database cleared successfully.");
-    } catch (error) {
-      setSnackbarMsg("Failed to clear database.");
-    } finally {
-      setShowSnackbar(true);
-      setClearLoading(false);
-      setShowConfirmDialog(false);
-    }
-  };
+  // Removed clear database logic
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-full ml-0 relative">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-800">Settings</h2>
         <div className="flex items-center gap-2">
-          {/* Clear Database button: desktop full, mobile icon */}
-          <button
-            className="md:flex hidden items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-xl text-base font-semibold hover:bg-red-700 transition-colors"
-            onClick={() => setShowConfirmDialog(true)}
-            disabled={clearLoading}
-            title="Clear Database"
-          >
-            <Trash2 className="w-5 h-5" />
-            <span>{clearLoading ? "Clearing..." : "Clear Database"}</span>
-          </button>
-          <button
-            className="md:hidden p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors"
-            onClick={() => setShowConfirmDialog(true)}
-            disabled={clearLoading}
-            title="Clear Database"
-          >
-            <Trash2 className="w-6 h-6" />
-          </button>
+          {/* Removed Clear Database button */}
           {/* Logout icon for small screens */}
           <button
             onClick={logout}
@@ -197,42 +153,7 @@ const AdminSettings: React.FC<AdminSettingsProps> = ({ user, logout }) => {
           onClose={() => setShowSnackbar(false)}
         />
       </div>
-      {/* Clear Database Section */}
-      {/* Mobile: Clear Database icon below logout */}
-      {/* Removed mobile clear database button below logout, now next to Settings */}
-      {/* Confirmation Dialog */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 shadow-lg max-w-sm w-full">
-            <h4 className="text-xl font-bold text-red-700 mb-4">Are you sure?</h4>
-            <p className="mb-6 text-gray-700">This will permanently delete all data in the database. This action cannot be undone.</p>
-            <div className="flex justify-end space-x-4">
-              <button
-                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300"
-                onClick={() => setShowConfirmDialog(false)}
-                disabled={clearLoading}
-              >Cancel</button>
-              <button
-                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 flex items-center justify-center"
-                onClick={handleClearDatabase}
-                disabled={clearLoading}
-              >
-                {clearLoading ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                    </svg>
-                    Deleting...
-                  </span>
-                ) : (
-                  "Yes, Delete All"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed Clear Database confirmation dialog and section */}
     </div>
   );
 };

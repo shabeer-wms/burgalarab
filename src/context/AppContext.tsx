@@ -23,7 +23,6 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { seedMenuItems } from "../utils/seedMenuItems";
 
 interface AppContextType {
   categories: Category[];
@@ -92,15 +91,51 @@ const defaultCategories: Category[] = [
   },
   {
     id: '3',
+    name: 'Grill / BBQ',
+    description: 'Grilled and barbecued specialties',
+    image: 'https://images.pexels.com/photos/675951/pexels-photo-675951.jpeg?auto=compress&cs=tinysrgb&w=400'
+  },
+  {
+    id: '4',
+    name: 'Rice Dishes',
+    description: 'Rice-based meals',
+    image: 'https://images.pexels.com/photos/461382/pexels-photo-461382.jpeg?auto=compress&cs=tinysrgb&w=400'
+  },
+  {
+    id: '5',
+    name: 'Sandwiches & Shawarma',
+    description: 'Sandwiches and shawarma wraps',
+    image: 'https://images.pexels.com/photos/461382/pexels-photo-461382.jpeg?auto=compress&cs=tinysrgb&w=400'
+  },
+  {
+    id: '6',
+    name: 'Burgers',
+    description: 'Juicy burgers',
+    image: 'https://images.pexels.com/photos/1639566/pexels-photo-1639566.jpeg?auto=compress&cs=tinysrgb&w=400'
+  },
+  {
+    id: '7',
+    name: 'Seafood',
+    description: 'Fresh seafood dishes',
+    image: 'https://images.pexels.com/photos/461382/pexels-photo-461382.jpeg?auto=compress&cs=tinysrgb&w=400'
+  },
+  {
+    id: '8',
     name: 'Desserts',
     description: 'Sweet endings',
     image: 'https://images.pexels.com/photos/1126728/pexels-photo-1126728.jpeg?auto=compress&cs=tinysrgb&w=400'
   },
   {
-    id: '4',
+    id: '9',
     name: 'Beverages',
     description: 'Refreshing drinks',
     image: 'https://images.pexels.com/photos/338713/pexels-photo-338713.jpeg?auto=compress&cs=tinysrgb&w=400'
+  },
+  {
+    id: '10',
+    name: 'Breakfast',
+    description: 'Morning meals',
+    image: 'https://images.pexels.com/photos/376464/pexels-photo-376464.jpeg?auto=compress&cs=tinysrgb&w=400'
   }
 ];
 
@@ -378,10 +413,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log('Generating bill for order:', order);
 
       const subtotal = order.items.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
-      const taxRate = 0.18; // 18% GST
+      const taxRate = 0.05; // 5% GST
       const taxAmount = subtotal * taxRate;
-      const serviceCharge = subtotal * 0.1; // 10% service charge
-      const total = subtotal + taxAmount + serviceCharge;
+      const total = subtotal + taxAmount;
 
       const billData: Omit<Bill, 'id'> = {
         orderId,
@@ -389,7 +423,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         subtotal,
         taxRate,
         taxAmount,
-        serviceCharge,
         total,
         generatedAt: new Date(),
         generatedBy,

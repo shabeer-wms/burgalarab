@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import OrderManagement from '../staff/OrderManagement';
 import WaiterOrderStatusPage from './WaiterOrderStatusPage';
 import WaiterBillingPage from './WaiterBillingPage';
-import Snackbar from '../SnackBar';
+import Snackbar from '../shared/SnackBar';
 import { ShoppingCart, Eye, Receipt, UserCheck, X, Settings, Plus, Minus, Trash2, Bell } from 'lucide-react';
 import WaiterSettings from './WaiterSettings';
 import { useAuth } from '../../context/AuthContext';
@@ -10,7 +10,12 @@ import { useApp } from '../../context/AppContext';
 import { OrderItem, Order } from '../../types';
 
 
-const WaiterDashboard: React.FC = () => {
+interface WaiterDashboardProps {
+  email?: string;
+  password?: string;
+}
+
+const WaiterDashboard: React.FC<WaiterDashboardProps> = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'status' | 'billing' | 'settings'>('orders');
   const [selectedTable, setSelectedTable] = useState<string>('');
   const { user, logout } = useAuth();

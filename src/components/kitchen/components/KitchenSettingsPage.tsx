@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import SnackBar from "../../SnackBar";
+import SnackBar from "../../shared/SnackBar";
 import { LogOut, User } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { auth } from "../../../firebase";

@@ -187,8 +187,8 @@ const BillingPayments: React.FC = () => {
 
           <div class="total-section">
             <div class="total-line">Subtotal: OMR ${order.total.toFixed(2)}</div>
-            <div class="total-line">Tax: OMR ${order.tax.toFixed(2)}</div>
-            <div class="total-line grand-total">Grand Total: OMR ${order.grandTotal.toFixed(2)}</div>
+            <div class="total-line">Tax (5%): OMR ${(order.total * 0.05).toFixed(2)}</div>
+            <div class="total-line grand-total">Grand Total: OMR ${(order.total * 1.05).toFixed(2)}</div>
           </div>
 
           <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
@@ -441,12 +441,9 @@ const BillingPayments: React.FC = () => {
                   <span>Subtotal:</span>
                   <span>OMR {billingOrder.total.toFixed(2)}</span>
                 </div>
+              
                 <div className="flex justify-between">
-                  <span>Service Charge (10%):</span>
-                  <span>OMR {(billingOrder.total * 0.1).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax (18%):</span>
+                  <span>Tax (5%):</span>
                   <span>OMR {billingOrder.tax.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
