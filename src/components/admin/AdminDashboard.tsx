@@ -10,7 +10,12 @@ import { AdminMenu } from "./components/AdminMenu";
 import { TrendingUp, Users, Plus, Settings } from "lucide-react";
 import AdminSettings from "./AdminSettings";
 
-const AdminDashboard: React.FC = () => {
+interface AdminDashboardProps {
+  email?: string;
+  password?: string;
+}
+
+const AdminDashboard: React.FC<AdminDashboardProps> = () => {
   const { orders, updateOrder, menuItems, staff, ratings } = useApp();
   const { user, logout } = useAuth();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -53,7 +58,18 @@ const AdminDashboard: React.FC = () => {
     "overview" | "orders" | "menu" | "staff" | "settings"
   >("overview");
 
-  const categories = ["Appetizers", "Main Course", "Desserts", "Beverages"];
+  const categories = [
+    "Appetizers",
+    "Main Course",
+    "Grill / BBQ",
+    "Rice Dishes",
+    "Sandwiches & Shawarma",
+    "Burgers",
+    "Seafood",
+    "Desserts",
+    "Beverages",
+    "Breakfast"
+  ];
 
   return (
     <div ref={rootRef} className="fixed inset-0 flex bg-gray-50">

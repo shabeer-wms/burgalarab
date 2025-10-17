@@ -47,8 +47,19 @@ export const KitchenMenu: React.FC<KitchenMenuProps> = ({
 
   // close dropdown when clicking outside
 
-  // Get unique categories from menu items
-  const categories = [...new Set(menuItems.map((item) => item.category))];
+  // Use fixed categories for consistency across modules
+  const categories = [
+    "Appetizers",
+    "Main Course",
+    "Grill / BBQ",
+    "Rice Dishes",
+    "Sandwiches & Shawarma",
+    "Burgers",
+    "Seafood",
+    "Desserts",
+    "Beverages",
+    "Breakfast"
+  ];
 
   // Filter menu items
   const filteredMenuItems = menuItems.filter((item) => {

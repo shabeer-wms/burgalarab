@@ -6,7 +6,7 @@ import {
   Clock, CheckCircle, AlertCircle, Package, DollarSign, Eye, ChefHat, 
   Trash2, X, Receipt, CreditCard, Banknote, Smartphone, Globe, Truck 
 } from 'lucide-react';
-import ConfirmationDialog from '../../components/ConfirmationDialog';
+import ConfirmationDialog from '../../components/shared/ConfirmationDialog';
 
 const OrderStatusManagement: React.FC = () => {
   const { orders, updateOrder, showNotification } = useApp();
@@ -151,43 +151,43 @@ const OrderStatusManagement: React.FC = () => {
             <div className="flex space-x-2 min-w-max">
               <button
                 onClick={() => setSelectedStatus('all')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
               >
                 All
               </button>
               <button
                 onClick={() => setSelectedStatus('confirmed')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'confirmed' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'confirmed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
               >
                 Confirmed
               </button>
               <button
                 onClick={() => setSelectedStatus('preparing')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'preparing' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'preparing' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
               >
                 Preparing
               </button>
               <button
                 onClick={() => setSelectedStatus('ready')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'ready' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'ready' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
               >
                 Ready
               </button>
               <button
                 onClick={() => setSelectedStatus('completed')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'completed' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'completed' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
               >
                 Completed
               </button>
               <button
                 onClick={() => setSelectedStatus('delivered')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'delivered' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'delivered' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
               >
                 Delivered
               </button>
               <button
                 onClick={() => setSelectedStatus('cancelled')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'cancelled' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedStatus === 'cancelled' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
               >
                 Cancelled
               </button>

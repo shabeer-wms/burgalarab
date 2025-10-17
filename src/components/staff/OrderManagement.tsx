@@ -150,15 +150,10 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               <span>Subtotal</span>
               <span>OMR ${bill.subtotal.toFixed(2)}</span>
             </div>
-            ${bill.serviceCharge ? `
-            <div class="item">
-              <span>Service Charge (10%)</span>
-              <span>OMR ${bill.serviceCharge.toFixed(2)}</span>
-            </div>` : ''}
-            <div class="item">
-              <span>Tax (18%)</span>
-              <span>OMR ${bill.taxAmount.toFixed(2)}</span>
-            </div>
+              <div class="item">
+                <span>Tax (5%)</span>
+                <span>OMR ${bill.taxAmount.toFixed(2)}</span>
+              </div>
             <div class="total">
               <span>Total</span>
               <span>OMR ${bill.total.toFixed(2)}</span>
@@ -358,9 +353,9 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
 
   const calculateTotal = () => {
-    const subtotal = orderItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
-    const tax = subtotal * 0.18; // 18% GST
-    return { subtotal, tax, total: subtotal + tax };
+  const subtotal = orderItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0);
+  const tax = subtotal * 0.05; // 5% GST
+  return { subtotal, tax, total: subtotal + tax };
   };
 
 
@@ -728,17 +723,17 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               <div className="flex space-x-2 min-w-max">
                 <button
                   onClick={() => setSelectedCategory('all')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedCategory === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedCategory === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
                 >
                   All Categories
                 </button>
-                {categories.map(category => (
+                {["Appetizers","Main Course","Grill / BBQ","Rice Dishes","Sandwiches & Shawarma","Burgers","Seafood","Desserts","Beverages","Breakfast"].map(category => (
                   <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.name)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedCategory === category.name ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedCategory === category ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
                   >
-                    {category.name}
+                    {category}
                   </button>
                 ))}
               </div>
@@ -1051,12 +1046,8 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                   <span>OMR {calculateTotal().subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Service Charge (10%):</span>
-                  <span>OMR {(calculateTotal().subtotal * 0.1).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax (18%):</span>
-                  <span>OMR {calculateTotal().tax.toFixed(2)}</span>
+                  <span>Tax (5%):</span>
+                  <span>OMR {(calculateTotal().subtotal * 0.05).toFixed(2)}</span>
                 </div>
                 <div className="border-t border-surface-200 pt-2 flex justify-between font-medium text-title-medium">
                   <span>Total:</span>
@@ -1118,10 +1109,9 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                       orderId: `ORDER-${Date.now()}`,
                       items: orderItems,
                       subtotal: calculateTotal().subtotal,
-                      taxRate: 0.18,
-                      taxAmount: calculateTotal().tax,
-                      serviceCharge: calculateTotal().subtotal * 0.1,
-                      total: calculateTotal().total,
+                      taxRate: 0.05,
+                      taxAmount: calculateTotal().subtotal * 0.05,
+                      total: calculateTotal().subtotal + (calculateTotal().subtotal * 0.05),
                       generatedAt: new Date(),
                       generatedBy: user?.name || 'Unknown',
                       paymentMethod: selectedPaymentMethod,
@@ -1147,25 +1137,25 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
       {/* UPI QR Code Modal */}
       {showUpiQrModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-title-large">Pay with UPI</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[90%] sm:max-w-sm md:max-w-md p-3 sm:p-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">Pay with UPI</h3>
               <button
                 onClick={() => setShowUpiQrModal(false)}
-                className="p-2 rounded-lg hover:bg-surface-100"
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
             
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-3 sm:space-y-4">
               {/* QR Code */}
-              <div className="bg-white p-4 rounded-lg border-2 border-surface-200 inline-block">
+              <div className="bg-gray-50 p-2 sm:p-3 md:p-4 rounded-xl border-2 border-gray-200 inline-block">
                 <img 
                   src="/upi-qr-code.jpg" 
                   alt="UPI QR Code" 
-                  className="w-64 h-64 object-contain"
+                  className="w-40 h-40 sm:w-48 sm:h-48 md:w-52 md:h-52 object-contain mx-auto"
                   onError={(e) => {
                     // Fallback to generated QR code if image not found
                     const target = e.target as HTMLImageElement;
@@ -1184,47 +1174,35 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               </div>
               
               {/* UPI ID */}
-              <div className="space-y-2">
-                <p className="text-body-large font-semibold text-surface-700">UPI ID</p>
-                <div className="bg-surface-50 p-3 rounded-lg border border-surface-200">
-                  <p className="text-body-large font-mono text-primary-600">sayedshahloobp-1@oksbi</p>
+              <div className="space-y-1.5">
+                <p className="text-xs sm:text-sm font-semibold text-gray-700">UPI ID</p>
+                <div className="bg-blue-50 p-2 sm:p-3 rounded-lg border border-blue-200">
+                  <p className="text-xs sm:text-sm md:text-base font-mono text-blue-700 break-all">sayedshahloobp-1@oksbi</p>
                 </div>
               </div>
               
               {/* Amount */}
-              <div className="bg-primary-50 p-4 rounded-lg border border-primary-200">
-                <p className="text-body-small text-surface-600 mb-1">Amount to Pay</p>
-                <p className="text-headline-large font-bold text-primary-700">OMR {calculateTotal().total.toFixed(2)}</p>
-              </div>
-              
-              {/* Instructions */}
-              <div className="text-left bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <p className="text-body-medium text-surface-700 font-semibold mb-2">Instructions:</p>
-                <ol className="text-body-small text-surface-600 space-y-1 list-decimal list-inside">
-                  <li>Scan the QR code with any UPI app</li>
-                  <li>Or manually enter the UPI ID</li>
-                  <li>Verify the amount</li>
-                  <li>Complete the payment</li>
-                  <li>Click "Payment Completed" below</li>
-                </ol>
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 rounded-xl border-2 border-blue-300 shadow-sm">
+                <p className="text-xs text-gray-600 mb-0.5">Amount to Pay</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-700">OMR {calculateTotal().total.toFixed(2)}</p>
               </div>
               
               {/* Action Buttons */}
-              <div className="space-y-2 pt-2">
+              <div className="space-y-2 pt-1">
                 <button
                   onClick={async () => {
                     setShowUpiQrModal(false);
                     await processPayment('upi');
                   }}
-                  className="w-full btn-primary flex items-center justify-center space-x-2"
+                  className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 shadow-md"
                 >
                   <Receipt className="w-4 h-4" />
-                  <span>Payment Completed</span>
+                  <span className="text-sm sm:text-base">Payment Completed</span>
                 </button>
                 
                 <button
                   onClick={() => setShowUpiQrModal(false)}
-                  className="w-full btn-secondary"
+                  className="w-full bg-gray-100 text-gray-700 py-2.5 sm:py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm sm:text-base"
                 >
                   Cancel
                 </button>

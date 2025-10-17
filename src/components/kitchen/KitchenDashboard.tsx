@@ -1,7 +1,12 @@
 import React from 'react';
 import KitchenDisplaySystem from './KitchenDisplaySystem';
 
-const KitchenDashboard: React.FC = () => {
+interface KitchenDashboardProps {
+  email?: string;
+  password?: string;
+}
+
+const KitchenDashboard: React.FC<KitchenDashboardProps> = () => {
   return <KitchenDisplaySystem />;
 };
 
