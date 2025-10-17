@@ -65,7 +65,6 @@
 | Feature | Priority | Status | Description |
 |---------|----------|--------|-------------|
 | Phone Number Validation | High | ⏳ Pending | Only digits allowed, validate length |
-| Header Enhancement | Medium | ⏳ Pending | Add email display alongside phone number |
 ### Waiter Module
 
 | Feature | Priority | Status | Description |
@@ -74,7 +73,6 @@
 | Phone Validation | High | ⏳ Pending | Allow only digits, validate length |
 | Whitespace Fix | Medium | ⏳ Pending | Fix whitespace on item status/bill icon clicks |
 | Send to Kitchen Validation | High | ⏳ Pending | Disable button if customer details missing |
-| Vehicle Number Validation | High | ⏳ Pending | Validate format: KL 00 00 AA 0000 |
 | Live Notifications | High | ⏳ Pending | Make notification tab real-time, persist notifications |
 
 
