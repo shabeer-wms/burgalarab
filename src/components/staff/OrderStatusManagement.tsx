@@ -435,9 +435,14 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-title-medium">Order {order.id.slice(-6)}</h4>
-            {order.draft && (
-              <span className="chip chip-secondary">DRAFT</span>
-            )}
+            <div className="flex gap-2 items-center">
+              {order.draft && (
+                <span className="chip chip-secondary">DRAFT</span>
+              )}
+              {order.paused && (
+                <span className="chip chip-warning bg-yellow-100 text-yellow-800">PAUSED</span>
+              )}
+            </div>
           </div>
           <div className="space-y-1 text-body-medium">
             <p><strong>Customer:</strong> {order.customerName}</p>
