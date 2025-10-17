@@ -66,8 +66,6 @@
 |---------|----------|--------|-------------|
 | Phone Number Validation | High | ⏳ Pending | Only digits allowed, validate length |
 | Header Enhancement | Medium | ⏳ Pending | Add email display alongside phone number |
-| Item Variations | High | ⏳ Pending | Add default options like Sugar/Without Sugar, Spicy/Not Spicy |
-
 ### Waiter Module
 
 | Feature | Priority | Status | Description |
@@ -79,12 +77,7 @@
 | Vehicle Number Validation | High | ⏳ Pending | Validate format: KL 00 00 AA 0000 |
 | Live Notifications | High | ⏳ Pending | Make notification tab real-time, persist notifications |
 
-### Kitchen Module
 
-| Feature | Priority | Status | Description |
-|---------|----------|--------|-------------|
-| Swipe Functionality | Medium | ⏳ Pending | Add left swipe functionality to order dashboard |
-| View All Orders | Medium | ⏳ Pending | Provide "View All Orders" option for each status |
 
 ---
 
@@ -92,10 +85,9 @@
 
 ### Admin Module Status
 
-- **Completion**: 90%
-- **Pending Items**: 3
-- **High Priority**: 2 (Phone validation, Item variations)
-- **Medium Priority**: 1 (Header enhancement)
+- **Completion**: 95%
+- **Pending Items**: 1
+- **High Priority**:  Phone validation
 
 ### Waiter Module Status
 
@@ -108,9 +100,8 @@
 
 ### Kitchen Module Status
 
-- **Completion**: 95%
-- **Pending Items**: 2
-- **Medium Priority**: 2 (Swipe functionality, View all orders)
+- **Completion**: 100%
+- **Pending Items**: 0
 
 ---
 
