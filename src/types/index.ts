@@ -110,6 +110,7 @@ export interface Staff {
   name: string;
   email: string;
   phoneNumber: string;
+  countryCode?: string; // Store country code separately (IND, SAU, OMN)
   role: "waiter" | "kitchen" | "admin" | "manager";
   isFrozen: boolean;
   dateJoined: string;

@@ -39,6 +39,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
     name: '',
     phone: '',
     vehicleNumber: '',
+    countryCode: 'OMN',
   });
   const [orderType, setOrderType] = useState<'dine-in' | 'delivery'>('dine-in');
 
@@ -240,7 +241,11 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               customerDetails.vehicleNumber.trim() !== ''
             );
           } else {
-            return selectedTable !== '';
+            return (
+              customerDetails.name.trim() !== '' &&
+              customerDetails.phone.trim() !== '' &&
+              selectedTable !== ''
+            );
           }
         }
       });
@@ -338,7 +343,21 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       name: '',
       phone: '',
       vehicleNumber: '',
+      countryCode: 'OMN',
     });
+  // Validation for customer details
+  const isCustomerDetailsValid = () => {
+    if (!customerDetails.name.trim()) return false;
+    if (!customerDetails.phone.trim()) return false;
+    if (!customerDetails.countryCode) return false;
+    // Enforce exact digit count
+    const phone = customerDetails.phone.trim();
+    if (customerDetails.countryCode === 'IND' && phone.length !== 10) return false;
+    if (customerDetails.countryCode === 'SAU' && phone.length !== 9) return false;
+    if (customerDetails.countryCode === 'OMN' && phone.length !== 8) return false;
+    if (orderType === 'delivery' && !customerDetails.vehicleNumber.trim()) return false;
+    return true;
+  };
     // Also clear the selected table - ensure both local and parent state are cleared
     setSelectedTableState('');
     if (setSelectedTable) {
@@ -381,7 +400,15 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
         return;
       }
     } else {
-      // For dine-in orders, check if table is selected
+      // For dine-in orders, check if customer name, phone, and table are filled
+      if (customerDetails.name.trim() === '') {
+        showNotification('Please enter customer name for dine-in orders', 'error');
+        return;
+      }
+      if (customerDetails.phone.trim() === '') {
+        showNotification('Please enter customer phone number for dine-in orders', 'error');
+        return;
+      }
       if (!selectedTable) {
         showNotification('Please select a table number for dine-in orders', 'error');
         return;
@@ -464,7 +491,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       
       // Clear all fields for new customer
       setOrderItems([]);
-      setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
+  setCustomerDetails({ name: '', phone: '', vehicleNumber: '', countryCode: 'OMN' });
       
       // Show QR for tracking (optional)
       setQrForOrderId(newOrderId);
@@ -475,7 +502,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       
       // Clear all fields for new customer
       setOrderItems([]);
-      setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
+  setCustomerDetails({ name: '', phone: '', vehicleNumber: '', countryCode: 'OMN' });
     }
   };
 
@@ -501,7 +528,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       
       // Clear all fields for new customer
       setOrderItems([]);
-      setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
+  setCustomerDetails({ name: '', phone: '', vehicleNumber: '', countryCode: 'OMN' });
       
       // Show QR modal for tracking (optional)
       setQrForOrderId(newOrderId);
@@ -512,7 +539,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       
       // Clear all fields for new customer
       setOrderItems([]);
-      setCustomerDetails({ name: '', phone: '', vehicleNumber: '' });
+  setCustomerDetails({ name: '', phone: '', vehicleNumber: '', countryCode: 'OMN' });
     }
   };
 
@@ -589,13 +616,29 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
             onChange={(e) => updateCustomerDetails('name', e.target.value)}
             className="input-field text-sm py-2"
           />
-          <input
-            type="tel"
-            placeholder={orderType === 'delivery' ? "Phone Number *" : "Phone Number"}
-            value={customerDetails.phone}
-            onChange={(e) => updateCustomerDetails('phone', e.target.value)}
-            className="input-field text-sm py-2"
-          />
+          <div className="flex gap-2 items-center">
+            <select
+              value={customerDetails.countryCode || 'OMN'}
+              onChange={e => updateCustomerDetails('countryCode', e.target.value)}
+              className="input-field text-sm py-2 w-36"
+            >
+              <option value="OMN">OMN (+968)</option>
+              <option value="IND">IND (+91)</option>
+              <option value="SAU">SAU (+966)</option>
+            </select>
+            <input
+              type="tel"
+              placeholder={orderType === 'delivery' ? "Phone Number *" : "Phone Number"}
+              value={customerDetails.phone}
+              onChange={e => {
+                // Only allow numbers
+                const value = e.target.value.replace(/[^0-9]/g, "");
+                updateCustomerDetails('phone', value);
+              }}
+              maxLength={customerDetails.countryCode === 'IND' ? 10 : customerDetails.countryCode === 'SAU' ? 9 : 8}
+              className="input-field text-sm py-2 flex-1"
+            />
+          </div>
           {orderType === 'delivery' ? (
             <input
               type="text"
@@ -624,13 +667,28 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
             onChange={(e) => updateCustomerDetails('name', e.target.value)}
             className="input-field"
           />
-          <input
-            type="tel"
-            placeholder={orderType === 'delivery' ? "Phone Number *" : "Phone Number"}
-            value={customerDetails.phone}
-            onChange={(e) => updateCustomerDetails('phone', e.target.value)}
-            className="input-field"
-          />
+          <div className="flex gap-2 items-center">
+            <select
+              value={customerDetails.countryCode || 'OMN'}
+              onChange={e => updateCustomerDetails('countryCode', e.target.value)}
+              className="input-field w-36"
+            >
+              <option value="OMN">OMN (+968)</option>
+              <option value="IND">IND (+91)</option>
+              <option value="SAU">SAU (+966)</option>
+            </select>
+            <input
+              type="tel"
+              placeholder={orderType === 'delivery' ? "Phone Number *" : "Phone Number"}
+              value={customerDetails.phone}
+              onChange={e => {
+                const value = e.target.value.replace(/[^0-9]/g, "");
+                updateCustomerDetails('phone', value);
+              }}
+              maxLength={customerDetails.countryCode === 'IND' ? 10 : customerDetails.countryCode === 'SAU' ? 9 : 8}
+              className="input-field flex-1"
+            />
+          </div>
         </div>
         
         {/* Mobile-specific delivery/dine-in options */}
@@ -750,8 +808,8 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               
               return (
                 <div 
-                  key={item.id} 
-                  className={`card transition-all duration-200 text-left p-0 flex flex-col h-full ${
+                  key={item.id}
+                  className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 text-left p-0 flex flex-col h-full ${
                     isOutOfStock 
                       ? 'bg-red-100 border-red-300 cursor-not-allowed opacity-70' 
                       : isSelected 
