@@ -155,23 +155,24 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
         });
       }
     } else if (selectedPeriod === "this_month") {
-      // Show weeks of current month
+      // Always show 4 weeks for the current month
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const currentWeek = Math.ceil(now.getDate() / 7);
-      
-      for (let week = 1; week <= currentWeek; week++) {
+      for (let week = 1; week <= 4; week++) {
         const weekStart = new Date(firstDay);
         weekStart.setDate((week - 1) * 7 + 1);
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
-        
+        // Ensure weekEnd does not exceed the last day of the month
+        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        if (weekEnd > lastDayOfMonth) weekEnd.setTime(lastDayOfMonth.getTime());
+
         const weekOrders = orders.filter((order) => {
           const orderDate = getOrderDate(order);
           return orderDate && orderDate >= weekStart && orderDate <= weekEnd && order.paymentStatus === "paid";
         });
-        
+
         const revenue = weekOrders.reduce((sum, order) => sum + (order.grandTotal || order.total || 0), 0);
-        
+
         data.push({
           date: `Week ${week}`,
           revenue: revenue,
@@ -179,19 +180,17 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
         });
       }
     } else if (selectedPeriod === "this_year") {
-      // Show months of current year
+      // Always show all 12 months for current year
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const currentMonth = now.getMonth();
-      
-      for (let month = 0; month <= currentMonth; month++) {
+      for (let month = 0; month < 12; month++) {
         const monthOrders = orders.filter((order) => {
           const orderDate = getOrderDate(order);
           return orderDate && orderDate.getFullYear() === now.getFullYear() && 
                  orderDate.getMonth() === month && order.paymentStatus === "paid";
         });
-        
+
         const revenue = monthOrders.reduce((sum, order) => sum + (order.grandTotal || order.total || 0), 0);
-        
+
         data.push({
           date: months[month],
           revenue: revenue,
