@@ -511,35 +511,35 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
     if (isProcessingPayment) {
       return;
     }
-    
+
     if (paymentOption === 'now') {
       // Just show payment method dialog without creating order yet
       setShowPaymentDialog(false);
       setShowPaymentMethodDialog(true);
       return;
     }
-    
+
+    // Hide payment dialog immediately before async work
+    setShowPaymentDialog(false);
+    setIsProcessingPayment(true); // Show global loading overlay
     try {
       // Create order with pending payment status
       const newOrderId = await createOrder('pending');
-      
-      // Hide payment dialog
-      setShowPaymentDialog(false);
-      
+
       // Clear all fields for new customer
       setOrderItems([]);
-  setCustomerDetails({ name: '', phone: '', vehicleNumber: '', countryCode: 'OMN' });
-      
+      setCustomerDetails({ name: '', phone: '', vehicleNumber: '', countryCode: 'OMN' });
+
       // Show QR modal for tracking (optional)
       setQrForOrderId(newOrderId);
-      
+
     } catch (error) {
       // Silently handle errors
-      setShowPaymentDialog(false);
-      
       // Clear all fields for new customer
       setOrderItems([]);
-  setCustomerDetails({ name: '', phone: '', vehicleNumber: '', countryCode: 'OMN' });
+      setCustomerDetails({ name: '', phone: '', vehicleNumber: '', countryCode: 'OMN' });
+    } finally {
+      setIsProcessingPayment(false); // Hide loading overlay
     }
   };
 
@@ -805,16 +805,16 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               const existingItem = orderItems.find(orderItem => orderItem.menuItem.id === item.id);
               const isSelected = existingItem && existingItem.quantity > 0;
               const isOutOfStock = !item.available;
-              
+              // Use a strong fill for selected
               return (
                 <div 
                   key={item.id}
-                  className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 text-left p-0 flex flex-col h-full ${
+                  className={`rounded-lg shadow-sm border overflow-hidden transition-all duration-200 text-left p-0 flex flex-col h-full ${
                     isOutOfStock 
                       ? 'bg-red-100 border-red-300 cursor-not-allowed opacity-70' 
                       : isSelected 
-                        ? 'bg-green-100 border-green-300 hover:bg-green-150 hover:shadow-elevation-4' 
-                        : 'hover:shadow-elevation-4'
+                        ? 'bg-green-100 border-green-300 text-green-900' // lighter green fill and dark text
+                        : 'bg-white border-gray-200 hover:shadow-elevation-4'
                   }`}
                   onClick={() => item.available && addToOrder(item)}
                   style={{ cursor: item.available ? 'pointer' : 'not-allowed' }}
@@ -943,11 +943,22 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       </div>
     </div>
 
+
+      {/* Global Loading Overlay for Pay Later */}
+      {isProcessingPayment && !showPaymentDialog && !showPaymentMethodDialog && !qrForOrderId && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-40" style={{ margin: 0, padding: 0 }}>
+          <div className="bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center">
+            <Loader2 className="w-10 h-10 animate-spin text-primary-500 mb-4" />
+            <p className="text-lg font-medium text-surface-700">Processing order...</p>
+          </div>
+        </div>
+      )}
+
       {/* QR Code Modal */}
       {qrForOrderId && (
-        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl shadow-lg w-full max-w-md overflow-hidden">
-            <div className="p-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white flex items-center justify-between">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{ margin: 0, padding: 0 }}>
+          <div className="bg-white rounded-3xl shadow-lg w-full max-w-md overflow-hidden mx-4 max-h-[90vh] overflow-y-auto relative">
+            <div className="sticky top-0 p-6 bg-gradient-to-r from-primary-600 to-secondary-600 text-white flex items-center justify-between z-10 rounded-t-3xl">
               <h3 className="text-title-large">Track Your Order</h3>
               <button
                 className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center"
@@ -974,9 +985,9 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
       {/* Payment Options Dialog */}
       {showPaymentDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-elevation-3 w-full max-w-md mx-4">
-            <div className="flex justify-between items-center p-6 border-b border-surface-200">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" style={{ margin: 0, padding: 0 }}>
+          <div className="bg-white rounded-2xl shadow-elevation-3 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white flex justify-between items-center p-6 border-b border-surface-200 z-10 rounded-t-2xl">
               <h3 className="text-title-large">Choose Payment Option</h3>
               <button
                 onClick={() => {
@@ -1041,8 +1052,8 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
       
       {/* Payment Method Dialog (Billing Dialog) */}
       {showPaymentMethodDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto relative">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{ margin: 0, padding: 0 }}>
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto relative mx-4">
             {/* Loading Overlay */}
             {isProcessingPayment && (
               <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 rounded-lg">
@@ -1052,7 +1063,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                 </div>
               </div>
             )}
-            <div className="flex items-center justify-between p-6 border-b border-surface-200">
+            <div className="sticky top-0 bg-white flex items-center justify-between p-6 border-b border-surface-200 z-10 rounded-t-lg">
               <h3 className="text-title-large">Generate Bill</h3>
               <button
                 onClick={() => {
@@ -1195,9 +1206,9 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
 
       {/* UPI QR Code Modal */}
       {showUpiQrModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-3 sm:p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[90%] sm:max-w-sm md:max-w-md p-3 sm:p-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]" style={{ margin: 0, padding: 0 }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[90%] sm:max-w-sm md:max-w-md max-h-[90vh] overflow-y-auto mx-3 sm:mx-4">
+            <div className="sticky top-0 bg-white flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 z-10 rounded-t-2xl">
               <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">Pay with UPI</h3>
               <button
                 onClick={() => setShowUpiQrModal(false)}
@@ -1207,7 +1218,8 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
               </button>
             </div>
             
-            <div className="text-center space-y-3 sm:space-y-4">
+            <div className="p-3 sm:p-4">
+              <div className="text-center space-y-3 sm:space-y-4">
               {/* QR Code */}
               <div className="bg-gray-50 p-2 sm:p-3 md:p-4 rounded-xl border-2 border-gray-200 inline-block">
                 <img 
@@ -1264,6 +1276,7 @@ const OrderManagement: React.FC<OrderManagementProps> = ({
                 >
                   Cancel
                 </button>
+              </div>
               </div>
             </div>
           </div>
