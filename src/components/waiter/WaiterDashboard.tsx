@@ -86,27 +86,30 @@ const WaiterDashboard: React.FC<WaiterDashboardProps> = () => {
 
   const confirmedOrders = waiterOrders.filter(o => o.status === 'confirmed');
   const preparingOrders = waiterOrders.filter(o => o.status === 'preparing');
-  const [viewedOrderIds, setViewedOrderIds] = useState<string[]>([]);
+  // Persist viewedOrderIds in sessionStorage to keep across reloads in a session
+  const [viewedOrderIds, setViewedOrderIds] = useState<string[]>(() => {
+    const stored = sessionStorage.getItem('waiter_viewedOrderIds');
+    return stored ? JSON.parse(stored) : [];
+  });
+  useEffect(() => {
+    sessionStorage.setItem('waiter_viewedOrderIds', JSON.stringify(viewedOrderIds));
+  }, [viewedOrderIds]);
   const readyOrders = waiterOrders.filter(o => o.status === 'ready' && !viewedOrderIds.includes(o.id));
   
   // Debug logging removed to prevent console spam
   
-  // Play sound and show notification when new ready order appears
+  // Only show alert for the latest unviewed notification after login
   useEffect(() => {
     const currentReadyOrderIds = readyOrders.map(o => o.id);
-    const newReadyOrders = readyOrders.filter(order => !previousReadyOrderIdsRef.current.includes(order.id));
-
-    if (newReadyOrders.length > 0) {
+    // Only show alert for the latest unviewed order, and only once per session
+    if (readyOrders.length > 0 && previousReadyOrderIdsRef.current.length === 0) {
       setShowNotification(true);
-      // Play notification sound
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current.play().catch(() => {});
       }
       setTimeout(() => setShowNotification(false), 3000);
     }
-
-    // Update the previous ready orders list
     previousReadyOrderIdsRef.current = currentReadyOrderIds;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyOrders]);
@@ -258,12 +261,14 @@ const WaiterDashboard: React.FC<WaiterDashboardProps> = () => {
             {/* Notification Modal - shows all ready orders as a snapshot when opened */}
             {showNotificationModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-4 sm:p-6 relative mx-2 sm:mx-0" style={{width: '100%', maxWidth: '400px'}}>
+                <div
+                  className="bg-white rounded-2xl shadow-2xl w-full p-4 sm:p-6 relative mx-2 sm:mx-0 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl"
+                >
                   <button
                     className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
                     onClick={() => {
-                      // Mark all viewed notifications as viewed
-                      setViewedOrderIds(prev => [...prev, ...readyOrdersSnapshot.map(o => o.id)]);
+                      // Mark all shown notifications as viewed (remove from notification page)
+                      setViewedOrderIds(prev => Array.from(new Set([...prev, ...readyOrdersSnapshot.map(o => o.id)])));
                       setReadyOrdersSnapshot([]);
                       setShowNotificationModal(false);
                     }}
@@ -312,21 +317,7 @@ const WaiterDashboard: React.FC<WaiterDashboardProps> = () => {
               </div>
             )}
                       <audio ref={audioRef} src="/notification.mp3" preload="auto" />
-                      {/* Notification dropdown */}
-                      {showNotification && readyOrders.length > 0 && (
-                        <div className="absolute right-0 mt-14 w-72 bg-white border border-yellow-400 rounded-xl shadow-lg z-50">
-                          <div className="p-4 flex items-center gap-3 border-b border-yellow-100">
-                            <Bell className="w-6 h-6 text-yellow-500" />
-                            <span className="font-semibold text-yellow-800">Latest Ready Order</span>
-                          </div>
-                          <div className="p-4">
-                            <div className="text-gray-800 font-medium">Order {readyOrders[readyOrders.length-1]?.id || 'N/A'}</div>
-                            <div className="text-gray-600 text-sm">Table: {readyOrders[readyOrders.length-1]?.tableNumber || 'N/A'}</div>
-                            <div className="text-gray-600 text-sm">Items: {readyOrders[readyOrders.length-1]?.items?.map(i => i.menuItem.name).join(', ') || 'N/A'}</div>
-                            <div className="text-green-600 text-xs mt-2">Status: Ready</div>
-                          </div>
-                        </div>
-                      )}
+                    
                     </div>
                   )}
             {/* Notification popup */}
