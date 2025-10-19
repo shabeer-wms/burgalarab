@@ -58,7 +58,8 @@ export const AdminStaff: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [newStaff, setNewStaff] = useState({
+  // Persist Add Staff form state in localStorage
+  const defaultStaff = {
     name: "",
     countryCode: "IND", // Default country code
     phoneNumber: "",
@@ -66,8 +67,25 @@ export const AdminStaff: React.FC = () => {
     role: "waiter" as "waiter" | "kitchen" | "admin",
     isFrozen: false,
     dateJoined: new Date().toISOString().split("T")[0],
-  });
+  };
+  const getInitialStaff = () => {
+    try {
+      const saved = localStorage.getItem("addStaffForm");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure dateJoined is always today if modal is opened fresh
+        return { ...defaultStaff, ...parsed };
+      }
+    } catch {}
+    return defaultStaff;
+  };
+  const [newStaff, setNewStaff] = useState(getInitialStaff());
   const [showStaffPassword, setShowStaffPassword] = useState(false);
+
+  // Save form state to localStorage whenever it changes
+  React.useEffect(() => {
+    localStorage.setItem("addStaffForm", JSON.stringify(newStaff));
+  }, [newStaff]);
 
   // Staff management functions
   const filteredStaff = staff
@@ -164,15 +182,8 @@ export const AdminStaff: React.FC = () => {
       };
       await addStaff(staffForAuth);
 
-      setNewStaff({
-        name: "",
-        countryCode: "IND",
-        phoneNumber: "",
-        password: "",
-        role: "waiter",
-        isFrozen: false,
-        dateJoined: new Date().toISOString().split("T")[0],
-      });
+      setNewStaff(defaultStaff);
+      localStorage.removeItem("addStaffForm");
       setShowAddStaffModal(false);
       showSnackbar("Staff member added successfully!");
     } catch (error: any) {
@@ -242,6 +253,13 @@ export const AdminStaff: React.FC = () => {
   const openEditModal = (staffMember: any) => {
     setSelectedStaff({ ...staffMember });
     setShowEditStaffModal(true);
+  };
+
+  // Helper to close Add Staff modal and reset form
+  const closeAddStaffModal = () => {
+    setShowAddStaffModal(false);
+    setNewStaff(defaultStaff);
+    localStorage.removeItem("addStaffForm");
   };
 
   return (
@@ -473,7 +491,7 @@ export const AdminStaff: React.FC = () => {
                 Add New Staff
               </h3>
               <button
-                onClick={() => setShowAddStaffModal(false)}
+                onClick={closeAddStaffModal}
                 className="text-gray-400 hover:text-gray-600 p-1"
               >
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -590,7 +608,7 @@ export const AdminStaff: React.FC = () => {
 
             <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 p-4 sm:p-6 border-t bg-gray-50">
               <button
-                onClick={() => setShowAddStaffModal(false)}
+                onClick={closeAddStaffModal}
                 className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
               >
                 Cancel
