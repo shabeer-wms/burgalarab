@@ -3,6 +3,16 @@ import { Plus, Search, Edit, X, ChevronLeft, ChevronRight, Eye, EyeOff } from "l
 import { useApp } from "../../../context/AppContext";
 import Snackbar, { SnackbarType } from "../../shared/SnackBar";
 
+// Helper function to get country code prefix
+const getCountryCodePrefix = (countryCode: string): string => {
+  const codes: { [key: string]: string } = {
+    "IND": "+91",
+    "SAU": "+966",
+    "OMN": "+968"
+  };
+  return codes[countryCode] || "";
+};
+
 export const AdminStaff: React.FC = () => {
   const { staff, addStaff, updateStaff } = useApp();
   const [staffSearchTerm, setStaffSearchTerm] = useState("");
@@ -48,15 +58,34 @@ export const AdminStaff: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [newStaff, setNewStaff] = useState({
+  // Persist Add Staff form state in localStorage
+  const defaultStaff = {
     name: "",
+    countryCode: "IND", // Default country code
     phoneNumber: "",
     password: "",
     role: "waiter" as "waiter" | "kitchen" | "admin",
     isFrozen: false,
     dateJoined: new Date().toISOString().split("T")[0],
-  });
+  };
+  const getInitialStaff = () => {
+    try {
+      const saved = localStorage.getItem("addStaffForm");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure dateJoined is always today if modal is opened fresh
+        return { ...defaultStaff, ...parsed };
+      }
+    } catch {}
+    return defaultStaff;
+  };
+  const [newStaff, setNewStaff] = useState(getInitialStaff());
   const [showStaffPassword, setShowStaffPassword] = useState(false);
+
+  // Save form state to localStorage whenever it changes
+  React.useEffect(() => {
+    localStorage.setItem("addStaffForm", JSON.stringify(newStaff));
+  }, [newStaff]);
 
   // Staff management functions
   const filteredStaff = staff
@@ -119,29 +148,42 @@ export const AdminStaff: React.FC = () => {
         showSnackbar("Please enter a phone number.", "error");
         return;
       }
+      if (!newStaff.countryCode.trim()) {
+        showSnackbar("Please select a country code.", "error");
+        return;
+      }
+      // Validate phone number length based on country code
+      const phoneLength = newStaff.phoneNumber.length;
+      let valid = false;
+      if (newStaff.countryCode === "OMN" && phoneLength === 8) valid = true;
+      if (newStaff.countryCode === "IND" && phoneLength === 10) valid = true;
+      if (newStaff.countryCode === "SAU" && phoneLength === 9) valid = true;
+      if (!valid) {
+        let msg = "Invalid phone number length for selected country.";
+        if (newStaff.countryCode === "OMN") msg = "Oman numbers must be 8 digits.";
+        if (newStaff.countryCode === "IND") msg = "India numbers must be 10 digits.";
+        if (newStaff.countryCode === "SAU") msg = "Saudi numbers must be 9 digits.";
+        showSnackbar(msg, "error");
+        return;
+      }
       
       if (!newStaff.password.trim()) {
         showSnackbar("Please enter a password.", "error");
         return;
       }
       
-      // Auto-generate email from phone number
+      // Auto-generate email from phone number (only numeric part)
       const generatedEmail = `${newStaff.phoneNumber}@gmail.com`;
-      const staffWithEmail = {
+      // Pass the staff data with countryCode
+      const staffForAuth = {
         ...newStaff,
+        phoneNumber: newStaff.phoneNumber, // Only number for auth
         email: generatedEmail,
       };
+      await addStaff(staffForAuth);
 
-      await addStaff(staffWithEmail);
-
-      setNewStaff({
-        name: "",
-        phoneNumber: "",
-        password: "",
-        role: "waiter",
-        isFrozen: false,
-        dateJoined: new Date().toISOString().split("T")[0],
-      });
+      setNewStaff(defaultStaff);
+      localStorage.removeItem("addStaffForm");
       setShowAddStaffModal(false);
       showSnackbar("Staff member added successfully!");
     } catch (error: any) {
@@ -213,6 +255,13 @@ export const AdminStaff: React.FC = () => {
     setShowEditStaffModal(true);
   };
 
+  // Helper to close Add Staff modal and reset form
+  const closeAddStaffModal = () => {
+    setShowAddStaffModal(false);
+    setNewStaff(defaultStaff);
+    localStorage.removeItem("addStaffForm");
+  };
+
   return (
     <>
       <div className="space-y-4 sm:space-y-6 pb-20 md:pb-12">
@@ -252,7 +301,7 @@ export const AdminStaff: React.FC = () => {
                     ID: {member.id}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
-                    Phone: {member.phoneNumber}
+                    Phone: {member.countryCode ? getCountryCodePrefix(member.countryCode) + " " : ""}{member.phoneNumber}
                   </p>
                 </div>
                 <div className="flex-shrink-0">
@@ -342,7 +391,7 @@ export const AdminStaff: React.FC = () => {
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {member.phoneNumber}
+                        {member.countryCode ? getCountryCodePrefix(member.countryCode) + " " : ""}{member.phoneNumber}
                       </div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
@@ -442,7 +491,7 @@ export const AdminStaff: React.FC = () => {
                 Add New Staff
               </h3>
               <button
-                onClick={() => setShowAddStaffModal(false)}
+                onClick={closeAddStaffModal}
                 className="text-gray-400 hover:text-gray-600 p-1"
               >
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -469,20 +518,30 @@ export const AdminStaff: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
+                  Country Code & Phone Number
                 </label>
-                <input
-                  type="tel"
-                  value={newStaff.phoneNumber}
-                  onChange={(e) =>
-                    setNewStaff({
-                      ...newStaff,
-                      phoneNumber: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="Enter phone number"
-                />
+                <div className="flex space-x-2">
+                  <select
+                    value={newStaff.countryCode}
+                    onChange={e => setNewStaff({ ...newStaff, countryCode: e.target.value })}
+                    className="px-2 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 bg-white"
+                  >
+                    <option value="IND">IND (+91)</option>
+                    <option value="SAU">SAU (+966)</option>
+                    <option value="OMN">OMN (+968)</option>
+                  </select>
+                  <input
+                    type="tel"
+                    value={newStaff.phoneNumber}
+                    onChange={e => {
+                      // Only allow numbers
+                      const value = e.target.value.replace(/[^0-9]/g, "");
+                      setNewStaff({ ...newStaff, phoneNumber: value });
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="Enter phone number"
+                  />
+                </div>
               </div>
 
               <div>
@@ -549,7 +608,7 @@ export const AdminStaff: React.FC = () => {
 
             <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 p-4 sm:p-6 border-t bg-gray-50">
               <button
-                onClick={() => setShowAddStaffModal(false)}
+                onClick={closeAddStaffModal}
                 className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
               >
                 Cancel

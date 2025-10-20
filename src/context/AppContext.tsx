@@ -519,10 +519,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Staff management functions
   const addStaff = async (staffData: Omit<Staff, "id" | "uid"> & { password: string }): Promise<void> => {
     try {
+      // Always use only the numeric phone number for auth and Firestore
+      let plainPhoneNumber = staffData.phoneNumber.replace(/^(IND|SAU|OMN)-/, "");
+
       // Check if phone number already exists in staff collection
       const existingStaffQuery = query(
         collection(db, "staff"),
-        where("phoneNumber", "==", staffData.phoneNumber)
+        where("phoneNumber", "==", plainPhoneNumber)
       );
       const existingStaffSnapshot = await getDocs(existingStaffQuery);
       
@@ -559,6 +562,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const { password, ...staffWithoutPassword } = staffData;
       const staffDoc = {
         ...staffWithoutPassword,
+        phoneNumber: plainPhoneNumber, // Store only numeric phone
+        countryCode: staffData.countryCode || "IND", // Store country code separately
         uid,
         createdAt: new Date(),
         updatedAt: new Date(),

@@ -51,20 +51,19 @@ const WaiterSettings: React.FC<WaiterSettingsProps> = ({ user, logout }) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-full ml-0 relative">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Settings</h2>
-        {/* Logout icon for small screens */}
-        <button
-          onClick={logout}
-          className="block md:hidden p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-          title="Logout"
-        >
-          <LogOut className="w-6 h-6" />
-        </button>
-      </div>
       {/* User Details Section */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">User Details</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-gray-700">User Details</h3>
+          {/* Logout icon for small screens, in same row as User Details heading */}
+          <button
+            onClick={logout}
+            className="block p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors md:hidden"
+            title="Logout"
+          >
+            <LogOut className="w-6 h-6" />
+          </button>
+        </div>
         <div className="bg-gray-50 rounded-lg p-4 space-y-3">
           <div className="flex items-center space-x-3">
             <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center">

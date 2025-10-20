@@ -78,9 +78,18 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Waiter, Kitchen, and Admin dashboards have their own layouts
+  const needsLayout = user.role === 'customer';
+
   return (
-    <Layout>
-      {renderDashboard()}
+    <>
+      {needsLayout ? (
+        <Layout>
+          {renderDashboard()}
+        </Layout>
+      ) : (
+        renderDashboard()
+      )}
       {notification && (
         <Snackbar 
           message={notification.message}
@@ -89,7 +98,7 @@ const AppContent: React.FC = () => {
           onClose={hideNotification}
         />
       )}
-    </Layout>
+    </>
   );
 };
 

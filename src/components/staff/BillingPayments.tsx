@@ -371,8 +371,8 @@ const BillingPayments: React.FC = () => {
 
       {/* Billing Dialog Modal */}
       {showBillingDialog && billingOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto relative">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style={{ margin: 0, padding: 0 }}>
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto relative mx-4">
             {/* Loading Overlay */}
             {isGeneratingBill && (
               <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 rounded-lg">
@@ -382,7 +382,7 @@ const BillingPayments: React.FC = () => {
                 </div>
               </div>
             )}
-            <div className="flex items-center justify-between p-6 border-b border-surface-200">
+            <div className="sticky top-0 bg-white flex items-center justify-between p-6 border-b border-surface-200 z-10 rounded-t-lg">
               <h3 className="text-title-large">Generate Bill</h3>
               <button
                 onClick={() => {
@@ -529,9 +529,9 @@ const BillingPayments: React.FC = () => {
 
       {/* UPI QR Code Modal */}
       {showUpiQrModal && billingOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-3 sm:p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[90%] sm:max-w-sm md:max-w-md p-3 sm:p-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]" style={{ margin: 0, padding: 0 }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[90%] sm:max-w-sm md:max-w-md max-h-[90vh] overflow-y-auto mx-3 sm:mx-4">
+            <div className="sticky top-0 bg-white flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 z-10 rounded-t-2xl">
               <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">Pay with UPI</h3>
               <button
                 onClick={() => setShowUpiQrModal(false)}
@@ -541,7 +541,8 @@ const BillingPayments: React.FC = () => {
               </button>
             </div>
             
-            <div className="text-center space-y-3 sm:space-y-4">
+            <div className="p-3 sm:p-4">
+              <div className="text-center space-y-3 sm:space-y-4">
               {/* QR Code */}
               <div className="bg-gray-50 p-2 sm:p-3 md:p-4 rounded-xl border-2 border-gray-200 inline-block">
                 <img 
@@ -616,6 +617,7 @@ const BillingPayments: React.FC = () => {
                 >
                   Cancel
                 </button>
+              </div>
               </div>
             </div>
           </div>

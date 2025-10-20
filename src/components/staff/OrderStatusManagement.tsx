@@ -374,10 +374,10 @@ const OrderStatusManagement: React.FC = () => {
       </div>
 
       {/* Order Details Dialog Modal */}
-  {showOrderDialog && selectedOrderId && (
-        <div className="fixed top-0 left-0 w-screen h-screen bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] m-0 p-0">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4 my-8">
-            <div className="flex items-center justify-between p-6 border-b border-surface-200">
+      {showOrderDialog && selectedOrderId && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999]" style={{ margin: 0, padding: 0 }}>
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4">
+            <div className="sticky top-0 bg-white flex items-center justify-between p-6 border-b border-surface-200 z-10">
               <h3 className="text-title-large">Order Details</h3>
               <button
                 onClick={() => {
@@ -435,9 +435,14 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ orderId }) => {
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-title-medium">Order {order.id.slice(-6)}</h4>
-            {order.draft && (
-              <span className="chip chip-secondary">DRAFT</span>
-            )}
+            <div className="flex gap-2 items-center">
+              {order.draft && (
+                <span className="chip chip-secondary">DRAFT</span>
+              )}
+              {order.paused && (
+                <span className="chip chip-warning bg-yellow-100 text-yellow-800">PAUSED</span>
+              )}
+            </div>
           </div>
           <div className="space-y-1 text-body-medium">
             <p><strong>Customer:</strong> {order.customerName}</p>
