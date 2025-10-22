@@ -25,7 +25,7 @@ import {
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 // --- Discord Logging Utility ---
-const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1430553611372335269/UHYp8mcvcczR-iRJcuk8YNJnqznsB35X7EoLgQD4N9Tp44L_BVHeHHyed6HVEjFzkPi-";
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1430553611372335269/UHYp8mcvcczR-iRJcuk8YNJnqznsB35X7EoLgQD4N9Tp44L_BVHeDHyed6HVEjFzkPi-";
 
 type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'AUTH_FAIL';
 
