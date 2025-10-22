@@ -24,6 +24,58 @@ import {
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
+// --- Discord Logging Utility ---
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1430553611372335269/UHYp8mcvcczR-iRJcuk8YNJnqznsB35X7EoLgQD4N9Tp44L_BVHeHHyed6HVEjFzkPi-";
+
+type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'AUTH_FAIL';
+
+const logToDiscord = async (
+  message: string,
+  level: LogLevel = 'INFO',
+  context: Record<string, any> = {}
+) => {
+  if (!DISCORD_WEBHOOK_URL) return;
+
+  const timestamp = new Date().toISOString();
+  let color = 3447003; // Blue (INFO)
+  if (level === 'ERROR') color = 15158332; // Red
+  if (level === 'WARN') color = 16776960; // Yellow
+  if (level === 'AUTH_FAIL') color = 10038562; // Purple/Red
+
+  const description = `**[${level}]** ${message}`;
+  const fields = Object.entries(context).map(([key, value]) => ({
+    name: key,
+    value: typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : String(value),
+    inline: false
+  }));
+
+  const payload = {
+    embeds: [
+      {
+        title: `[POS] System Log Event`,
+        description: description,
+        color: color,
+        timestamp: timestamp,
+        fields: fields,
+      }
+    ]
+  };
+
+  try {
+    await fetch(DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.error("Failed to send log to Discord:", err);
+  }
+};
+// -------------------------------
+
+
 interface AppContextType {
   categories: Category[];
   menuItems: MenuItem[];
@@ -201,6 +253,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return processedBill as Bill;
         } catch (error) {
           console.error("Error processing bill:", doc.id, error);
+          logToDiscord("Error processing bill data from Firestore.", "ERROR", { billId: doc.id, error: String(error) });
           // Return a minimal valid bill to prevent app crashes
           return {
             id: doc.id,
@@ -295,35 +348,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...orderData,
       orderTime,
     };
-    await setDoc(doc(db, "orders", newOrderId), newOrder);
+    try {
+      await setDoc(doc(db, "orders", newOrderId), newOrder);
 
-    // Add to kitchen display if confirmed
-    if (orderData.status === "confirmed") {
-      const kitchenItem: Omit<KitchenDisplayItem, "orderId"> & {
-        orderId: string;
-      } = {
-        orderId: newOrderId,
-        orderNumber: `${newOrderId}`,
-        customerName: orderData.customerName,
-        items: orderData.items,
-        orderTime,
-        estimatedTime: orderData.estimatedTime || 30,
-        priority: orderData.type === "dine-in" ? "high" : "medium",
-        status: "pending",
-      };
-      // Add optional fields only if they have values
-      if (orderData.tableNumber) {
-        kitchenItem.tableNumber = orderData.tableNumber;
+      // Add to kitchen display if confirmed
+      if (orderData.status === "confirmed") {
+        const kitchenItem: Omit<KitchenDisplayItem, "orderId"> & {
+          orderId: string;
+        } = {
+          orderId: newOrderId,
+          orderNumber: `${newOrderId}`,
+          customerName: orderData.customerName,
+          items: orderData.items,
+          orderTime,
+          estimatedTime: orderData.estimatedTime || 30,
+          priority: orderData.type === "dine-in" ? "high" : "medium",
+          status: "pending",
+        };
+        // Add optional fields only if they have values
+        if (orderData.tableNumber) {
+          kitchenItem.tableNumber = orderData.tableNumber;
+        }
+        await setDoc(doc(db, "kitchenOrders", newOrderId), kitchenItem);
       }
-      await setDoc(doc(db, "kitchenOrders", newOrderId), kitchenItem);
+      return newOrderId;
+    } catch (error) {
+      console.error("Error adding order:", error);
+      logToDiscord("Failed to add new order or kitchen item.", "ERROR", { orderData, error: String(error) });
+      throw error;
     }
-    return newOrderId;
   };
 
 
   const updateOrder = async (orderId: string, updates: Partial<Order>) => {
-    const ref = doc(db, 'orders', orderId);
-    await updateDoc(ref, updates);
+    try {
+      const ref = doc(db, 'orders', orderId);
+      await updateDoc(ref, updates);
+    } catch (error) {
+      console.error("Error updating order:", error);
+      logToDiscord("Failed to update order.", "ERROR", { orderId, updates, error: String(error) });
+      throw error;
+    }
   };
 
   const updateOrderItemStatus = async (
@@ -331,16 +396,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     itemId: string,
     status: OrderItem["status"]
   ) => {
-    const orderRef = doc(db, "orders", orderId);
-    const orderSnap = await getDocs(
-      query(collection(db, "orders"), where("__name__", "==", orderId))
-    );
-    if (!orderSnap.empty) {
-      const order = orderSnap.docs[0].data() as Order;
-      const updatedItems = order.items.map((item) =>
-        item.id === itemId ? { ...item, status } : item
+    try {
+      const orderRef = doc(db, "orders", orderId);
+      const orderSnap = await getDocs(
+        query(collection(db, "orders"), where("__name__", "==", orderId))
       );
-      updateDoc(orderRef, { items: updatedItems });
+      if (!orderSnap.empty) {
+        const order = orderSnap.docs[0].data() as Order;
+        const updatedItems = order.items.map((item) =>
+          item.id === itemId ? { ...item, status } : item
+        );
+        updateDoc(orderRef, { items: updatedItems });
+      }
+    } catch (error) {
+      console.error("Error updating order item status:", error);
+      logToDiscord("Failed to update order item status.", "ERROR", { orderId, itemId, status, error: String(error) });
+      throw error;
     }
   };
 
@@ -374,6 +445,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (err) {
       console.error('Failed to update kitchen/order status:', err);
+      logToDiscord("Failed to update kitchen/order status.", "ERROR", { orderId, status, paused, error: String(err) });
       try {
         showNotification('Failed to update status. Please retry.', 'error');
       } catch (_) {
@@ -462,6 +534,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return completeBill;
     } catch (error) {
       console.error('Error generating bill:', error);
+      logToDiscord("Failed to generate bill.", "ERROR", { orderId, generatedBy, error: String(error) });
       throw new Error(`Failed to generate bill: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -493,6 +566,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await addDoc(collection(db, "menuItems"), menuItem);
     } catch (error) {
       console.error("Error adding menu item:", error);
+      logToDiscord("Failed to add menu item.", "ERROR", { itemName: menuItemData.name, error: String(error) });
       throw error;
     }
   };
@@ -503,6 +577,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await updateDoc(doc(db, "menuItems", id), updateData);
     } catch (error) {
       console.error("Error updating menu item:", error);
+      logToDiscord("Failed to update menu item.", "ERROR", { itemId: id, updates, error: String(error) });
       throw error;
     }
   };
@@ -512,6 +587,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await deleteDoc(doc(db, "menuItems", id));
     } catch (error) {
       console.error("Error deleting menu item:", error);
+      logToDiscord("Failed to delete menu item.", "ERROR", { itemId: id, error: String(error) });
       throw error;
     }
   };
@@ -576,6 +652,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (error: any) {
       console.error("Error adding staff:", error);
       
+      logToDiscord("Failed to add new staff member.", "ERROR", { 
+        name: staffData.name, 
+        role: staffData.role, 
+        authError: error.code || error.message 
+      });
+
       // Check for specific error types
       if (error.message === "PHONE_NUMBER_EXISTS") {
         throw new Error("PHONE_NUMBER_EXISTS");
@@ -621,6 +703,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.log("Staff email updated in Firestore for phone change");
           } catch (authError) {
             console.error("Error updating Firebase Auth email:", authError);
+            logToDiscord("Attempted staff email change failed in Firebase Auth (requires user relogin/Admin SDK).", "WARN", { staffId: id, email: staffUpdates.email, error: String(authError) });
+
             // Still update Firestore even if Auth update fails
             const updateData = { ...staffUpdates, updatedAt: new Date() };
             await updateDoc(doc(db, "staff", id), updateData);
@@ -632,6 +716,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (error) {
       console.error("Error updating staff:", error);
+      logToDiscord("Failed to update staff details in Firestore.", "ERROR", { staffId: id, updates, error: String(error) });
       throw error;
     }
   };
@@ -651,15 +736,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           // This is a simplified approach - the user account will remain in Auth
           // but won't be able to access the system since Firestore record is deleted
           console.log(`Staff member deleted from Firestore. Auth UID ${staffMember.uid} should be cleaned up with Admin SDK.`);
+          logToDiscord("Staff member deleted from Firestore.", "INFO", { staffId: id, name: staffMember.name, cleanupNeeded: true });
         } catch (authError) {
           console.error("Error deleting from Firebase Auth:", authError);
+          logToDiscord("Failed to perform Firebase Auth cleanup upon staff deletion.", "WARN", { staffId: id, authError: String(authError) });
         }
+      } else {
+        logToDiscord("Staff member deleted from Firestore (No corresponding Auth UID found).", "INFO", { staffId: id });
       }
       
       console.log("Staff member deleted successfully");
       
     } catch (error) {
       console.error("Error deleting staff:", error);
+      logToDiscord("Failed to delete staff member.", "ERROR", { staffId: id, error: String(error) });
       throw error;
     }
   };
@@ -686,14 +776,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (staffMember) {
         // Check if the user is frozen
         if (staffMember.isFrozen) {
+          logToDiscord("Authentication attempt blocked: Account is frozen.", "AUTH_FAIL", { input: phoneOrEmail, staffId: staffMember.id });
           throw new Error("Account is frozen. Please contact administrator.");
         }
+        logToDiscord(`Staff authenticated successfully.`, "INFO", { staffId: staffMember.id, role: staffMember.role });
         return staffMember;
       } else {
         throw new Error("Staff member not found in database");
       }
     } catch (error) {
       console.error("Error authenticating staff:", error);
+      logToDiscord(`Staff authentication failed.`, "AUTH_FAIL", { input: phoneOrEmail, authError: String(error) });
       return null;
     }
   };
