@@ -931,19 +931,6 @@ const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({ order }) => {
                 <p className="text-body-medium font-medium">
                   OMR {(item.menuItem.price * item.quantity).toFixed(2)}
                 </p>
-                <div
-                  className={`chip text-xs ${
-                    item.status === "pending"
-                      ? "chip-warning"
-                      : item.status === "preparing"
-                      ? "chip-primary"
-                      : item.status === "ready"
-                      ? "chip-success"
-                      : "chip-secondary"
-                  }`}
-                >
-                  {item.status}
-                </div>
               </div>
             </div>
           ))}
